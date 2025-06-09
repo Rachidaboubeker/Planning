@@ -1,0 +1,902 @@
+{% extends "base.html" %}
+
+{% block title %}Planning Détaillé - Restaurant{% endblock %}
+
+{% block extra_css %}
+<style>
+    .planning-detailed {
+        background: white;
+        border-radius: var(--border-radius-xl);
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .planning-tabs {
+        display: flex;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .planning-tab {
+        flex: 1;
+        padding: 1rem;
+        text-align: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--gray-600);
+        transition: var(--transition);
+    }
+
+    .planning-tab.active {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .planning-tab:hover:not(.active) {
+        background: var(--gray-100);
+    }
+
+    .tab-content {
+        display: none;
+        padding: 2rem;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .day-schedule {
+        margin-bottom: 2rem;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+    }
+
+    .day-header-detailed {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .day-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .day-stats {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .shifts-timeline {
+        padding: 1.5rem;
+        background: white;
+    }
+
+    .shift-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background: var(--gray-50);
+        border-radius: var(--border-radius);
+        border-left: 4px solid var(--primary-color);
+        transition: var(--transition);
+    }
+
+    .shift-item:hover {
+        background: var(--gray-100);
+        transform: translateX(5px);
+    }
+
+    .shift-time-detail {
+        min-width: 120px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .shift-employee-detail {
+        flex: 1;
+        margin-left: 1rem;
+    }
+
+    .employee-name-detail {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .employee-role-detail {
+        font-size: 0.9rem;
+        color: var(--gray-600);
+    }
+
+    .shift-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .btn-icon.edit {
+        background: var(--info-color);
+        color: white;
+    }
+
+    .btn-icon.delete {
+        background: var(--error-color);
+        color: white;
+    }
+
+    .btn-icon:hover {
+        transform: scale(1.1);
+    }
+
+    .employee-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .employee-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .employee-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .employee-header {
+        padding: 1.5rem;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .employee-name {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .employee-role {
+        color: var(--gray-600);
+        margin-bottom: 1rem;
+    }
+
+    .employee-week-stats {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .employee-stat {
+        text-align: center;
+    }
+
+    .employee-stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .employee-stat-label {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .employee-shifts {
+        padding: 1.5rem;
+    }
+
+    .employee-shift-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: var(--gray-50);
+        border-radius: var(--border-radius);
+    }
+
+    .shift-day-time {
+        font-weight: 600;
+    }
+
+    .shift-duration {
+        color: var(--gray-600);
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-500);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .filter-controls {
+        background: var(--gray-50);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        font-weight: 500;
+        color: var(--gray-700);
+    }
+
+    .filter-group select {
+        padding: 0.5rem;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--border-radius);
+        background: white;
+    }
+
+    .export-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .planning-tabs {
+            flex-direction: column;
+        }
+
+        .day-header-detailed {
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .shift-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .shift-actions {
+            align-self: flex-end;
+        }
+
+        .employee-view {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .export-actions {
+            margin-left: 0;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="planning-detailed">
+    <!-- En-tête avec navigation -->
+    <div class="planning-header">
+        <div class="week-navigation">
+            <button class="btn btn-outline" onclick="previousWeek()">
+                <i class="fas fa-chevron-left"></i> Semaine précédente
+            </button>
+            <h1 class="current-week">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="weekTitle">{{ current_week or 'Semaine courante' }}</span>
+            </h1>
+            <button class="btn btn-outline" onclick="nextWeek()">
+                Semaine suivante <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="planning-actions">
+            <button class="btn btn-primary" onclick="showAddShiftModal()">
+                <i class="fas fa-plus"></i> Ajouter un créneau
+            </button>
+            <button class="btn btn-secondary" onclick="exportPlanning()">
+                <i class="fas fa-download"></i> Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Contrôles de filtre -->
+    <div class="filter-controls">
+        <div class="filter-group">
+            <label for="filterEmployee">Équipier :</label>
+            <select id="filterEmployee" onchange="applyFilters()">
+                <option value="">Tous les équipiers</option>
+                {% for employee in employees %}
+                <option value="{{ employee.id }}">{{ employee.nom_complet }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterType">Type de poste :</label>
+            <select id="filterType" onchange="applyFilters()">
+                <option value="">Tous les postes</option>
+                {% for type_key, type_info in employee_types.items() %}
+                <option value="{{ type_key }}">{{ type_info.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterDay">Jour :</label>
+            <select id="filterDay" onchange="applyFilters()">
+                <option value="">Tous les jours</option>
+                {% for day in days %}
+                <option value="{{ day }}">{{ day }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="export-actions">
+            <button class="btn btn-outline" onclick="exportPDF()">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button class="btn btn-outline" onclick="exportExcel()">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Onglets de vue -->
+    <div class="planning-tabs">
+        <button class="planning-tab active" onclick="switchTab('day-view')">
+            <i class="fas fa-calendar-day"></i> Vue par jour
+        </button>
+        <button class="planning-tab" onclick="switchTab('employee-view')">
+            <i class="fas fa-users"></i> Vue par équipier
+        </button>
+        <button class="planning-tab" onclick="switchTab('timeline-view')">
+            <i class="fas fa-clock"></i> Timeline
+        </button>
+    </div>
+
+    <!-- Vue par jour -->
+    <div id="day-view" class="tab-content active">
+        {% for day in days %}
+        <div class="day-schedule" data-day="{{ day }}">
+            <div class="day-header-detailed">
+                <div class="day-title">
+                    <i class="fas fa-calendar"></i> {{ day }}
+                </div>
+                <div class="day-stats">
+                    <span id="dayHours-{{ day }}">0h</span> •
+                    <span id="dayEmployees-{{ day }}">0 équipiers</span>
+                </div>
+            </div>
+
+            <div class="shifts-timeline">
+                <div id="shifts-{{ day }}" class="shifts-container">
+                    <!-- Créneaux générés par JavaScript -->
+                </div>
+
+                <div class="day-actions" style="text-align: center; margin-top: 1rem;">
+                    <button class="btn btn-outline" onclick="showAddShiftModal('{{ day }}')">
+                        <i class="fas fa-plus"></i> Ajouter un créneau ce {{ day.lower() }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Vue par équipier -->
+    <div id="employee-view" class="tab-content">
+        <div class="employee-view" id="employeeCards">
+            <!-- Cartes d'équipiers générées par JavaScript -->
+        </div>
+    </div>
+
+    <!-- Vue timeline -->
+    <div id="timeline-view" class="tab-content">
+        <div class="timeline-container">
+            <canvas id="timelineCanvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-exclamation-triangle"></i> Confirmer la suppression</h2>
+            <span class="modal-close" onclick="closeModal('deleteModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir supprimer ce créneau ?</p>
+            <p><strong id="deleteShiftInfo"></strong></p>
+            <p class="text-warning">Cette action est irréversible.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Annuler</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <i class="fas fa-trash"></i> Supprimer
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales pour la vue détaillée
+let filteredData = {
+    employees: new Map(),
+    shifts: new Map(),
+    filters: {
+        employee: '',
+        type: '',
+        day: ''
+    }
+};
+
+// Initialisation de la vue détaillée
+document.addEventListener('DOMContentLoaded', function() {
+    loadDetailedPlanningData();
+    generateDetailedViews();
+});
+
+function loadDetailedPlanningData() {
+    // Charger les données depuis les variables globales ou l'API
+    const employeesData = {{ employees | tojson }};
+    const shiftsData = {{ shifts | tojson }};
+
+    filteredData.employees.clear();
+    filteredData.shifts.clear();
+
+    employeesData.forEach(emp => {
+        filteredData.employees.set(emp.id, emp);
+    });
+
+    shiftsData.forEach(shift => {
+        filteredData.shifts.set(shift.id, shift);
+    });
+}
+
+function generateDetailedViews() {
+    generateDayView();
+    generateEmployeeView();
+    generateTimelineView();
+    updateDayStats();
+}
+
+function generateDayView() {
+    const days = {{ days | tojson }};
+
+    days.forEach(day => {
+        const container = document.getElementById(`shifts-${day}`);
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        // Récupérer les créneaux du jour
+        const dayShifts = Array.from(filteredData.shifts.values())
+            .filter(shift => shift.day === day && passesFilters(shift))
+            .sort((a, b) => a.start_hour - b.start_hour);
+
+        if (dayShifts.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Aucun service programmé ce ${day.toLowerCase()}</p>
+                </div>
+            `;
+            return;
+        }
+
+        dayShifts.forEach(shift => {
+            const employee = filteredData.employees.get(shift.employee_id);
+            if (!employee) return;
+
+            const shiftElement = document.createElement('div');
+            shiftElement.className = 'shift-item';
+            shiftElement.style.borderLeftColor = getEmployeeColor(employee.poste);
+
+            shiftElement.innerHTML = `
+                <div class="shift-time-detail">
+                    <i class="fas fa-clock"></i> ${shift.formatted_hours}
+                </div>
+                <div class="shift-employee-detail">
+                    <div class="employee-name-detail">${employee.nom_complet}</div>
+                    <div class="employee-role-detail">
+                        <i class="fas fa-user-tag"></i> ${employee.type_info.name}
+                        ${shift.duration > 1 ? `• ${shift.duration}h` : ''}
+                        ${shift.notes ? `• ${shift.notes}` : ''}
+                    </div>
+                </div>
+                <div class="shift-actions">
+                    <button class="btn-icon edit" onclick="editShift('${shift.id}')" title="Modifier">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon delete" onclick="confirmDeleteShift('${shift.id}')" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(shiftElement);
+        });
+    });
+}
+
+function generateEmployeeView() {
+    const container = document.getElementById('employeeCards');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const employees = Array.from(filteredData.employees.values())
+        .filter(emp => passesEmployeeFilters(emp))
+        .sort((a, b) => a.nom.localeCompare(b.nom));
+
+    if (employees.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>Aucun équipier ne correspond aux filtres</p>
+            </div>
+        `;
+        return;
+    }
+
+    employees.forEach(employee => {
+        const employeeShifts = Array.from(filteredData.shifts.values())
+            .filter(shift => shift.employee_id === employee.id && passesFilters(shift));
+
+        const totalHours = employeeShifts.reduce((sum, shift) => sum + shift.duration, 0);
+        const totalCost = totalHours * employee.taux_horaire;
+
+        const card = document.createElement('div');
+        card.className = 'employee-card';
+
+        card.innerHTML = `
+            <div class="employee-header">
+                <div class="employee-name">${employee.nom_complet}</div>
+                <div class="employee-role">
+                    <i class="fas fa-user-tag"></i> ${employee.type_info.name}
+                </div>
+                <div class="employee-week-stats">
+                    <div class="employee-stat">
+                        <div class="employee-stat-value">${totalHours}h</div>
+                        <div class="employee-stat-label">Total</div>
+                    </div>
+                    <div class="employee-stat">
+                        <div class="employee-stat-value">${employeeShifts.length}</div>
+                        <div class="employee-stat-label">Services</div>
+                    </div>
+                    <div class="employee-stat">
+                        <div class="employee-stat-value">€${totalCost.toFixed(0)}</div>
+                        <div class="employee-stat-label">Coût</div>
+                    </div>
+                </div>
+            </div>
+            <div class="employee-shifts">
+                ${employeeShifts.length > 0 ?
+                    employeeShifts
+                        .sort((a, b) => {
+                            const dayOrder = {{ days | tojson }};
+                            return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day) || a.start_hour - b.start_hour;
+                        })
+                        .map(shift => `
+                            <div class="employee-shift-item">
+                                <div>
+                                    <div class="shift-day-time">${shift.day} ${shift.formatted_hours}</div>
+                                    <div class="shift-duration">${shift.duration}h${shift.notes ? ` • ${shift.notes}` : ''}</div>
+                                </div>
+                                <div class="shift-actions">
+                                    <button class="btn-icon edit" onclick="editShift('${shift.id}')" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')
+                    : '<div class="empty-state"><i class="fas fa-calendar-times"></i><p>Aucun service cette semaine</p></div>'
+                }
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function generateTimelineView() {
+    const canvas = document.getElementById('timelineCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Effacer le canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Configuration
+    const days = {{ days | tojson }};
+    const hours = {{ hours | tojson }};
+    const dayWidth = width / days.length;
+    const hourHeight = height / hours.length;
+
+    // Dessiner la grille
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 1;
+
+    // Lignes verticales (jours)
+    for (let i = 0; i <= days.length; i++) {
+        const x = i * dayWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+
+    // Lignes horizontales (heures)
+    for (let i = 0; i <= hours.length; i++) {
+        const y = i * hourHeight;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+
+    // Dessiner les créneaux
+    Array.from(filteredData.shifts.values())
+        .filter(shift => passesFilters(shift))
+        .forEach(shift => {
+            const employee = filteredData.employees.get(shift.employee_id);
+            if (!employee) return;
+
+            const dayIndex = days.indexOf(shift.day);
+            const hourIndex = hours.indexOf(shift.start_hour);
+
+            if (dayIndex === -1 || hourIndex === -1) return;
+
+            const x = dayIndex * dayWidth + 2;
+            const y = hourIndex * hourHeight + 2;
+            const w = dayWidth - 4;
+            const h = (shift.duration * hourHeight) - 4;
+
+            // Couleur selon le type d'employé
+            ctx.fillStyle = getEmployeeColor(employee.poste);
+            ctx.fillRect(x, y, w, h);
+
+            // Texte
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+
+            const centerX = x + w / 2;
+            const centerY = y + h / 2;
+
+            ctx.fillText(employee.prenom, centerX, centerY);
+            if (h > 30) {
+                ctx.fillText(`${shift.duration}h`, centerX, centerY + 15);
+            }
+        });
+
+    // Légendes des jours
+    ctx.fillStyle = '#495057';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+
+    days.forEach((day, index) => {
+        const x = (index + 0.5) * dayWidth;
+        ctx.fillText(day.substr(0, 3), x, height + 20);
+    });
+
+    // Légendes des heures
+    ctx.textAlign = 'right';
+    hours.forEach((hour, index) => {
+        const y = (index + 0.5) * hourHeight;
+        ctx.fillText(`${hour.toString().padStart(2, '0')}h`, -5, y + 5);
+    });
+}
+
+function updateDayStats() {
+    const days = {{ days | tojson }};
+
+    days.forEach(day => {
+        const dayShifts = Array.from(filteredData.shifts.values())
+            .filter(shift => shift.day === day && passesFilters(shift));
+
+        const totalHours = dayShifts.reduce((sum, shift) => sum + shift.duration, 0);
+        const uniqueEmployees = new Set(dayShifts.map(shift => shift.employee_id)).size;
+
+        const hoursElement = document.getElementById(`dayHours-${day}`);
+        const employeesElement = document.getElementById(`dayEmployees-${day}`);
+
+        if (hoursElement) hoursElement.textContent = `${totalHours}h`;
+        if (employeesElement) employeesElement.textContent = `${uniqueEmployees} équipier${uniqueEmployees > 1 ? 's' : ''}`;
+    });
+}
+
+function passesFilters(shift) {
+    const filters = filteredData.filters;
+
+    if (filters.employee && shift.employee_id !== filters.employee) {
+        return false;
+    }
+
+    if (filters.day && shift.day !== filters.day) {
+        return false;
+    }
+
+    if (filters.type) {
+        const employee = filteredData.employees.get(shift.employee_id);
+        if (!employee || employee.poste !== filters.type) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function passesEmployeeFilters(employee) {
+    const filters = filteredData.filters;
+
+    if (filters.employee && employee.id !== filters.employee) {
+        return false;
+    }
+
+    if (filters.type && employee.poste !== filters.type) {
+        return false;
+    }
+
+    return true;
+}
+
+function getEmployeeColor(type) {
+    const colors = {
+        'cuisinier': '#74b9ff',
+        'serveur': '#00b894',
+        'barman': '#fdcb6e',
+        'manager': '#a29bfe',
+        'aide': '#6c5ce7',
+        'commis': '#fd79a8'
+    };
+    return colors[type] || '#74b9ff';
+}
+
+function switchTab(tabName) {
+    // Masquer tous les contenus
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Désactiver tous les onglets
+    document.querySelectorAll('.planning-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Afficher le contenu sélectionné
+    const content = document.getElementById(tabName);
+    if (content) {
+        content.classList.add('active');
+    }
+
+    // Activer l'onglet correspondant
+    const tabs = document.querySelectorAll('.planning-tab');
+    const tabIndex = ['day-view', 'employee-view', 'timeline-view'].indexOf(tabName);
+    if (tabs[tabIndex]) {
+        tabs[tabIndex].classList.add('active');
+    }
+
+    // Régénérer la vue si nécessaire
+    if (tabName === 'timeline-view') {
+        setTimeout(generateTimelineView, 100);
+    }
+}
+
+function applyFilters() {
+    filteredData.filters.employee = document.getElementById('filterEmployee').value;
+    filteredData.filters.type = document.getElementById('filterType').value;
+    filteredData.filters.day = document.getElementById('filterDay').value;
+
+    generateDetailedViews();
+}
+
+function editShift(shiftId) {
+    const shift = filteredData.shifts.get(shiftId);
+    if (shift && window.PlanningUI) {
+        window.PlanningUI.showEditShiftModal(shift);
+    }
+}
+
+function confirmDeleteShift(shiftId) {
+    const shift = filteredData.shifts.get(shiftId);
+    const employee = filteredData.employees.get(shift.employee_id);
+
+    if (!shift || !employee) return;
+
+    document.getElementById('deleteShiftInfo').textContent =
+        `${employee.nom_complet} - ${shift.day} ${shift.formatted_hours}`;
+
+    document.getElementById('confirmDeleteBtn').onclick = () => deleteShift(shiftId);
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+async function deleteShift(shiftId) {
+    try {
+        const result = await fetch(`/api/shifts/${shiftId}`, { method: 'DELETE' });
+        const data = await result.json();
+
+        if (data.success) {
+            filteredData.shifts.delete(shiftId);
+            generateDetailedViews();
+            closeModal('deleteModal');
+
+            if (window.NotificationManager) {
+                window.NotificationManager.show('✅ Créneau supprimé', 'success');
+            }
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        if (window.NotificationManager) {
+            window.NotificationManager.show('❌ Erreur lors de la suppression', 'error');
+        }
+    }
+}
+
+function exportPlanning() {
+    // Logique d'export (à implémenter selon les besoins)
+    if (window.NotificationManager) {
+        window.NotificationManager.show('Fonctionnalité d\'export en cours de développement', 'info');
+    }
+}
+
+function exportPDF() {
+    // Export PDF (nécessiterait une librairie comme jsPDF)
+    if (window.NotificationManager) {
+        window.NotificationManager.show('Export PDF en cours de développement', 'info');
+    }
+}
+
+function exportExcel() {
+    // Export Excel (nécessiterait une librairie comme SheetJS)
+    if (window.NotificationManager) {
+        window.NotificationManager.show('Export Excel en cours de développement', 'info');
+    }
+}
+</script>
+{% endblock %}

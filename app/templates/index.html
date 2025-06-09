@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+
+{% block title %}Planning Semaine - Restaurant{% endblock %}
+
+{% block content %}
+<div class="planning-container">
+    <!-- Header avec navigation semaine -->
+    <div class="planning-header">
+        <div class="week-navigation">
+            <button class="btn btn-outline" onclick="previousWeek()">
+                <i class="fas fa-chevron-left"></i> Semaine précédente
+            </button>
+            <h1 class="current-week">
+                <i class="fas fa-calendar-week"></i>
+                <span id="weekTitle">Semaine du 9 au 15 Juin 2025</span>
+            </h1>
+            <button class="btn btn-outline" onclick="nextWeek()">
+                Semaine suivante <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <div class="planning-actions">
+            <button class="btn btn-primary" onclick="showAddShiftModal()">
+                <i class="fas fa-plus"></i> Ajouter un créneau
+            </button>
+            <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
+                <i class="fas fa-user-plus"></i> Nouvel équipier
+            </button>
+        </div>
+    </div>
+
+    <!-- Légende des équipiers -->
+    <div class="legend-container" id="legendContainer">
+        <!-- Généré par JavaScript -->
+    </div>
+
+    <!-- Grille du planning -->
+    <div class="planning-wrapper">
+        <div class="planning-grid-container">
+            <!-- En-têtes fixes -->
+            <div class="planning-grid-header">
+                <div class="time-column-header">Heure</div>
+                {% for day in days %}
+                <div class="day-header">{{ day }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Grille principale avec positionnement relatif -->
+            <div class="planning-grid" id="planningGrid" style="position: relative;">
+                <!-- Généré par JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="quick-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="totalHoursDisplay">{{ stats.total_hours }}</div>
+            <div class="stat-label">Heures totales</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="activeEmployeesDisplay">{{ stats.active_employees }}</div>
+            <div class="stat-label">Équipiers actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="averageHoursDisplay">{{ "%.1f"|format(stats.average_hours) }}h</div>
+            <div class="stat-label">Moyenne par personne</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout de créneau -->
+<div id="addShiftModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-clock"></i> Ajouter un créneau</h2>
+            <span class="modal-close" onclick="closeModal('addShiftModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addShiftForm" class="form">
+                <div class="form-group">
+                    <label for="shiftEmployee">Équipier</label>
+                    <select id="shiftEmployee" required>
+                        <option value="">Sélectionner un équipier</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}" data-type="{{ employee.poste }}">
+                            {{ employee.nom_complet }} ({{ employee.type_info.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="shiftDay">Jour</label>
+                        <select id="shiftDay" required>
+                            {% for day in days %}
+                            <option value="{{ day }}">{{ day }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="shiftStartHour">Heure de début</label>
+                        <select id="shiftStartHour" required>
+                            {% for hour in hours %}
+                            <option value="{{ hour }}">{{ "%02d"|format(hour) }}:00</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="shiftDuration">Durée (heures)</label>
+                        <select id="shiftDuration" required>
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }}h</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="shiftNotes">Notes (optionnel)</label>
+                    <textarea id="shiftNotes" placeholder="Service spécial, remarques..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addShiftModal')">Annuler</button>
+            <button type="button" class="btn btn-primary" onclick="addShift()">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout d'équipier -->
+<div id="addEmployeeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> Nouvel équipier</h2>
+            <span class="modal-close" onclick="closeModal('addEmployeeModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addEmployeeForm" class="form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employeePrenom">Prénom *</label>
+                        <input type="text" id="employeePrenom" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="employeeNom">Nom *</label>
+                        <input type="text" id="employeeNom" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employeePoste">Poste *</label>
+                        <select id="employeePoste" required>
+                            {% for type_key, type_info in employee_types.items() %}
+                            <option value="{{ type_key }}">{{ type_info.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="employeeTauxHoraire">Taux horaire (€)</label>
+                        <input type="number" id="employeeTauxHoraire" min="10" max="50" step="0.5" value="15">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employeeEmail">Email</label>
+                        <input type="email" id="employeeEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="employeeTelephone">Téléphone</label>
+                        <input type="tel" id="employeeTelephone">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">Annuler</button>
+            <button type="button" class="btn btn-primary" onclick="addEmployee()">
+                <i class="fas fa-user-plus"></i> Créer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Données transmises par Flask
+const employeesData = {{ employees | tojson }};
+const shiftsData = {{ shifts | tojson }};
+const employeeTypes = {{ employee_types | tojson }};
+const daysOfWeek = {{ days | tojson }};
+const hoursRange = {{ hours | tojson }};
+
+// Variables globales
+let currentWeekOffset = 0;
+let employees = new Map();
+let shifts = new Map();
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Charger les données
+    loadEmployees();
+    loadShifts();
+
+    // Générer le planning
+    generatePlanningGrid();
+
+    // Actualiser les stats
+    updateQuickStats();
+});
+
+function loadEmployees() {
+    employees.clear();
+    employeesData.forEach(emp => {
+        employees.set(emp.id, emp);
+    });
+}
+
+function loadShifts() {
+    shifts.clear();
+    shiftsData.forEach(shift => {
+        shifts.set(shift.id, shift);
+    });
+}
+
+function generatePlanningGrid() {
+    const grid = document.getElementById('planningGrid');
+    grid.innerHTML = '';
+
+    hoursRange.forEach(hour => {
+        // Colonne heure
+        const timeSlot = document.createElement('div');
+        timeSlot.className = 'time-slot';
+        timeSlot.textContent = `${hour.toString().padStart(2, '0')}:00`;
+        grid.appendChild(timeSlot);
+
+        // Colonnes jours
+        daysOfWeek.forEach((day, dayIndex) => {
+            const cell = document.createElement('div');
+            cell.className = 'schedule-cell';
+            cell.dataset.hour = hour;
+            cell.dataset.day = day;
+            cell.dataset.dayIndex = dayIndex;
+
+            // Événements de drop
+            setupDropZone(cell);
+
+            // Ajouter un événement de double-clic pour créer un créneau
+            cell.addEventListener('dblclick', () => {
+                showAddShiftModal(day, hour);
+            });
+
+            grid.appendChild(cell);
+        });
+    });
+
+    // Rendre les créneaux multi-heures
+    renderShifts();
+}
+
+function renderShifts() {
+    const grid = document.getElementById('planningGrid');
+
+    // Supprimer les anciens blocs de créneaux
+    grid.querySelectorAll('.shift-block').forEach(block => block.remove());
+
+    shifts.forEach(shift => {
+        if (shift.duration === 1) {
+            renderSingleHourShift(shift);
+        } else {
+            renderMultiHourShift(shift);
+        }
+    });
+}
+
+function renderSingleHourShift(shift) {
+    const employee = employees.get(shift.employee_id);
+    if (!employee) return;
+
+    const cell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
+    if (!cell) return;
+
+    const block = createShiftBlock(shift, employee);
+    cell.appendChild(block);
+}
+
+function renderMultiHourShift(shift) {
+    const employee = employees.get(shift.employee_id);
+    if (!employee) return;
+
+    const grid = document.getElementById('planningGrid');
+    const dayIndex = daysOfWeek.indexOf(shift.day);
+    const startRowIndex = hoursRange.indexOf(shift.start_hour);
+
+    if (dayIndex === -1 || startRowIndex === -1) return;
+
+    const block = document.createElement('div');
+    block.className = `shift-block multi-hour-block employee-${employee.poste}`;
+    block.dataset.shiftId = shift.id;
+
+    // Contenu du bloc
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'shift-name';
+    nameDiv.textContent = employee.prenom;
+
+    const durationDiv = document.createElement('div');
+    durationDiv.className = 'shift-duration';
+    durationDiv.textContent = `${shift.duration}h`;
+
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'shift-time';
+    timeDiv.textContent = shift.formatted_hours;
+
+    block.appendChild(nameDiv);
+    block.appendChild(durationDiv);
+    block.appendChild(timeDiv);
+
+    // Positionnement CSS Grid
+    const cellHeight = 60;
+    const gridRowStart = startRowIndex + 2; // +2 pour en-tête
+    const gridRowEnd = gridRowStart + shift.duration;
+    const gridColumn = dayIndex + 2; // +2 pour colonne heure
+
+    block.style.gridRow = `${gridRowStart} / ${gridRowEnd}`;
+    block.style.gridColumn = `${gridColumn}`;
+    block.style.backgroundColor = employeeTypes[employee.poste].color;
+
+    // Tooltip
+    block.title = `${employee.nom_complet}\n${shift.formatted_hours}\n${shift.duration}h\nDouble-clic pour modifier`;
+
+    // Événements
+    setupShiftEvents(block, shift);
+
+    grid.appendChild(block);
+}
+
+function createShiftBlock(shift, employee) {
+    const block = document.createElement('div');
+    block.className = `shift-block single-hour-block employee-${employee.poste}`;
+    block.dataset.shiftId = shift.id;
+    block.textContent = employee.prenom;
+    block.style.backgroundColor = employeeTypes[employee.poste].color;
+
+    block.title = `${employee.nom_complet}\n${shift.formatted_hours}\nDouble-clic pour modifier`;
+
+    setupShiftEvents(block, shift);
+
+    return block;
+}
+
+function setupShiftEvents(block, shift) {
+    // Double-clic pour modifier
+    block.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        showEditShiftModal(shift);
+    });
+
+    // Drag and drop
+    setupDragAndDrop(block, shift);
+}
+
+function setupDropZone(cell) {
+    cell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+    });
+
+    cell.addEventListener('dragleave', () => {
+        cell.classList.remove('drag-over');
+    });
+
+    cell.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        handleDrop(e, cell);
+    });
+}
+
+function setupDragAndDrop(block, shift) {
+    block.draggable = true;
+
+    block.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', shift.id);
+        block.classList.add('dragging');
+    });
+
+    block.addEventListener('dragend', () => {
+        block.classList.remove('dragging');
+    });
+}
+
+async function handleDrop(e, targetCell) {
+    const shiftId = e.dataTransfer.getData('text/plain');
+    const shift = shifts.get(shiftId);
+
+    if (!shift) return;
+
+    const newDay = targetCell.dataset.day;
+    const newHour = parseInt(targetCell.dataset.hour);
+
+    // Vérifier si le déplacement est nécessaire
+    if (shift.day === newDay && shift.start_hour === newHour) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/shifts/${shiftId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                day: newDay,
+                start_hour: newHour
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Mettre à jour les données locales
+            shift.day = newDay;
+            shift.start_hour = newHour;
+            shifts.set(shiftId, data.shift);
+
+            // Régénérer le planning
+            generatePlanningGrid();
+            updateQuickStats();
+
+            showNotification('✅ Créneau déplacé avec succès', 'success');
+        } else {
+            showNotification(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('❌ Erreur de connexion', 'error');
+    }
+}
+
+function showAddShiftModal(defaultDay = '', defaultHour = '') {
+    if (defaultDay) {
+        document.getElementById('shiftDay').value = defaultDay;
+    }
+    if (defaultHour !== '') {
+        document.getElementById('shiftStartHour').value = defaultHour;
+    }
+
+    document.getElementById('addShiftModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function showAddEmployeeModal() {
+    document.getElementById('addEmployeeModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+async function addShift() {
+    const form = document.getElementById('addShiftForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const shiftData = {
+        employee_id: document.getElementById('shiftEmployee').value,
+        day: document.getElementById('shiftDay').value,
+        start_hour: parseInt(document.getElementById('shiftStartHour').value),
+        duration: parseInt(document.getElementById('shiftDuration').value),
+        notes: document.getElementById('shiftNotes').value
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/shifts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(shiftData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            shifts.set(data.shift.id, data.shift);
+            generatePlanningGrid();
+            updateQuickStats();
+            closeModal('addShiftModal');
+            form.reset();
+            showNotification('✅ Créneau ajouté avec succès', 'success');
+        } else {
+            showNotification(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('❌ Erreur de connexion', 'error');
+    }
+}
+
+async function addEmployee() {
+    const form = document.getElementById('addEmployeeForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const employeeData = {
+        prenom: document.getElementById('employeePrenom').value,
+        nom: document.getElementById('employeeNom').value,
+        poste: document.getElementById('employeePoste').value,
+        taux_horaire: parseFloat(document.getElementById('employeeTauxHoraire').value),
+        email: document.getElementById('employeeEmail').value,
+        telephone: document.getElementById('employeeTelephone').value
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/employees`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(employeeData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            employees.set(data.employee.id, data.employee);
+
+            // Ajouter à la liste déroulante
+            const select = document.getElementById('shiftEmployee');
+            const option = document.createElement('option');
+            option.value = data.employee.id;
+            option.textContent = `${data.employee.nom_complet} (${employeeTypes[data.employee.poste].name})`;
+            select.appendChild(option);
+
+            closeModal('addEmployeeModal');
+            form.reset();
+            showNotification('✅ Équipier ajouté avec succès', 'success');
+        } else {
+            showNotification(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('❌ Erreur de connexion', 'error');
+    }
+}
+
+async function updateQuickStats() {
+    try {
+        const response = await fetch(`${API_BASE}/stats/weekly`);
+        const data = await response.json();
+
+        if (data.success) {
+            const stats = data.stats;
+            document.getElementById('totalHoursDisplay').textContent = stats.total_hours;
+            document.getElementById('activeEmployeesDisplay').textContent = stats.active_employees;
+            document.getElementById('averageHoursDisplay').textContent = `${stats.average_hours}h`;
+        }
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour des stats:', error);
+    }
+}
+
+function previousWeek() {
+    currentWeekOffset--;
+    updateWeekDisplay();
+}
+
+function nextWeek() {
+    currentWeekOffset++;
+    updateWeekDisplay();
+}
+
+function updateWeekDisplay() {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - today.getDay() + 1 + (currentWeekOffset * 7));
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const options = { day: 'numeric', month: 'long' };
+    const mondayStr = monday.toLocaleDateString('fr-FR', options);
+    const sundayStr = sunday.toLocaleDateString('fr-FR', options);
+
+    document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
+}
+</script>
+{% endblock %}

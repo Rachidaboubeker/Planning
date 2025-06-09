@@ -1,0 +1,146 @@
+{
+  "emp_1": {
+    "id": "emp_1",
+    "nom": "Dupont",
+    "prenom": "Marie",
+    "poste": "serveur",
+    "email": "marie.dupont@restaurant.com",
+    "telephone": "06.12.34.56.78",
+    "taux_horaire": 16.0,
+    "actif": true,
+    "date_creation": "2024-01-15T10:30:00",
+    "nom_complet": "Marie Dupont",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    }
+  },
+  "emp_2": {
+    "id": "emp_2",
+    "nom": "Martin",
+    "prenom": "Pierre",
+    "poste": "cuisinier",
+    "email": "pierre.martin@restaurant.com",
+    "telephone": "06.23.45.67.89",
+    "taux_horaire": 18.5,
+    "actif": true,
+    "date_creation": "2024-01-10T14:20:00",
+    "nom_complet": "Pierre Martin",
+    "type_info": {
+      "color": "#74b9ff",
+      "name": "Cuisinier"
+    }
+  },
+  "emp_3": {
+    "id": "emp_3",
+    "nom": "Lemaire",
+    "prenom": "Julie",
+    "poste": "barman",
+    "email": "julie.lemaire@restaurant.com",
+    "telephone": "06.34.56.78.90",
+    "taux_horaire": 17.0,
+    "actif": true,
+    "date_creation": "2024-01-20T09:15:00",
+    "nom_complet": "Julie Lemaire",
+    "type_info": {
+      "color": "#fdcb6e",
+      "name": "Barman"
+    }
+  },
+  "emp_4": {
+    "id": "emp_4",
+    "nom": "Durand",
+    "prenom": "Thomas",
+    "poste": "manager",
+    "email": "thomas.durand@restaurant.com",
+    "telephone": "06.45.67.89.01",
+    "taux_horaire": 22.0,
+    "actif": true,
+    "date_creation": "2024-01-05T16:45:00",
+    "nom_complet": "Thomas Durand",
+    "type_info": {
+      "color": "#a29bfe",
+      "name": "Manager"
+    }
+  },
+  "emp_5": {
+    "id": "emp_5",
+    "nom": "Blanc",
+    "prenom": "Sophie",
+    "poste": "serveur",
+    "email": "sophie.blanc@restaurant.com",
+    "telephone": "06.56.78.90.12",
+    "taux_horaire": 15.5,
+    "actif": true,
+    "date_creation": "2024-02-01T11:30:00",
+    "nom_complet": "Sophie Blanc",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    }
+  },
+  "emp_6": {
+    "id": "emp_6",
+    "nom": "Noir",
+    "prenom": "Lucas",
+    "poste": "cuisinier",
+    "email": "lucas.noir@restaurant.com",
+    "telephone": "06.67.89.01.23",
+    "taux_horaire": 19.0,
+    "actif": true,
+    "date_creation": "2024-02-10T08:45:00",
+    "nom_complet": "Lucas Noir",
+    "type_info": {
+      "color": "#74b9ff",
+      "name": "Cuisinier"
+    }
+  },
+  "emp_7": {
+    "id": "emp_7",
+    "nom": "Roux",
+    "prenom": "Emma",
+    "poste": "aide",
+    "email": "emma.roux@restaurant.com",
+    "telephone": "06.78.90.12.34",
+    "taux_horaire": 12.5,
+    "actif": true,
+    "date_creation": "2024-02-15T13:20:00",
+    "nom_complet": "Emma Roux",
+    "type_info": {
+      "color": "#6c5ce7",
+      "name": "Aide de cuisine"
+    }
+  },
+  "emp_8": {
+    "id": "emp_8",
+    "nom": "Vert",
+    "prenom": "Antoine",
+    "poste": "commis",
+    "email": "antoine.vert@restaurant.com",
+    "telephone": "06.89.01.23.45",
+    "taux_horaire": 13.0,
+    "actif": true,
+    "date_creation": "2024-03-01T10:15:00",
+    "nom_complet": "Antoine Vert",
+    "type_info": {
+      "color": "#fd79a8",
+      "name": "Commis"
+    }
+  },
+  "emp_1749503087277": {
+    "id": "emp_1749503087277",
+    "nom": "Aboubeker",
+    "prenom": "Rachid",
+    "poste": "serveur",
+    "email": "aboubeker@gmail.com",
+    "telephone": "0667448000",
+    "taux_horaire": 15.0,
+    "actif": true,
+    "date_creation": "2025-06-09T23:04:47.277889",
+    "nom_complet": "Rachid Aboubeker",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    }
+  }
+}

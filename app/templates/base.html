@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Planning Restaurant{% endblock %}</title>
+
+    <!-- CSS personnalisé -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-utensils"></i>
+                <span>Planning Restaurant</span>
+            </div>
+
+            <div class="nav-menu">
+                <a href="{{ url_for('main.index') }}" class="nav-link {{ 'active' if request.endpoint == 'main.index' }}">
+                    <i class="fas fa-calendar-week"></i> Planning
+                </a>
+                <a href="{{ url_for('main.employees') }}" class="nav-link {{ 'active' if request.endpoint == 'main.employees' }}">
+                    <i class="fas fa-users"></i> Équipiers
+                </a>
+                <a href="#" class="nav-link" onclick="showStats()">
+                    <i class="fas fa-chart-bar"></i> Statistiques
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Notifications -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- Modal global -->
+    <div id="globalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Titre</h2>
+                <span class="modal-close" onclick="closeModal('globalModal')">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Contenu dynamique -->
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <!-- Boutons dynamiques -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de base -->
+    <script src="{{ url_for('static', filename='js/planning.js') }}"></script>
+
+    <!-- Script global pour les notifications et modals -->
+    <script>
+        // Configuration globale
+        window.API_BASE = '/api';
+
+        // Fonctions globales
+        function showNotification(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+
+            const colors = {
+                success: 'linear-gradient(135deg, #00b894, #00a085)',
+                error: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+                info: 'linear-gradient(135deg, #74b9ff, #0984e3)',
+                warning: 'linear-gradient(135deg, #fdcb6e, #e17055)'
+            };
+
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            notification.style.background = colors[type];
+            container.appendChild(notification);
+
+            // Animation d'entrée
+            setTimeout(() => notification.classList.add('show'), 10);
+
+            // Suppression automatique
+            setTimeout(() => {
+                notification.classList.add('hide');
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        }
+
+        function openModal(title, content, buttons = []) {
+            const modal = document.getElementById('globalModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const modalFooter = document.getElementById('modalFooter');
+
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+
+            // Générer les boutons
+            modalFooter.innerHTML = '';
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.className = `btn ${button.class || 'btn-primary'}`;
+                btn.textContent = button.text;
+                btn.onclick = button.onclick;
+                modalFooter.appendChild(btn);
+            });
+
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        async function showStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats/weekly`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    const content = `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.total_hours}</div>
+                                <div class="stat-label">Heures totales</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.active_employees}</div>
+                                <div class="stat-label">Équipiers actifs</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.average_hours}h</div>
+                                <div class="stat-label">Moyenne par personne</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">€${stats.total_cost}</div>
+                                <div class="stat-label">Coût total estimé</div>
+                            </div>
+                        </div>
+
+                        <div class="employee-stats">
+                            <h3>Détail par équipier</h3>
+                            <div class="employee-stats-list">
+                                ${Object.values(stats.employee_details).map(emp => `
+                                    <div class="employee-stat-item">
+                                        <div class="employee-info">
+                                            <strong>${emp.name}</strong>
+                                            <span class="employee-type">${emp.type}</span>
+                                        </div>
+                                        <div class="employee-hours">
+                                            <span>${emp.hours}h</span>
+                                            <span class="employee-cost">€${emp.cost.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+
+                    openModal('📊 Statistiques de la semaine', content, [
+                        { text: 'Fermer', class: 'btn-secondary', onclick: () => closeModal('globalModal') }
+                    ]);
+                } else {
+                    showNotification('Erreur lors du chargement des statistiques', 'error');
+                }
+            } catch (error) {
+                showNotification('Erreur de connexion', 'error');
+            }
+        }
+
+        // Fermer les modals en cliquant à l'extérieur
+        window.onclick = function(event) {
+            const modal = document.getElementById('globalModal');
+            if (event.target === modal) {
+                closeModal('globalModal');
+            }
+        }
+
+        // Gestion des erreurs globales
+        window.addEventListener('error', function(e) {
+            console.error('Erreur JavaScript:', e.error);
+            showNotification('Une erreur inattendue s\'est produite', 'error');
+        });
+
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal('globalModal');
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
