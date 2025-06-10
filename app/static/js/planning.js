@@ -1,6 +1,6 @@
 /**
- * Planning Restaurant - JavaScript principal
- * Gestion du drag & drop, interactions UI, appels API
+ * Planning Restaurant - JavaScript complet avec système d'avatars
+ * Version complète et optimisée
  */
 
 // Configuration globale
@@ -22,123 +22,459 @@ const AppState = {
     isResizing: false,
     resizeDirection: null,
     currentWeekOffset: 0,
-    isDirty: false // Indique si des changements non sauvegardés existent
+    isDirty: false
 };
 
-// Classes utilitaires
-class ShiftElement {
-    constructor(shift, employee) {
-        this.shift = shift;
-        this.employee = employee;
-        this.element = null;
-        this.isMultiHour = shift.duration > 1;
+// ==================== GESTIONNAIRE D'AVATARS ====================
+
+class AvatarManager {
+    constructor() {
+        this.photoCache = new Map();
+        this.defaultPhotos = new Map();
+        this.loadStoredPhotos();
     }
 
-    createElement() {
-        const block = document.createElement('div');
-        block.className = `shift-block ${this.isMultiHour ? 'multi-hour-block' : 'single-hour-block'} employee-${this.employee.poste}`;
-        block.dataset.shiftId = this.shift.id;
-        block.dataset.employeeId = this.shift.employee_id;
-        block.dataset.duration = this.shift.duration;
-
-        if (this.isMultiHour) {
-            this.createMultiHourContent(block);
-        } else {
-            this.createSingleHourContent(block);
+    loadStoredPhotos() {
+        try {
+            const stored = localStorage.getItem('employee_photos');
+            if (stored) {
+                const photos = JSON.parse(stored);
+                Object.entries(photos).forEach(([employeeId, photoData]) => {
+                    this.photoCache.set(employeeId, photoData);
+                });
+                console.log(`📸 ${this.photoCache.size} photos chargées depuis le stockage local`);
+            }
+        } catch (error) {
+            console.warn('Erreur lors du chargement des photos:', error);
         }
-
-        this.setupEvents(block);
-        this.element = block;
-        return block;
     }
 
-    createMultiHourContent(block) {
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'shift-name';
-        nameDiv.textContent = this.employee.prenom;
-
-        const durationDiv = document.createElement('div');
-        durationDiv.className = 'shift-duration';
-        durationDiv.textContent = `${this.shift.duration}h`;
-
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'shift-time';
-        timeDiv.textContent = this.shift.formatted_hours;
-
-        // Poignées de redimensionnement
-        const topHandle = document.createElement('div');
-        topHandle.className = 'resize-handle top';
-        const bottomHandle = document.createElement('div');
-        bottomHandle.className = 'resize-handle bottom';
-
-        block.appendChild(nameDiv);
-        block.appendChild(durationDiv);
-        block.appendChild(timeDiv);
-        block.appendChild(topHandle);
-        block.appendChild(bottomHandle);
-
-        // Position CSS Grid
-        this.positionMultiHourBlock(block);
+    savePhotos() {
+        try {
+            const photos = Object.fromEntries(this.photoCache);
+            localStorage.setItem('employee_photos', JSON.stringify(photos));
+            console.log(`💾 ${this.photoCache.size} photos sauvegardées`);
+        } catch (error) {
+            console.warn('Erreur lors de la sauvegarde des photos:', error);
+        }
     }
 
-    createSingleHourContent(block) {
-        block.textContent = this.employee.prenom;
-        block.style.height = 'calc(100% - 4px)';
-        block.style.margin = '2px';
-    }
+    setEmployeePhoto(employeeId, photoFile) {
+        return new Promise((resolve, reject) => {
+            if (!photoFile) {
+                this.photoCache.delete(employeeId);
+                this.savePhotos();
+                resolve(null);
+                return;
+            }
 
-    // Méthode supprimée - le positionnement est maintenant géré par renderMultiHourShift
+            // Vérifier la taille du fichier (5MB max)
+            if (photoFile.size > 5 * 1024 * 1024) {
+                reject(new Error('Fichier trop volumineux (max 5MB)'));
+                return;
+            }
 
-    setupEvents(block) {
-        // Tooltip
-        block.title = this.createTooltip();
-
-        // Double-clic pour éditer
-        block.addEventListener('dblclick', (e) => {
-            e.stopPropagation();
-            PlanningUI.showEditShiftModal(this.shift);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    this.resizeImage(e.target.result, 64, 64).then(resizedImage => {
+                        this.photoCache.set(employeeId, resizedImage);
+                        this.savePhotos();
+                        resolve(resizedImage);
+                    }).catch(reject);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(photoFile);
         });
+    }
 
-        // Drag and drop
-        DragDropManager.setupDragAndDrop(block, this.shift);
+    resizeImage(dataUrl, maxWidth, maxHeight) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
 
-        // Redimensionnement pour les créneaux multi-heures
-        if (this.isMultiHour) {
-            const topHandle = block.querySelector('.resize-handle.top');
-            const bottomHandle = block.querySelector('.resize-handle.bottom');
+            img.onload = () => {
+                let { width, height } = img;
 
-            if (topHandle) ResizeManager.setupResize(topHandle, 'top', block, this.shift);
-            if (bottomHandle) ResizeManager.setupResize(bottomHandle, 'bottom', block, this.shift);
+                // Calculer les nouvelles dimensions en gardant le ratio
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = height * (maxWidth / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = width * (maxHeight / height);
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = maxWidth;
+                canvas.height = maxHeight;
+
+                // Fond transparent
+                ctx.clearRect(0, 0, maxWidth, maxHeight);
+
+                // Centrer l'image
+                const x = (maxWidth - width) / 2;
+                const y = (maxHeight - height) / 2;
+
+                // Créer un masque circulaire
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(maxWidth / 2, maxHeight / 2, Math.min(maxWidth, maxHeight) / 2, 0, 2 * Math.PI);
+                ctx.clip();
+
+                // Dessiner l'image
+                ctx.drawImage(img, x, y, width, height);
+                ctx.restore();
+
+                // Bordure circulaire
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(maxWidth / 2, maxHeight / 2, (Math.min(maxWidth, maxHeight) / 2) - 1, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+
+            img.src = dataUrl;
+        });
+    }
+
+    generateDefaultAvatar(employee) {
+        const key = `${employee.id}-${employee.prenom}-${employee.nom}-${employee.poste}`;
+
+        if (this.defaultPhotos.has(key)) {
+            return this.defaultPhotos.get(key);
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 64;
+
+        canvas.width = size;
+        canvas.height = size;
+
+        // Couleur de fond basée sur le type d'employé
+        const colors = {
+            'cuisinier': '#74b9ff',
+            'serveur': '#00b894',
+            'barman': '#fdcb6e',
+            'manager': '#a29bfe',
+            'aide': '#6c5ce7',
+            'commis': '#fd79a8'
+        };
+        const bgColor = colors[employee.poste] || '#74b9ff';
+
+        // Dessiner le cercle de fond
+        ctx.fillStyle = bgColor;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Dégradé subtil
+        const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Dessiner les initiales
+        const initials = this.getInitials(employee);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 2;
+        ctx.fillText(initials, size / 2, size / 2);
+
+        const dataUrl = canvas.toDataURL('image/png');
+        this.defaultPhotos.set(key, dataUrl);
+        return dataUrl;
+    }
+
+    generateQuestionMarkAvatar() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 64;
+
+        canvas.width = size;
+        canvas.height = size;
+
+        // Cercle gris
+        ctx.fillStyle = '#6c757d';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Point d'interrogation
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 2;
+        ctx.fillText('?', size / 2, size / 2);
+
+        return canvas.toDataURL('image/png');
+    }
+
+    getInitials(employee) {
+        if (!employee || !employee.prenom || !employee.nom) {
+            return '?';
+        }
+        return (employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase();
+    }
+
+    getEmployeeAvatar(employee) {
+        if (!employee) {
+            return this.generateQuestionMarkAvatar();
+        }
+
+        // Photo personnalisée
+        if (this.photoCache.has(employee.id)) {
+            return this.photoCache.get(employee.id);
+        }
+
+        // Avatar généré avec initiales
+        return this.generateDefaultAvatar(employee);
+    }
+
+    createAvatarElement(employee, size = 'normal') {
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = `shift-avatar-container ${size}`;
+
+        const avatarImg = document.createElement('img');
+        avatarImg.className = 'shift-avatar-img';
+        avatarImg.src = this.getEmployeeAvatar(employee);
+        avatarImg.alt = employee ? employee.nom_complet : 'Équipier inconnu';
+
+        // Gestion d'erreur de chargement
+        avatarImg.onerror = () => {
+            avatarImg.src = this.generateQuestionMarkAvatar();
+        };
+
+        // Tooltip
+        if (employee) {
+            avatarImg.title = `${employee.nom_complet}\n${employee.type_info?.name || 'Poste inconnu'}\n📸 Clic pour changer la photo`;
+        }
+
+        avatarContainer.appendChild(avatarImg);
+
+        // Indicateur de photo personnalisée
+        if (employee && this.photoCache.has(employee.id)) {
+            const indicator = document.createElement('div');
+            indicator.className = 'avatar-photo-indicator';
+            indicator.innerHTML = '<i class="fas fa-camera"></i>';
+            indicator.title = 'Photo personnalisée';
+            avatarContainer.appendChild(indicator);
+        }
+
+        return avatarContainer;
+    }
+
+    showPhotoModal(employee) {
+        const content = `
+            <div class="photo-manager">
+                <div class="current-avatar">
+                    <h3><i class="fas fa-user-circle"></i> Avatar actuel</h3>
+                    <div class="avatar-preview">
+                        <img src="${this.getEmployeeAvatar(employee)}" alt="Avatar actuel" class="current-avatar-img">
+                    </div>
+                    <p class="avatar-info">${this.photoCache.has(employee.id) ? 'Photo personnalisée' : 'Avatar généré automatiquement'}</p>
+                </div>
+
+                <div class="photo-upload">
+                    <h3><i class="fas fa-upload"></i> Changer la photo</h3>
+                    <div class="upload-area" onclick="document.getElementById('photoInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Cliquer pour sélectionner une photo</p>
+                        <small>JPG, PNG - Max 5MB - Sera redimensionnée automatiquement</small>
+                    </div>
+                    <input type="file" id="photoInput" accept="image/jpeg,image/jpg,image/png" style="display: none;">
+
+                    <div class="photo-preview" style="display: none;">
+                        <h4>Aperçu</h4>
+                        <img id="previewImg" class="preview-img">
+                    </div>
+                </div>
+
+                <div class="photo-actions">
+                    <button type="button" class="btn btn-outline" onclick="window.avatarManager.removePhoto('${employee.id}')">
+                        <i class="fas fa-trash"></i> Supprimer la photo
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="window.avatarManager.generateRandomAvatar('${employee.id}')">
+                        <i class="fas fa-dice"></i> Nouvel avatar
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const buttons = [
+            {
+                text: 'Fermer',
+                class: 'btn-secondary',
+                onclick: () => closeModal('globalModal')
+            },
+            {
+                text: 'Sauvegarder',
+                class: 'btn-primary',
+                onclick: () => this.savePhotoFromModal(employee.id)
+            }
+        ];
+
+        openModal(`📸 Photo de ${employee.nom_complet}`, content, buttons);
+        this.setupPhotoModalEvents(employee);
+    }
+
+    setupPhotoModalEvents(employee) {
+        const photoInput = document.getElementById('photoInput');
+        const previewContainer = document.querySelector('.photo-preview');
+        const previewImg = document.getElementById('previewImg');
+
+        if (photoInput) {
+            photoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        NotificationManager.show('❌ Fichier trop volumineux (max 5MB)', 'error');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (previewImg) previewImg.src = e.target.result;
+                        if (previewContainer) previewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
         }
     }
 
-    createTooltip() {
-        return `${this.employee.nom_complet}\n${this.shift.formatted_hours}\n${this.shift.duration}h\n\n🖱️ Double-clic pour modifier\n✋ Glisser pour déplacer${this.isMultiHour ? '\n↕️ Bordures pour redimensionner' : ''}`;
+    async savePhotoFromModal(employeeId) {
+        const photoInput = document.getElementById('photoInput');
+        const file = photoInput ? photoInput.files[0] : null;
+
+        if (file) {
+            try {
+                await this.setEmployeePhoto(employeeId, file);
+                NotificationManager.show('✅ Photo mise à jour avec succès', 'success');
+
+                // Mettre à jour l'affichage
+                if (window.PlanningManager) {
+                    PlanningManager.generatePlanningGrid();
+                    PlanningManager.updateLegend();
+                }
+
+                closeModal('globalModal');
+            } catch (error) {
+                console.error('Erreur sauvegarde photo:', error);
+                NotificationManager.show(`❌ ${error.message}`, 'error');
+            }
+        } else {
+            closeModal('globalModal');
+        }
     }
 
-    updatePosition() {
-        if (this.isMultiHour && this.element) {
-            this.positionMultiHourBlock(this.element);
+    removePhoto(employeeId) {
+        this.photoCache.delete(employeeId);
+        this.savePhotos();
+
+        // Mettre à jour l'aperçu dans le modal
+        const currentImg = document.querySelector('.current-avatar-img');
+        if (currentImg) {
+            const employee = AppState.employees.get(employeeId);
+            currentImg.src = this.getEmployeeAvatar(employee);
+        }
+
+        const avatarInfo = document.querySelector('.avatar-info');
+        if (avatarInfo) {
+            avatarInfo.textContent = 'Avatar généré automatiquement';
+        }
+
+        NotificationManager.show('✅ Photo supprimée', 'success');
+
+        // Mettre à jour le planning
+        if (window.PlanningManager) {
+            PlanningManager.generatePlanningGrid();
+            PlanningManager.updateLegend();
+        }
+    }
+
+    generateRandomAvatar(employeeId) {
+        const employee = AppState.employees.get(employeeId);
+        if (!employee) return;
+
+        // Supprimer l'ancien avatar du cache
+        const key = `${employee.id}-${employee.prenom}-${employee.nom}-${employee.poste}`;
+        this.defaultPhotos.delete(key);
+
+        // Créer un avatar avec une couleur légèrement différente
+        const colors = ['#74b9ff', '#00b894', '#fdcb6e', '#a29bfe', '#6c5ce7', '#fd79a8', '#ff6b6b', '#4ecdc4'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+        // Temporairement changer la couleur
+        const originalType = employee.poste;
+        const colorKey = Object.keys({
+            'cuisinier': '#74b9ff',
+            'serveur': '#00b894',
+            'barman': '#fdcb6e',
+            'manager': '#a29bfe',
+            'aide': '#6c5ce7',
+            'commis': '#fd79a8'
+        }).find(k => k !== originalType) || 'serveur';
+
+        employee.poste = colorKey;
+        const newAvatar = this.generateDefaultAvatar(employee);
+        employee.poste = originalType;
+
+        // Mettre à jour l'aperçu
+        const currentImg = document.querySelector('.current-avatar-img');
+        if (currentImg) {
+            currentImg.src = newAvatar;
+        }
+
+        NotificationManager.show('🎨 Nouvel avatar généré', 'success');
+
+        // Mettre à jour le planning
+        if (window.PlanningManager) {
+            PlanningManager.generatePlanningGrid();
+            PlanningManager.updateLegend();
         }
     }
 }
 
-// Gestionnaire principal du planning
+// ==================== GESTIONNAIRE PRINCIPAL DU PLANNING ====================
+
 class PlanningManager {
     static async initialize() {
         try {
-            // Réinitialiser les couleurs pour assurer la cohérence
+            // Initialiser le gestionnaire d'avatars
+            if (!window.avatarManager) {
+                window.avatarManager = new AvatarManager();
+            }
+
+            // Réinitialiser les couleurs
             ColorManager.resetColors();
 
             await this.loadData();
             this.setupEventListeners();
             this.generatePlanningGrid();
             this.updateQuickStats();
-            this.updateLegend();
 
-            console.log('Planning initialisé avec succès');
+            console.log('✅ Planning initialisé avec succès');
         } catch (error) {
-            console.error('Erreur lors de l\'initialisation:', error);
+            console.error('❌ Erreur lors de l\'initialisation:', error);
             NotificationManager.show('Erreur lors du chargement', 'error');
         }
     }
@@ -149,36 +485,24 @@ class PlanningManager {
 
             // Charger les employés
             const employeesResponse = await APIManager.get('/employees');
-            console.log('👥 Réponse employés:', employeesResponse);
-
             if (employeesResponse.success) {
                 AppState.employees.clear();
                 employeesResponse.employees.forEach(emp => {
                     AppState.employees.set(emp.id, emp);
                 });
-                console.log(`✅ ${employeesResponse.employees.length} employés chargés`);
-            } else {
-                console.error('❌ Erreur chargement employés:', employeesResponse.error);
+                console.log(`👥 ${employeesResponse.employees.length} employés chargés`);
             }
 
             // Charger les créneaux
             const shiftsResponse = await APIManager.get('/shifts');
-            console.log('📅 Réponse créneaux:', shiftsResponse);
-
             if (shiftsResponse.success) {
                 AppState.shifts.clear();
                 shiftsResponse.shifts.forEach(shift => {
                     AppState.shifts.set(shift.id, shift);
                 });
-                console.log(`✅ ${shiftsResponse.shifts.length} créneaux chargés`);
-            } else {
-                console.error('❌ Erreur chargement créneaux:', shiftsResponse.error);
+                console.log(`📅 ${shiftsResponse.shifts.length} créneaux chargés`);
             }
 
-            console.log('📊 État final:', {
-                employees: AppState.employees.size,
-                shifts: AppState.shifts.size
-            });
         } catch (error) {
             console.error('❌ Erreur lors du chargement des données:', error);
             throw error;
@@ -213,7 +537,7 @@ class PlanningManager {
             }
         });
 
-        // Confirmation avant fermeture si changements non sauvegardés
+        // Confirmation avant fermeture
         window.addEventListener('beforeunload', (e) => {
             if (AppState.isDirty) {
                 e.preventDefault();
@@ -226,12 +550,12 @@ class PlanningManager {
         const grid = document.getElementById('planningGrid');
         if (!grid) return;
 
-        console.log('🏗️ Régénération complète de la grille...');
+        console.log('🏗️ Régénération de la grille...');
 
-        // Vider complètement
+        // Vider la grille
         grid.innerHTML = '';
 
-        // Créer toutes les cellules en ordre séquentiel
+        // Créer les cellules
         PlanningConfig.HOURS_RANGE.forEach(hour => {
             // Colonne heure
             const timeSlot = document.createElement('div');
@@ -252,14 +576,14 @@ class PlanningManager {
             });
         });
 
-        console.log(`📋 Grille créée: ${PlanningConfig.HOURS_RANGE.length} × ${PlanningConfig.DAYS_OF_WEEK.length} cellules`);
-
         // Rendre les créneaux
         this.renderShifts();
+
+        // Mettre à jour la légende
+        this.updateLegend();
     }
 
     static setupCellEvents(cell, day, hour) {
-        // S'assurer que les datasets sont bien définis
         cell.dataset.hour = hour;
         cell.dataset.day = day;
         cell.dataset.dayIndex = PlanningConfig.DAYS_OF_WEEK.indexOf(day);
@@ -272,11 +596,10 @@ class PlanningManager {
         // Setup drop zone
         DragDropManager.setupDropZone(cell);
 
-        // Hover effect avec debug
+        // Hover effects
         cell.addEventListener('mouseenter', () => {
             cell.classList.add('cell-hover');
-            // Debug: afficher les informations de la cellule
-            cell.title = `${day} ${hour.toString().padStart(2, '0')}:00`;
+            cell.title = `${day} ${hour.toString().padStart(2, '0')}:00\nDouble-clic pour ajouter un créneau`;
         });
 
         cell.addEventListener('mouseleave', () => {
@@ -288,15 +611,13 @@ class PlanningManager {
         console.log('🎨 Rendu des créneaux...');
         const grid = document.getElementById('planningGrid');
 
-        // Supprimer tous les anciens blocs
+        // Supprimer les anciens blocs
         grid.querySelectorAll('.shift-block').forEach(block => block.remove());
 
         let rendered = 0;
         AppState.shifts.forEach(shift => {
             const employee = AppState.employees.get(shift.employee_id);
             if (employee) {
-                console.log(`📅 Rendu: ${employee.prenom} ${shift.day} ${shift.start_hour}h (${shift.duration}h)`);
-
                 if (shift.duration === 1) {
                     this.renderSingleHourShift(shift, employee);
                 } else {
@@ -304,7 +625,7 @@ class PlanningManager {
                 }
                 rendered++;
             } else {
-                console.warn(`⚠️ Employé ${shift.employee_id} introuvable pour créneau ${shift.id}`);
+                console.warn(`⚠️ Employé ${shift.employee_id} introuvable`);
             }
         });
 
@@ -320,23 +641,15 @@ class PlanningManager {
             return;
         }
 
-        // Vérifier les chevauchements existants dans cette cellule
         const existingBlocks = cell.querySelectorAll('.shift-block');
         const totalBlocks = existingBlocks.length + 1;
 
-        // Créer le nouveau bloc
         const block = this.createShiftBlock(shift, employee, false);
 
-        // Appliquer le positionnement pour chevauchement
         if (totalBlocks > 1) {
-            console.log(`🔀 Chevauchement détecté: ${totalBlocks} créneaux`);
-
-            // Redimensionner tous les blocs existants
             existingBlocks.forEach((existingBlock, index) => {
                 this.applyOverlapStyle(existingBlock, index, totalBlocks);
             });
-
-            // Appliquer le style au nouveau bloc
             this.applyOverlapStyle(block, existingBlocks.length, totalBlocks);
         }
 
@@ -355,7 +668,6 @@ class PlanningManager {
 
         const block = this.createShiftBlock(shift, employee, true);
 
-        // Position CSS Grid simple
         const rowStart = startHourIndex + 1;
         const rowEnd = rowStart + shift.duration;
         const column = dayIndex + 2;
@@ -366,16 +678,11 @@ class PlanningManager {
         block.style.margin = '2px';
         block.style.zIndex = '5';
 
-        console.log(`📐 Multi-heure: grid-row ${rowStart}/${rowEnd}, grid-column ${column}`);
-
         grid.appendChild(block);
     }
 
     static createShiftBlock(shift, employee, isMultiHour) {
         const color = ColorManager.getEmployeeColor(shift.employee_id);
-        const initials = ColorManager.getEmployeeInitials(employee);
-
-        console.log(`🎨 Création bloc: ${employee.prenom} -> initiales: "${initials}", couleur: ${color.bg}`);
 
         const block = document.createElement('div');
         block.className = `shift-block ${isMultiHour ? 'multi-hour-block' : 'single-hour-block'}`;
@@ -387,43 +694,71 @@ class PlanningManager {
         block.style.borderColor = color.border;
         block.style.color = color.text;
 
-        // Contenu avec UNIQUEMENT les initiales
         if (isMultiHour) {
             const startTime = shift.start_hour.toString().padStart(2, '0') + ':00';
             const endHour = (shift.start_hour + shift.duration) % 24;
             const endTime = endHour.toString().padStart(2, '0') + ':00';
 
+            const avatarElement = window.avatarManager ?
+                window.avatarManager.createAvatarElement(employee, 'normal') : null;
+
             block.innerHTML = `
                 <div class="shift-header">
-                    <div class="shift-avatar">
-                        <div class="avatar-circle">
-                            <span class="avatar-initials">${initials}</span>
-                        </div>
-                    </div>
                     <div class="shift-info">
+                        <div class="shift-employee-name">${employee.prenom}</div>
                         <div class="shift-duration">${shift.duration}h</div>
                     </div>
                 </div>
                 <div class="shift-time">${startTime} - ${endTime}</div>
+                ${shift.notes ? `<div class="shift-notes">${shift.notes}</div>` : ''}
             `;
+
+            if (avatarElement) {
+                const shiftHeader = block.querySelector('.shift-header');
+                shiftHeader.insertBefore(avatarElement, shiftHeader.firstChild);
+            }
         } else {
-            block.innerHTML = `
-                <div class="shift-avatar">
-                    <div class="avatar-circle">
-                        <span class="avatar-initials">${initials}</span>
-                    </div>
-                </div>
-            `;
+            const avatarElement = window.avatarManager ?
+                window.avatarManager.createAvatarElement(employee, 'small') : null;
+
+            if (avatarElement) {
+                block.appendChild(avatarElement);
+            }
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'shift-name';
+            nameDiv.textContent = employee.prenom;
+            block.appendChild(nameDiv);
         }
 
         // Tooltip
-        const tooltip = `${employee.prenom} ${employee.nom}\n${employee.poste}\n${shift.day} ${shift.start_hour.toString().padStart(2, '0')}:00 (${shift.duration}h)\n\n🖱️ Glisser pour déplacer`;
+        const tooltip = `${employee.nom_complet}\n${employee.type_info?.name || employee.poste}\n${shift.day} ${shift.start_hour.toString().padStart(2, '0')}:00 (${shift.duration}h)\n\n🖱️ Glisser pour déplacer\n📸 Clic sur l'avatar pour la photo\n✏️ Double-clic pour modifier`;
         block.title = tooltip;
+
+        // Événements
+        this.setupShiftEvents(block, shift, employee);
+
+        return block;
+    }
+
+    static setupShiftEvents(block, shift, employee) {
+        // Double-clic pour éditer
+        block.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            PlanningUI.showEditShiftModal(shift);
+        });
+
+        // Clic sur l'avatar pour photo
+        const avatarImg = block.querySelector('.shift-avatar-img');
+        if (avatarImg) {
+            avatarImg.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.openPhotoModal(employee.id);
+            });
+        }
 
         // Drag & drop
         DragDropManager.setupDragAndDrop(block, shift);
-
-        return block;
     }
 
     static applyOverlapStyle(block, index, total) {
@@ -438,84 +773,24 @@ class PlanningManager {
         block.style.zIndex = `${10 + index}`;
 
         // Réduire la taille de l'avatar si nécessaire
-        const avatar = block.querySelector('.avatar-circle');
-        if (avatar && total > 2) {
-            avatar.style.width = '20px';
-            avatar.style.height = '20px';
-            const initials = avatar.querySelector('.avatar-initials');
-            if (initials) {
-                initials.style.fontSize = '0.6rem';
+        const avatarContainer = block.querySelector('.shift-avatar-container');
+        if (avatarContainer && total > 2) {
+            avatarContainer.classList.add('small');
+
+            const avatarImg = avatarContainer.querySelector('.shift-avatar-img');
+            if (avatarImg) {
+                avatarImg.style.width = '20px';
+                avatarImg.style.height = '20px';
             }
         }
-    }
 
-    static organizeShiftsByDayAndHour() {
-        const organized = {};
-
-        AppState.shifts.forEach(shift => {
-            const employee = AppState.employees.get(shift.employee_id);
-            if (!employee) return;
-
-            // Pour chaque heure du créneau
-            for (let i = 0; i < shift.duration; i++) {
-                const hour = (shift.start_hour + i) % 24;
-                const key = `${shift.day}-${hour}`;
-
-                if (!organized[key]) {
-                    organized[key] = [];
-                }
-
-                // Ajouter seulement à la première heure pour éviter les doublons
-                if (i === 0) {
-                    organized[key].push({
-                        shift,
-                        employee,
-                        isStart: true
-                    });
-                } else {
-                    // Marquer les heures continues
-                    organized[key].push({
-                        shift,
-                        employee,
-                        isStart: false
-                    });
-                }
+        // Ajuster la taille du texte pour les petits créneaux
+        if (total > 2) {
+            const shiftName = block.querySelector('.shift-name');
+            if (shiftName) {
+                shiftName.style.fontSize = '0.7rem';
             }
-        });
-
-        return organized;
-    }
-
-    // Anciennes méthodes supprimées pour éviter les conflits
-    // renderSingleHourShift, renderMultiHourShift, etc. sont maintenant dans PlanningManager
-
-    static calculateMultiHourOverlaps(shift, shiftsByDayAndHour) {
-        const overlappingShifts = new Set();
-
-        // Vérifier chaque heure du créneau
-        for (let i = 0; i < shift.duration; i++) {
-            const hour = (shift.start_hour + i) % 24;
-            const key = `${shift.day}-${hour}`;
-            const hourShifts = shiftsByDayAndHour[key] || [];
-
-            hourShifts.forEach(s => {
-                if (s.shift.id !== shift.id && s.shift.duration > 1) {
-                    overlappingShifts.add(s.shift.id);
-                }
-            });
         }
-
-        // Créer une liste ordonnée des créneaux qui se chevauchent
-        const allOverlappingShifts = Array.from(overlappingShifts)
-            .map(id => AppState.shifts.get(id))
-            .filter(s => s)
-            .concat([shift])
-            .sort((a, b) => a.start_hour - b.start_hour || a.id.localeCompare(b.id));
-
-        return {
-            total: allOverlappingShifts.length,
-            index: allOverlappingShifts.findIndex(s => s.id === shift.id)
-        };
     }
 
     static async updateQuickStats() {
@@ -537,6 +812,82 @@ class PlanningManager {
         } catch (error) {
             console.error('Erreur mise à jour stats:', error);
         }
+    }
+
+    static updateLegend() {
+        const container = document.getElementById('legendContainer');
+        if (!container) return;
+
+        console.log('📋 Mise à jour de la légende...');
+
+        const activeEmployees = Array.from(AppState.employees.values())
+            .filter(emp => emp.actif)
+            .sort((a, b) => a.nom.localeCompare(b.nom));
+
+        if (activeEmployees.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="legend-title">
+                <i class="fas fa-users"></i> Équipe (${activeEmployees.length} personnes)
+                <div class="legend-actions">
+                    <button class="btn btn-sm btn-outline" onclick="showBulkPhotoModal()">
+                        <i class="fas fa-images"></i> Gérer les photos
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="generateRandomAvatars()">
+                        <i class="fas fa-dice"></i> Nouveaux avatars
+                    </button>
+                </div>
+            </div>
+            <div class="legend-grid" id="legendGrid"></div>
+        `;
+
+        const legendGrid = document.getElementById('legendGrid');
+
+        activeEmployees.forEach(employee => {
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item';
+            legendItem.dataset.employeeId = employee.id;
+
+            const avatarElement = window.avatarManager ?
+                window.avatarManager.createAvatarElement(employee, 'normal') : null;
+
+            legendItem.innerHTML = `
+                <div class="legend-info">
+                    <div class="legend-name">${employee.nom_complet}</div>
+                    <div class="legend-role">${employee.type_info?.name || employee.poste}</div>
+                </div>
+            `;
+
+            if (avatarElement) {
+                legendItem.insertBefore(avatarElement, legendItem.firstChild);
+            }
+
+            // Événements
+            legendItem.addEventListener('click', () => {
+                window.openPhotoModal(employee.id);
+            });
+
+            legendItem.addEventListener('mouseenter', () => {
+                document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
+                    block.style.transform = 'scale(1.02)';
+                    block.style.zIndex = '20';
+                });
+            });
+
+            legendItem.addEventListener('mouseleave', () => {
+                document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
+                    block.style.transform = '';
+                    block.style.zIndex = '';
+                });
+            });
+
+            legendGrid.appendChild(legendItem);
+        });
+
+        console.log(`✅ Légende mise à jour avec ${activeEmployees.length} employés`);
     }
 
     static previousWeek() {
@@ -571,7 +922,6 @@ class PlanningManager {
 
     static markDirty() {
         AppState.isDirty = true;
-        // Optionnel: ajouter un indicateur visuel
         document.title = '• Planning Restaurant (non sauvegardé)';
     }
 
@@ -584,7 +934,6 @@ class PlanningManager {
         if (!AppState.isDirty) return;
 
         try {
-            // Ici on pourrait implémenter une sauvegarde batch
             NotificationManager.show('Modifications sauvegardées', 'success');
             this.markClean();
         } catch (error) {
@@ -593,7 +942,8 @@ class PlanningManager {
     }
 }
 
-// Gestionnaire des appels API
+// ==================== GESTIONNAIRE DES APPELS API ====================
+
 class APIManager {
     static async request(method, endpoint, data = null) {
         const config = {
@@ -639,7 +989,8 @@ class APIManager {
     }
 }
 
-// Gestionnaire du drag & drop
+// ==================== GESTIONNAIRE DU DRAG & DROP ====================
+
 class DragDropManager {
     static setupDragAndDrop(element, shift) {
         element.draggable = true;
@@ -649,7 +1000,7 @@ class DragDropManager {
             e.dataTransfer.setData('text/plain', shift.id);
             element.classList.add('dragging');
 
-            // Créer un aperçu personnalisé
+            // Aperçu personnalisé
             const dragImage = element.cloneNode(true);
             dragImage.style.transform = 'rotate(5deg)';
             dragImage.style.opacity = '0.8';
@@ -708,77 +1059,42 @@ class DragDropManager {
         const targetHour = parseInt(cell.dataset.hour);
         const targetDay = cell.dataset.day;
 
-        console.log('🔍 Validation du drop:', {
-            targetDay,
-            targetHour,
-            shiftDay: shift.day,
-            shiftStartHour: shift.start_hour,
-            shiftDuration: shift.duration,
-            employeeId: shift.employee_id
-        });
-
-        // Vérifier si c'est la même position
+        // Même position
         if (shift.day === targetDay && shift.start_hour === targetHour) {
-            console.log('❌ Même position - drop invalide');
             return false;
         }
 
-        // Vérifier si l'heure cible existe dans notre plage
+        // Heure dans la plage
         if (!PlanningConfig.HOURS_RANGE.includes(targetHour)) {
-            console.log('❌ Heure cible hors plage:', targetHour);
             return false;
         }
 
-        // Vérifier si le créneau peut tenir dans la plage horaire
+        // Vérifier si le créneau peut tenir
         const targetIndex = PlanningConfig.HOURS_RANGE.indexOf(targetHour);
         if (targetIndex + shift.duration > PlanningConfig.HOURS_RANGE.length) {
-            console.log('❌ Créneau trop long pour la plage horaire');
             return false;
         }
 
-        // Vérifier les conflits avec d'autres créneaux du même employé
-        let hasConflict = false;
+        // Vérifier les conflits
         for (const [otherShiftId, otherShift] of AppState.shifts) {
             if (otherShiftId === shift.id) continue;
             if (otherShift.employee_id !== shift.employee_id) continue;
             if (otherShift.day !== targetDay) continue;
 
-            // Vérifier le chevauchement d'heures
             const otherStart = otherShift.start_hour;
             const otherEnd = (otherShift.start_hour + otherShift.duration) % 24;
             const newStart = targetHour;
             const newEnd = (targetHour + shift.duration) % 24;
 
-            console.log('🔍 Vérification conflit avec:', {
-                otherShiftId,
-                otherStart,
-                otherEnd,
-                newStart,
-                newEnd
-            });
-
-            // Gérer le cas où les heures traversent minuit
-            let overlap = false;
-
+            // Détection simple des chevauchements
             if (otherStart <= otherEnd && newStart <= newEnd) {
-                // Cas normal (pas de traversée de minuit)
-                overlap = !(newEnd <= otherStart || newStart >= otherEnd);
-            } else {
-                // Cas complexe avec traversée de minuit
-                // Pour simplifier, on autorise pour l'instant
-                overlap = false;
-            }
-
-            if (overlap) {
-                console.log('❌ Conflit détecté avec le créneau:', otherShiftId);
-                hasConflict = true;
-                break;
+                if (!(newEnd <= otherStart || newStart >= otherEnd)) {
+                    return false;
+                }
             }
         }
 
-        const isValid = !hasConflict;
-        console.log('📋 Résultat validation:', isValid ? '✅ VALIDE' : '❌ INVALIDE');
-        return isValid;
+        return true;
     }
 
     static async handleDrop(e, cell) {
@@ -801,11 +1117,7 @@ class DragDropManager {
             });
 
             if (result.success) {
-                // Mettre à jour les données locales
-                const updatedShift = result.shift;
-                AppState.shifts.set(shiftId, updatedShift);
-
-                // Régénérer le planning
+                AppState.shifts.set(shiftId, result.shift);
                 PlanningManager.generatePlanningGrid();
                 PlanningManager.updateQuickStats();
                 PlanningManager.markDirty();
@@ -835,119 +1147,13 @@ class DragDropManager {
     }
 }
 
-// Gestionnaire du redimensionnement
-class ResizeManager {
-    static setupResize(handle, direction, element, shift) {
-        handle.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
+// ==================== GESTIONNAIRE DE L'INTERFACE UTILISATEUR ====================
 
-            AppState.isResizing = true;
-            AppState.resizeDirection = direction;
-            AppState.draggedElement = element;
-
-            const startY = e.clientY;
-            const originalDuration = shift.duration;
-            const originalStartHour = shift.start_hour;
-
-            const handleMouseMove = (e) => {
-                if (!AppState.isResizing) return;
-
-                const deltaY = e.clientY - startY;
-                const cellHeight = PlanningConfig.CELL_HEIGHT;
-                const hourChange = Math.round(deltaY / cellHeight);
-
-                let newDuration = originalDuration;
-                let newStartHour = originalStartHour;
-
-                if (direction === 'bottom') {
-                    newDuration = Math.max(1, Math.min(12, originalDuration + hourChange));
-                } else if (direction === 'top') {
-                    const startChange = Math.max(-originalStartHour + 8, hourChange);
-                    newStartHour = originalStartHour + startChange;
-                    newDuration = originalDuration - startChange;
-                    newDuration = Math.max(1, newDuration);
-                }
-
-                // Validation
-                if (newDuration >= 1 && newDuration <= 12) {
-                    this.updateElementSize(element, newStartHour, newDuration);
-                }
-            };
-
-            const handleMouseUp = async () => {
-                if (!AppState.isResizing) return;
-
-                const newDuration = parseInt(element.dataset.duration);
-                const newStartHour = shift.start_hour; // À ajuster selon la logique
-
-                try {
-                    const result = await APIManager.put(`/shifts/${shift.id}`, {
-                        duration: newDuration,
-                        start_hour: newStartHour
-                    });
-
-                    if (result.success) {
-                        AppState.shifts.set(shift.id, result.shift);
-                        PlanningManager.generatePlanningGrid();
-                        PlanningManager.updateQuickStats();
-                        PlanningManager.markDirty();
-                        NotificationManager.show('✅ Durée modifiée', 'success');
-                    } else {
-                        NotificationManager.show(`❌ ${result.error}`, 'error');
-                        PlanningManager.generatePlanningGrid(); // Reset visuel
-                    }
-                } catch (error) {
-                    NotificationManager.show('❌ Erreur de connexion', 'error');
-                    PlanningManager.generatePlanningGrid(); // Reset visuel
-                }
-
-                this.cleanupResize();
-            };
-
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp, { once: true });
-        });
-    }
-
-    static updateElementSize(element, startHour, duration) {
-        element.dataset.duration = duration;
-
-        const dayIndex = PlanningConfig.DAYS_OF_WEEK.indexOf(element.closest('[data-day]')?.dataset.day || '');
-        const startRowIndex = PlanningConfig.HOURS_RANGE.indexOf(startHour);
-
-        if (dayIndex !== -1 && startRowIndex !== -1) {
-            const gridRowStart = startRowIndex + 2;
-            const gridRowEnd = gridRowStart + duration;
-
-            element.style.gridRow = `${gridRowStart} / ${gridRowEnd}`;
-
-            // Mettre à jour le contenu
-            const durationDiv = element.querySelector('.shift-duration');
-            const timeDiv = element.querySelector('.shift-time');
-
-            if (durationDiv) durationDiv.textContent = `${duration}h`;
-            if (timeDiv) {
-                const endHour = (startHour + duration) % 24;
-                timeDiv.textContent = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
-            }
-        }
-    }
-
-    static cleanupResize() {
-        AppState.isResizing = false;
-        AppState.resizeDirection = null;
-        AppState.draggedElement = null;
-    }
-}
-
-// Gestionnaire de l'interface utilisateur
 class PlanningUI {
     static showAddShiftModal(defaultDay = '', defaultHour = '') {
         const modal = document.getElementById('addShiftModal');
         if (!modal) return;
 
-        // Préremplir les valeurs par défaut
         if (defaultDay) {
             const daySelect = document.getElementById('shiftDay');
             if (daySelect) daySelect.value = defaultDay;
@@ -1004,7 +1210,7 @@ class PlanningUI {
 
                 <div class="form-group">
                     <label for="editShiftNotes">Notes</label>
-                    <textarea id="editShiftNotes">${shift.notes || ''}</textarea>
+                    <textarea id="editShiftNotes" placeholder="Remarques, consignes spéciales...">${shift.notes || ''}</textarea>
                 </div>
             </form>
         `;
@@ -1101,7 +1307,8 @@ class PlanningUI {
     }
 }
 
-// Gestionnaire des notifications
+// ==================== GESTIONNAIRE DES NOTIFICATIONS ====================
+
 class NotificationManager {
     static show(message, type = 'info', duration = 3000) {
         const container = document.getElementById('notifications') || this.createContainer();
@@ -1149,7 +1356,40 @@ class NotificationManager {
     }
 }
 
-// Fonctions globales pour la compatibilité avec les templates
+// ==================== GESTIONNAIRE DE COULEURS ====================
+
+class ColorManager {
+    static colorPalette = [
+        { bg: '#74b9ff', border: '#0984e3', text: 'white' },
+        { bg: '#00b894', border: '#00a085', text: 'white' },
+        { bg: '#fdcb6e', border: '#e17055', text: 'white' },
+        { bg: '#a29bfe', border: '#6c5ce7', text: 'white' },
+        { bg: '#fd79a8', border: '#e84393', text: 'white' },
+        { bg: '#6c5ce7', border: '#5f3dc4', text: 'white' },
+        { bg: '#ff6b6b', border: '#ee5a24', text: 'white' },
+        { bg: '#4ecdc4', border: '#26d0ce', text: 'white' }
+    ];
+
+    static employeeColors = new Map();
+    static colorIndex = 0;
+
+    static getEmployeeColor(employeeId) {
+        if (!this.employeeColors.has(employeeId)) {
+            const color = this.colorPalette[this.colorIndex % this.colorPalette.length];
+            this.employeeColors.set(employeeId, color);
+            this.colorIndex++;
+        }
+        return this.employeeColors.get(employeeId);
+    }
+
+    static resetColors() {
+        this.employeeColors.clear();
+        this.colorIndex = 0;
+    }
+}
+
+// ==================== FONCTIONS GLOBALES ====================
+
 window.addShift = async function() {
     const form = document.getElementById('addShiftForm');
     if (!form || !form.checkValidity()) {
@@ -1207,7 +1447,17 @@ window.addEmployee = async function() {
         if (result.success) {
             AppState.employees.set(result.employee.id, result.employee);
 
-            // Ajouter à la liste déroulante des créneaux
+            // Gérer la photo si elle existe
+            const photoFile = document.getElementById('employeePhoto')?.files[0];
+            if (photoFile && window.avatarManager) {
+                try {
+                    await window.avatarManager.setEmployeePhoto(result.employee.id, photoFile);
+                } catch (photoError) {
+                    console.warn('Erreur lors de la sauvegarde de la photo:', photoError);
+                }
+            }
+
+            // Ajouter à la liste déroulante
             const shiftEmployeeSelect = document.getElementById('shiftEmployee');
             if (shiftEmployeeSelect) {
                 const option = document.createElement('option');
@@ -1216,9 +1466,11 @@ window.addEmployee = async function() {
                 shiftEmployeeSelect.appendChild(option);
             }
 
+            PlanningManager.updateLegend();
+
             closeModal('addEmployeeModal');
             form.reset();
-            NotificationManager.show('✅ Équipier ajouté', 'success');
+            NotificationManager.show('✅ Équipier ajouté avec succès', 'success');
         } else {
             NotificationManager.show(`❌ ${result.error}`, 'error');
         }
@@ -1243,19 +1495,184 @@ window.nextWeek = function() {
     PlanningManager.nextWeek();
 };
 
-// Initialisation automatique
+window.openPhotoModal = function(employeeId) {
+    const employee = AppState.employees.get(employeeId);
+    if (employee && window.avatarManager) {
+        window.avatarManager.showPhotoModal(employee);
+    }
+};
+
+window.generateRandomAvatars = function() {
+    if (!window.avatarManager) return;
+
+    const employees = Array.from(AppState.employees.values()).filter(emp => emp.actif);
+
+    employees.forEach(employee => {
+        window.avatarManager.generateRandomAvatar(employee.id);
+    });
+
+    PlanningManager.generatePlanningGrid();
+    NotificationManager.show('🎨 Nouveaux avatars générés', 'success');
+};
+
+window.showBulkPhotoModal = function() {
+    const content = `
+        <div class="bulk-photo-manager">
+            <div class="bulk-header">
+                <h3>Gestion des photos de l'équipe</h3>
+                <div class="bulk-stats">
+                    <span id="photoCountDisplay">${window.avatarManager ? window.avatarManager.photoCache.size : 0}</span> photos personnalisées
+                </div>
+            </div>
+
+            <div class="bulk-actions">
+                <button class="btn btn-outline" onclick="selectAllPhotos()">
+                    <i class="fas fa-check-square"></i> Tout sélectionner
+                </button>
+                <button class="btn btn-warning" onclick="clearSelectedPhotos()">
+                    <i class="fas fa-trash"></i> Supprimer sélectionnées
+                </button>
+                <button class="btn btn-secondary" onclick="generateRandomAvatars()">
+                    <i class="fas fa-dice"></i> Nouveaux avatars
+                </button>
+            </div>
+
+            <div class="employees-photo-grid" id="employeesPhotoGrid">
+                <!-- Généré par JavaScript -->
+            </div>
+        </div>
+    `;
+
+    const buttons = [
+        {
+            text: 'Fermer',
+            class: 'btn-secondary',
+            onclick: () => closeModal('globalModal')
+        }
+    ];
+
+    openModal('📸 Gestion des photos', content, buttons);
+    generateEmployeesPhotoGrid();
+};
+
+function generateEmployeesPhotoGrid() {
+    const grid = document.getElementById('employeesPhotoGrid');
+    if (!grid || !window.avatarManager) return;
+
+    const employees = Array.from(AppState.employees.values())
+        .filter(emp => emp.actif)
+        .sort((a, b) => a.nom.localeCompare(b.nom));
+
+    grid.innerHTML = employees.map(employee => `
+        <div class="employee-photo-item" data-employee-id="${employee.id}">
+            <div class="employee-photo-card">
+                <div class="photo-checkbox">
+                    <input type="checkbox" class="photo-select" data-employee-id="${employee.id}">
+                </div>
+                <img src="${window.avatarManager.getEmployeeAvatar(employee)}"
+                     alt="${employee.nom_complet}"
+                     class="employee-photo-img"
+                     onclick="window.openPhotoModal('${employee.id}')">
+                <div class="employee-photo-info">
+                    <div class="employee-photo-name">${employee.nom_complet}</div>
+                    <div class="employee-photo-role">${employee.type_info?.name || employee.poste}</div>
+                    <div class="photo-type">${window.avatarManager.photoCache.has(employee.id) ? 'Photo personnalisée' : 'Avatar généré'}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.selectAllPhotos = function() {
+    document.querySelectorAll('.photo-select').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+};
+
+window.clearSelectedPhotos = function() {
+    const selectedCheckboxes = document.querySelectorAll('.photo-select:checked');
+
+    if (selectedCheckboxes.length === 0) {
+        NotificationManager.show('❌ Aucune photo sélectionnée', 'warning');
+        return;
+    }
+
+    if (confirm(`Supprimer ${selectedCheckboxes.length} photo(s) ?`)) {
+        selectedCheckboxes.forEach(checkbox => {
+            const employeeId = checkbox.dataset.employeeId;
+            if (window.avatarManager) {
+                window.avatarManager.removePhoto(employeeId);
+            }
+        });
+
+        generateEmployeesPhotoGrid();
+        PlanningManager.generatePlanningGrid();
+        PlanningManager.updateLegend();
+
+        // Mettre à jour le compteur
+        const photoCountDisplay = document.getElementById('photoCountDisplay');
+        if (photoCountDisplay && window.avatarManager) {
+            photoCountDisplay.textContent = window.avatarManager.photoCache.size;
+        }
+
+        NotificationManager.show('✅ Photos supprimées', 'success');
+    }
+};
+
+// ==================== INITIALISATION ====================
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Initialisation de l\'application Planning Restaurant...');
+
+    // Initialiser le gestionnaire d'avatars
+    try {
+        if (!window.avatarManager) {
+            window.avatarManager = new AvatarManager();
+            console.log('✅ Gestionnaire d\'avatars initialisé');
+        }
+    } catch (error) {
+        console.error('❌ Erreur initialisation avatars:', error);
+    }
+
+    // Initialiser le planning
     PlanningManager.initialize();
 });
 
-// Export pour les modules
+// Gestion des erreurs globales
+window.addEventListener('error', function(e) {
+    console.error('❌ Erreur JavaScript:', e.error);
+    NotificationManager.show('Une erreur inattendue s\'est produite', 'error');
+});
+
+// Raccourcis clavier
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        PlanningUI.closeAllModals();
+    }
+});
+
+// Gestion réseau
+window.addEventListener('online', function() {
+    NotificationManager.show('🌐 Connexion rétablie', 'success');
+});
+
+window.addEventListener('offline', function() {
+    NotificationManager.show('⚠️ Connexion perdue - Mode hors ligne', 'warning', 5000);
+});
+
+// Export pour les modules (si nécessaire)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         PlanningManager,
         APIManager,
         DragDropManager,
-        ResizeManager,
         PlanningUI,
-        NotificationManager
+        NotificationManager,
+        AvatarManager,
+        ColorManager
     };
 }
+
+console.log('📋 Planning Restaurant JS chargé avec succès');
+console.log('🎨 Système d\'avatars activé');
+console.log('🚀 Application prête à l\'utilisation');

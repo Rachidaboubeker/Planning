@@ -2,6 +2,58 @@
 
 {% block title %}Planning Semaine - Restaurant{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Styles spécifiques pour la page index avec avatars */
+    .planning-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .bulk-photo-upload {
+        position: relative;
+    }
+
+    .bulk-photo-input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    .btn-icon-only {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .btn-photo {
+        background: var(--info-color);
+        color: white;
+    }
+
+    .btn-photo:hover {
+        background: var(--primary-color);
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="planning-container">
     <!-- Header avec navigation semaine -->
@@ -18,7 +70,7 @@
                 Semaine suivante <i class="fas fa-chevron-right"></i>
             </button>
         </div>
-        
+
         <div class="planning-actions">
             <button class="btn btn-primary" onclick="showAddShiftModal()">
                 <i class="fas fa-plus"></i> Ajouter un créneau
@@ -26,12 +78,21 @@
             <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
                 <i class="fas fa-user-plus"></i> Nouvel équipier
             </button>
+
+            <div class="quick-actions">
+                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos d'équipe">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Générer des avatars aléatoires">
+                    <i class="fas fa-dice"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Légende des équipiers -->
+    <!-- Légende des équipiers avec avatars -->
     <div class="legend-container" id="legendContainer">
-        <!-- Généré par JavaScript -->
+        <!-- Généré par JavaScript avec avatars -->
     </div>
 
     <!-- Grille du planning -->
@@ -47,7 +108,7 @@
 
             <!-- Grille principale avec positionnement relatif -->
             <div class="planning-grid" id="planningGrid" style="position: relative;">
-                <!-- Généré par JavaScript -->
+                <!-- Généré par JavaScript avec avatars -->
             </div>
         </div>
     </div>
@@ -65,6 +126,10 @@
         <div class="stat-card">
             <div class="stat-value" id="averageHoursDisplay">{{ "%.1f"|format(stats.average_hours) }}h</div>
             <div class="stat-label">Moyenne par personne</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="photoCountDisplay">0</div>
+            <div class="stat-label">Photos ajoutées</div>
         </div>
     </div>
 </div>
@@ -134,7 +199,7 @@
     </div>
 </div>
 
-<!-- Modal d'ajout d'équipier -->
+<!-- Modal d'ajout d'équipier avec upload photo -->
 <div id="addEmployeeModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -179,18 +244,249 @@
                         <input type="tel" id="employeeTelephone">
                     </div>
                 </div>
+
+                <!-- Section photo -->
+                <div class="form-group">
+                    <label for="employeePhoto">Photo (optionnel)</label>
+                    <div class="upload-area" onclick="document.getElementById('employeePhoto').click()">
+                        <i class="fas fa-camera"></i>
+                        <p>Ajouter une photo</p>
+                        <small>JPG, PNG - Max 5MB</small>
+                    </div>
+                    <input type="file" id="employeePhoto" accept="image/*" style="display: none;">
+
+                    <div class="photo-preview" id="employeePhotoPreview" style="display: none;">
+                        <img id="employeePhotoImg" class="preview-img" style="max-width: 100px; max-height: 100px; border-radius: 50%;">
+                    </div>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">Annuler</button>
-            <button type="button" class="btn btn-primary" onclick="addEmployee()">
+            <button type="button" class="btn btn-primary" onclick="addEmployeeWithPhoto()">
                 <i class="fas fa-user-plus"></i> Créer
             </button>
         </div>
     </div>
 </div>
 
+<!-- Modal de gestion en lot des photos -->
+<div id="bulkPhotoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-images"></i> Gestion des photos d'équipe</h2>
+            <span class="modal-close" onclick="closeModal('bulkPhotoModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="bulk-photo-manager">
+                <div class="bulk-actions">
+                    <button class="btn btn-primary" onclick="selectAllPhotos()">
+                        <i class="fas fa-check-square"></i> Tout sélectionner
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAllPhotos()">
+                        <i class="fas fa-trash"></i> Supprimer sélectionnés
+                    </button>
+                    <button class="btn btn-info" onclick="generateRandomAvatars()">
+                        <i class="fas fa-dice"></i> Avatars aléatoires
+                    </button>
+                </div>
+
+                <div class="employees-photo-grid" id="employeesPhotoGrid">
+                    <!-- Généré par JavaScript -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('bulkPhotoModal')">Fermer</button>
+        </div>
+    </div>
+</div>
+
 <script>
+// Variables globales étendues
+let photoUploadQueue = new Map();
+
+// Fonction pour ajouter un équipier avec photo
+window.addEmployeeWithPhoto = async function() {
+    const form = document.getElementById('addEmployeeForm');
+    if (!form || !form.checkValidity()) {
+        form?.reportValidity();
+        return;
+    }
+
+    const employeeData = {
+        prenom: document.getElementById('employeePrenom').value,
+        nom: document.getElementById('employeeNom').value,
+        poste: document.getElementById('employeePoste').value,
+        taux_horaire: parseFloat(document.getElementById('employeeTauxHoraire').value),
+        email: document.getElementById('employeeEmail').value,
+        telephone: document.getElementById('employeeTelephone').value
+    };
+
+    try {
+        const result = await APIManager.post('/employees', employeeData);
+
+        if (result.success) {
+            AppState.employees.set(result.employee.id, result.employee);
+
+            // Gérer la photo si elle existe
+            const photoFile = document.getElementById('employeePhoto').files[0];
+            if (photoFile) {
+                try {
+                    await window.avatarManager.setEmployeePhoto(result.employee.id, photoFile);
+                } catch (photoError) {
+                    console.warn('Erreur lors de la sauvegarde de la photo:', photoError);
+                }
+            }
+
+            // Ajouter à la liste déroulante des créneaux
+            const shiftEmployeeSelect = document.getElementById('shiftEmployee');
+            if (shiftEmployeeSelect) {
+                const option = document.createElement('option');
+                option.value = result.employee.id;
+                option.textContent = `${result.employee.nom_complet} (${result.employee.type_info.name})`;
+                shiftEmployeeSelect.appendChild(option);
+            }
+
+            // Mettre à jour l'affichage
+            PlanningManager.updateLegend();
+            updatePhotoStats();
+
+            closeModal('addEmployeeModal');
+            form.reset();
+            document.getElementById('employeePhotoPreview').style.display = 'none';
+            NotificationManager.show('✅ Équipier ajouté avec succès', 'success');
+        } else {
+            NotificationManager.show(`❌ ${result.error}`, 'error');
+        }
+    } catch (error) {
+        NotificationManager.show('❌ Erreur de connexion', 'error');
+    }
+};
+
+// Fonction pour afficher le modal de gestion en lot
+window.showBulkPhotoModal = function() {
+    const modal = document.getElementById('bulkPhotoModal');
+    generateEmployeesPhotoGrid();
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+};
+
+// Générer la grille des employés pour la gestion des photos
+function generateEmployeesPhotoGrid() {
+    const grid = document.getElementById('employeesPhotoGrid');
+    if (!grid) return;
+
+    const employees = Array.from(AppState.employees.values())
+        .filter(emp => emp.actif)
+        .sort((a, b) => a.nom.localeCompare(b.nom));
+
+    grid.innerHTML = employees.map(employee => `
+        <div class="employee-photo-item" data-employee-id="${employee.id}">
+            <div class="employee-photo-card">
+                <img src="${window.avatarManager.getEmployeeAvatar(employee)}"
+                     alt="${employee.nom_complet}"
+                     class="employee-photo-img"
+                     onclick="window.openPhotoModal('${employee.id}')">
+                <div class="employee-photo-info">
+                    <div class="employee-photo-name">${employee.nom_complet}</div>
+                    <div class="employee-photo-role">${employee.type_info.name}</div>
+                </div>
+                <div class="employee-photo-actions">
+                    <input type="checkbox" class="photo-select" data-employee-id="${employee.id}">
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Fonction pour générer des avatars aléatoires
+window.generateRandomAvatars = function() {
+    const employees = Array.from(AppState.employees.values()).filter(emp => emp.actif);
+
+    employees.forEach(employee => {
+        window.avatarManager.generateRandomAvatar(employee.id);
+    });
+
+    PlanningManager.generatePlanningGrid();
+    PlanningManager.updateLegend();
+    updatePhotoStats();
+
+    NotificationManager.show('🎨 Nouveaux avatars générés', 'success');
+};
+
+// Fonction pour sélectionner toutes les photos
+window.selectAllPhotos = function() {
+    document.querySelectorAll('.photo-select').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+};
+
+// Fonction pour supprimer les photos sélectionnées
+window.clearAllPhotos = function() {
+    const selectedCheckboxes = document.querySelectorAll('.photo-select:checked');
+
+    if (selectedCheckboxes.length === 0) {
+        NotificationManager.show('❌ Aucune photo sélectionnée', 'warning');
+        return;
+    }
+
+    if (confirm(`Supprimer ${selectedCheckboxes.length} photo(s) ?`)) {
+        selectedCheckboxes.forEach(checkbox => {
+            const employeeId = checkbox.dataset.employeeId;
+            window.avatarManager.removePhoto(employeeId);
+        });
+
+        generateEmployeesPhotoGrid();
+        PlanningManager.generatePlanningGrid();
+        PlanningManager.updateLegend();
+        updatePhotoStats();
+
+        NotificationManager.show('✅ Photos supprimées', 'success');
+    }
+};
+
+// Fonction pour mettre à jour les statistiques de photos
+function updatePhotoStats() {
+    const photoCount = window.avatarManager.photoCache.size;
+    const photoCountDisplay = document.getElementById('photoCountDisplay');
+    if (photoCountDisplay) {
+        photoCountDisplay.textContent = photoCount;
+    }
+}
+
+// Configuration de l'upload de photo lors de l'ajout d'employé
+document.addEventListener('DOMContentLoaded', function() {
+    const photoInput = document.getElementById('employeePhoto');
+    const photoPreview = document.getElementById('employeePhotoPreview');
+    const photoImg = document.getElementById('employeePhotoImg');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    NotificationManager.show('❌ Fichier trop volumineux (max 5MB)', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoImg.src = e.target.result;
+                    photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                photoPreview.style.display = 'none';
+            }
+        });
+    }
+
+    // Mettre à jour les stats de photos à l'initialisation
+    setTimeout(updatePhotoStats, 1000);
+});
+
 // Données transmises par Flask
 const employeesData = {{ employees | tojson }};
 const shiftsData = {{ shifts | tojson }};
@@ -203,17 +499,24 @@ let currentWeekOffset = 0;
 let employees = new Map();
 let shifts = new Map();
 
-// Initialisation
+// Initialisation améliorée avec avatars
 document.addEventListener('DOMContentLoaded', function() {
+    // S'assurer que le gestionnaire d'avatars est prêt
+    if (!window.avatarManager) {
+        console.log('Initialisation du gestionnaire d\'avatars...');
+        window.avatarManager = new AvatarManager();
+    }
+
     // Charger les données
     loadEmployees();
     loadShifts();
 
-    // Générer le planning
-    generatePlanningGrid();
-
-    // Actualiser les stats
-    updateQuickStats();
+    // Générer le planning avec avatars
+    setTimeout(() => {
+        generatePlanningGrid();
+        updateQuickStats();
+        updatePhotoStats();
+    }, 100);
 });
 
 function loadEmployees() {
@@ -221,6 +524,13 @@ function loadEmployees() {
     employeesData.forEach(emp => {
         employees.set(emp.id, emp);
     });
+
+    // Mettre à jour AppState pour le gestionnaire d'avatars
+    if (window.AppState) {
+        window.AppState.employees = employees;
+    } else {
+        window.AppState = { employees, shifts };
+    }
 }
 
 function loadShifts() {
@@ -228,6 +538,11 @@ function loadShifts() {
     shiftsData.forEach(shift => {
         shifts.set(shift.id, shift);
     });
+
+    // Mettre à jour AppState
+    if (window.AppState) {
+        window.AppState.shifts = shifts;
+    }
 }
 
 function generatePlanningGrid() {
@@ -261,8 +576,11 @@ function generatePlanningGrid() {
         });
     });
 
-    // Rendre les créneaux multi-heures
+    // Rendre les créneaux avec avatars
     renderShifts();
+
+    // Mettre à jour la légende avec avatars
+    updateLegendWithAvatars();
 }
 
 function renderShifts() {
@@ -272,58 +590,35 @@ function renderShifts() {
     grid.querySelectorAll('.shift-block').forEach(block => block.remove());
 
     shifts.forEach(shift => {
-        if (shift.duration === 1) {
-            renderSingleHourShift(shift);
-        } else {
-            renderMultiHourShift(shift);
+        const employee = employees.get(shift.employee_id);
+        if (employee) {
+            if (shift.duration === 1) {
+                renderSingleHourShift(shift, employee);
+            } else {
+                renderMultiHourShift(shift, employee);
+            }
         }
     });
 }
 
-function renderSingleHourShift(shift) {
-    const employee = employees.get(shift.employee_id);
-    if (!employee) return;
-
+function renderSingleHourShift(shift, employee) {
     const cell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
     if (!cell) return;
 
-    const block = createShiftBlock(shift, employee);
+    const block = createShiftBlockWithAvatar(shift, employee, false);
     cell.appendChild(block);
 }
 
-function renderMultiHourShift(shift) {
-    const employee = employees.get(shift.employee_id);
-    if (!employee) return;
-
+function renderMultiHourShift(shift, employee) {
     const grid = document.getElementById('planningGrid');
     const dayIndex = daysOfWeek.indexOf(shift.day);
     const startRowIndex = hoursRange.indexOf(shift.start_hour);
 
     if (dayIndex === -1 || startRowIndex === -1) return;
 
-    const block = document.createElement('div');
-    block.className = `shift-block multi-hour-block employee-${employee.poste}`;
-    block.dataset.shiftId = shift.id;
-
-    // Contenu du bloc
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'shift-name';
-    nameDiv.textContent = employee.prenom;
-
-    const durationDiv = document.createElement('div');
-    durationDiv.className = 'shift-duration';
-    durationDiv.textContent = `${shift.duration}h`;
-
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'shift-time';
-    timeDiv.textContent = shift.formatted_hours;
-
-    block.appendChild(nameDiv);
-    block.appendChild(durationDiv);
-    block.appendChild(timeDiv);
+    const block = createShiftBlockWithAvatar(shift, employee, true);
 
     // Positionnement CSS Grid
-    const cellHeight = 60;
     const gridRowStart = startRowIndex + 2; // +2 pour en-tête
     const gridRowEnd = gridRowStart + shift.duration;
     const gridColumn = dayIndex + 2; // +2 pour colonne heure
@@ -332,40 +627,151 @@ function renderMultiHourShift(shift) {
     block.style.gridColumn = `${gridColumn}`;
     block.style.backgroundColor = employeeTypes[employee.poste].color;
 
-    // Tooltip
-    block.title = `${employee.nom_complet}\n${shift.formatted_hours}\n${shift.duration}h\nDouble-clic pour modifier`;
-
-    // Événements
-    setupShiftEvents(block, shift);
-
     grid.appendChild(block);
 }
 
-function createShiftBlock(shift, employee) {
+function createShiftBlockWithAvatar(shift, employee, isMultiHour) {
     const block = document.createElement('div');
-    block.className = `shift-block single-hour-block employee-${employee.poste}`;
+    block.className = `shift-block ${isMultiHour ? 'multi-hour-block' : 'single-hour-block'}`;
     block.dataset.shiftId = shift.id;
-    block.textContent = employee.prenom;
+    block.dataset.employeeId = shift.employee_id;
+
+    // Couleur de fond
     block.style.backgroundColor = employeeTypes[employee.poste].color;
 
-    block.title = `${employee.nom_complet}\n${shift.formatted_hours}\nDouble-clic pour modifier`;
+    if (isMultiHour) {
+        // Créer l'avatar
+        const avatarElement = window.avatarManager.createAvatarElement(employee, 'normal');
 
-    setupShiftEvents(block, shift);
+        block.innerHTML = `
+            <div class="shift-header">
+                <div class="shift-info">
+                    <div class="shift-employee-name">${employee.prenom}</div>
+                    <div class="shift-duration">${shift.duration}h</div>
+                </div>
+            </div>
+            <div class="shift-time">${shift.formatted_hours}</div>
+        `;
+
+        // Ajouter l'avatar au début du header
+        const shiftHeader = block.querySelector('.shift-header');
+        shiftHeader.insertBefore(avatarElement, shiftHeader.firstChild);
+    } else {
+        // Créneau d'une heure - avatar + nom
+        const avatarElement = window.avatarManager.createAvatarElement(employee, 'small');
+
+        block.appendChild(avatarElement);
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'shift-name';
+        nameDiv.textContent = employee.prenom;
+        block.appendChild(nameDiv);
+    }
+
+    // Tooltip avec mention photo
+    block.title = `${employee.nom_complet}\n${employee.poste}\n${shift.day} ${shift.formatted_hours}\n\n🖱️ Glisser pour déplacer\n📸 Clic pour changer la photo`;
+
+    // Événements
+    setupShiftEvents(block, shift, employee);
 
     return block;
 }
 
-function setupShiftEvents(block, shift) {
-    // Double-clic pour modifier
+function setupShiftEvents(block, shift, employee) {
+    // Double-clic pour modifier le créneau
     block.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         showEditShiftModal(shift);
     });
 
+    // Clic simple sur l'avatar pour la photo
+    const avatarImg = block.querySelector('.shift-avatar-img');
+    if (avatarImg) {
+        avatarImg.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.openPhotoModal(employee.id);
+        });
+    }
+
     // Drag and drop
     setupDragAndDrop(block, shift);
 }
 
+function updateLegendWithAvatars() {
+    const container = document.getElementById('legendContainer');
+    if (!container) return;
+
+    const activeEmployees = Array.from(employees.values())
+        .filter(emp => emp.actif)
+        .sort((a, b) => a.nom.localeCompare(b.nom));
+
+    if (activeEmployees.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="legend-title">
+            <i class="fas fa-users"></i> Équipe (${activeEmployees.length} personnes)
+        </div>
+        <div class="legend-grid" id="legendGrid">
+            <!-- Généré par JavaScript -->
+        </div>
+    `;
+
+    const legendGrid = document.getElementById('legendGrid');
+
+    activeEmployees.forEach(employee => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        legendItem.dataset.employeeId = employee.id;
+
+        // Créer l'avatar
+        const avatarImg = document.createElement('img');
+        avatarImg.className = 'legend-avatar';
+        avatarImg.src = window.avatarManager.getEmployeeAvatar(employee);
+        avatarImg.alt = employee.nom_complet;
+        avatarImg.onerror = () => {
+            avatarImg.src = window.avatarManager.generateQuestionMarkAvatar();
+        };
+
+        // Informations de l'employé
+        const legendInfo = document.createElement('div');
+        legendInfo.className = 'legend-info';
+        legendInfo.innerHTML = `
+            <div class="legend-name">${employee.nom_complet}</div>
+            <div class="legend-role">${employee.type_info.name}</div>
+        `;
+
+        legendItem.appendChild(avatarImg);
+        legendItem.appendChild(legendInfo);
+
+        // Événements
+        legendItem.addEventListener('click', () => {
+            window.openPhotoModal(employee.id);
+        });
+
+        legendItem.addEventListener('mouseenter', () => {
+            // Mettre en surbrillance les créneaux de cet employé
+            document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
+                block.style.transform = 'scale(1.02)';
+                block.style.zIndex = '20';
+            });
+        });
+
+        legendItem.addEventListener('mouseleave', () => {
+            // Retirer la surbrillance
+            document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
+                block.style.transform = '';
+                block.style.zIndex = '';
+            });
+        });
+
+        legendGrid.appendChild(legendItem);
+    });
+}
+
+// Reste des fonctions existantes...
 function setupDropZone(cell) {
     cell.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -499,54 +905,6 @@ async function addShift() {
     }
 }
 
-async function addEmployee() {
-    const form = document.getElementById('addEmployeeForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const employeeData = {
-        prenom: document.getElementById('employeePrenom').value,
-        nom: document.getElementById('employeeNom').value,
-        poste: document.getElementById('employeePoste').value,
-        taux_horaire: parseFloat(document.getElementById('employeeTauxHoraire').value),
-        email: document.getElementById('employeeEmail').value,
-        telephone: document.getElementById('employeeTelephone').value
-    };
-
-    try {
-        const response = await fetch(`${API_BASE}/employees`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(employeeData)
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            employees.set(data.employee.id, data.employee);
-
-            // Ajouter à la liste déroulante
-            const select = document.getElementById('shiftEmployee');
-            const option = document.createElement('option');
-            option.value = data.employee.id;
-            option.textContent = `${data.employee.nom_complet} (${employeeTypes[data.employee.poste].name})`;
-            select.appendChild(option);
-
-            closeModal('addEmployeeModal');
-            form.reset();
-            showNotification('✅ Équipier ajouté avec succès', 'success');
-        } else {
-            showNotification(`❌ ${data.error}`, 'error');
-        }
-    } catch (error) {
-        showNotification('❌ Erreur de connexion', 'error');
-    }
-}
-
 async function updateQuickStats() {
     try {
         const response = await fetch(`${API_BASE}/stats/weekly`);
@@ -588,4 +946,99 @@ function updateWeekDisplay() {
     document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
 }
 </script>
+
+<!-- Styles additionnels pour la grille de photos -->
+<style>
+.bulk-photo-manager {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.employees-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.employee-photo-item {
+    position: relative;
+}
+
+.employee-photo-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.employee-photo-card:hover {
+    background: var(--gray-100);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.employee-photo-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--gray-300);
+    object-fit: cover;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+    transition: var(--transition);
+}
+
+.employee-photo-img:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.employee-photo-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.employee-photo-role {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 0.75rem;
+}
+
+.employee-photo-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.photo-select {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .employees-photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .employee-photo-img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .bulk-actions {
+        flex-direction: column;
+    }
+}
+</style>
 {% endblock %}

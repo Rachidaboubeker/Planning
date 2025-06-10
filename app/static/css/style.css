@@ -1070,3 +1070,545 @@ textarea:focus-visible {
         border: 1px solid var(--gray-400);
     }
 }
+/* ========================================
+   PATCH CSS - GESTION DES CHEVAUCHEMENTS
+   À AJOUTER à la fin de votre style.css existant
+   ======================================== */
+
+/* Amélioration des cellules pour gérer les chevauchements */
+.schedule-cell {
+    overflow: visible !important; /* Permet aux éléments absolus de dépasser */
+}
+
+/* Styles pour les shifts côte à côte */
+.shift-block.side-by-side {
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+    margin: 0 !important;
+    z-index: 10 !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.shift-block.side-by-side:hover {
+    z-index: 20 !important;
+    transform: scale(1.05) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Ajustements pour créneaux étroits */
+.shift-block.narrow-shift {
+    font-size: 0.7rem !important;
+    padding: 0.2rem !important;
+}
+
+.shift-block.narrow-shift .avatar-circle {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.shift-block.narrow-shift .avatar-initials {
+    font-size: 0.6rem !important;
+}
+
+/* Masquer certains éléments dans les shifts très étroits */
+.shift-block.very-narrow-shift .shift-time {
+    display: none !important;
+}
+
+.shift-block.very-narrow-shift .shift-duration {
+    font-size: 0.6rem !important;
+}
+
+/* Indicateur de chevauchement */
+.overlap-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+/* Animation pour les déplacements */
+.shift-block.repositioning {
+    transition: all 0.3s ease !important;
+}
+
+/* Responsive pour les chevauchements */
+@media (max-width: 768px) {
+    .shift-block.side-by-side {
+        font-size: 0.65rem !important;
+        padding: 0.15rem !important;
+    }
+
+    .shift-block.side-by-side .avatar-circle {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .shift-block.side-by-side .avatar-initials {
+        font-size: 0.55rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .shift-block.side-by-side {
+        font-size: 0.6rem !important;
+        padding: 0.1rem !important;
+    }
+
+    .shift-block.side-by-side .avatar-circle {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .shift-block.side-by-side .avatar-initials {
+        font-size: 0.5rem !important;
+    }
+
+    /* Masquer les détails sur très petit écran */
+    .shift-block.side-by-side .shift-time,
+    .shift-block.side-by-side .shift-duration {
+        display: none !important;
+    }
+}
+
+/* === STYLES AVATARS AVEC PHOTOS === */
+
+/* Conteneur d'avatar */
+.shift-avatar-container {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 0.25rem;
+    flex-shrink: 0;
+}
+
+.shift-avatar-container.normal {
+    width: 32px;
+    height: 32px;
+}
+
+.shift-avatar-container.small {
+    width: 24px;
+    height: 24px;
+}
+
+.shift-avatar-container.large {
+    width: 48px;
+    height: 48px;
+}
+
+/* Image d'avatar */
+.shift-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    object-fit: cover;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.shift-avatar-img:hover {
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Indicateur de photo personnalisée */
+.avatar-photo-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #00b894;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-photo-indicator::before {
+    content: '📷';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6px;
+    line-height: 1;
+}
+
+/* Ajustements pour les créneaux multi-heures */
+.multi-hour-block .shift-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.multi-hour-block .shift-info {
+    flex: 1;
+    text-align: left;
+    min-width: 0;
+}
+
+.multi-hour-block .shift-employee-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajustements pour les créneaux simples */
+.single-hour-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+}
+
+.single-hour-block .shift-avatar-container {
+    margin-bottom: 0;
+}
+
+.single-hour-block .shift-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Ajustements pour les chevauchements */
+.shift-block.overlap-1-of-2 .shift-avatar-container,
+.shift-block.overlap-2-of-2 .shift-avatar-container,
+.shift-block.overlap-1-of-3 .shift-avatar-container,
+.shift-block.overlap-2-of-3 .shift-avatar-container,
+.shift-block.overlap-3-of-3 .shift-avatar-container {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.shift-block.overlap-1-of-3 .shift-name,
+.shift-block.overlap-2-of-3 .shift-name,
+.shift-block.overlap-3-of-3 .shift-name {
+    font-size: 0.6rem !important;
+}
+
+/* === MODAL DE GESTION DES PHOTOS === */
+
+.photo-manager {
+    display: grid;
+    gap: 2rem;
+}
+
+.current-avatar {
+    text-align: center;
+}
+
+.current-avatar h3 {
+    margin-bottom: 1rem;
+    color: var(--gray-700);
+}
+
+.avatar-preview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.current-avatar-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid var(--gray-200);
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.current-avatar-img:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.photo-upload h3 {
+    margin-bottom: 1rem;
+    color: var(--gray-700);
+}
+
+.upload-area {
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--gray-50);
+}
+
+.upload-area:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+}
+
+.upload-area i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.upload-area p {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.upload-area small {
+    opacity: 0.7;
+}
+
+.photo-preview {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.preview-img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--gray-200);
+    object-fit: cover;
+}
+
+.photo-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.photo-actions .btn {
+    flex: 1;
+    max-width: 200px;
+}
+
+/* === GESTION DES EMPLOYÉS AVEC AVATARS === */
+
+.employee-card .employee-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.employee-card .employee-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--gray-300);
+    object-fit: cover;
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.employee-card .employee-avatar:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.employee-card .employee-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.employee-card .employee-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+}
+
+.employee-card .employee-role {
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+}
+
+/* === LÉGENDE AVEC AVATARS === */
+
+.legend-container {
+    padding: 1rem 2rem;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.legend-title {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--gray-700);
+    text-align: center;
+}
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.legend-item:hover {
+    background: var(--gray-100);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.legend-item .legend-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--gray-300);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.legend-item .legend-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.legend-item .legend-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.legend-item .legend-role {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* === RESPONSIVE POUR AVATARS === */
+
+@media (max-width: 768px) {
+    .avatar-preview .current-avatar-img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .upload-area {
+        padding: 1.5rem;
+    }
+
+    .upload-area i {
+        font-size: 1.5rem;
+    }
+
+    .photo-actions {
+        flex-direction: column;
+    }
+
+    .photo-actions .btn {
+        max-width: none;
+    }
+
+    .legend-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .legend-item {
+        padding: 0.5rem;
+    }
+
+    .legend-item .legend-avatar {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .shift-avatar-container.normal {
+        width: 24px;
+        height: 24px;
+    }
+
+    .single-hour-block .shift-name {
+        font-size: 0.6rem;
+    }
+
+    .multi-hour-block .shift-avatar-container {
+        width: 24px;
+        height: 24px;
+    }
+
+    .employee-card .employee-avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .legend-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === ANIMATIONS POUR AVATARS === */
+
+@keyframes avatarPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.shift-avatar-img.loading {
+    animation: avatarPulse 1.5s ease-in-out infinite;
+}
+
+.avatar-photo-indicator {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
