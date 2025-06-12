@@ -15,27 +15,27 @@
   "shift_4": {
     "id": "shift_4",
     "employee_id": "emp_1",
-    "day": "Jeudi",
-    "start_hour": 12,
+    "day": "Samedi",
+    "start_hour": 10,
     "duration": 2,
     "poste_specifique": "Service midi",
     "notes": "Rush du midi",
     "date_creation": "2024-06-01T08:15:00",
-    "end_hour": 14,
-    "formatted_hours": "12:00 - 14:00",
+    "end_hour": 12,
+    "formatted_hours": "10:00 - 12:00",
     "crosses_midnight": false
   },
   "shift_5": {
     "id": "shift_5",
     "employee_id": "emp_4",
-    "day": "Mercredi",
-    "start_hour": 8,
+    "day": "Vendredi",
+    "start_hour": 9,
     "duration": 8,
     "poste_specifique": "Management",
     "notes": "Supervision générale - journée complète",
     "date_creation": "2024-06-01T08:20:00",
-    "end_hour": 16,
-    "formatted_hours": "08:00 - 16:00",
+    "end_hour": 17,
+    "formatted_hours": "09:00 - 17:00",
     "crosses_midnight": false
   },
   "shift_6": {
@@ -54,7 +54,7 @@
   "shift_7": {
     "id": "shift_7",
     "employee_id": "emp_5",
-    "day": "Mercredi",
+    "day": "Jeudi",
     "start_hour": 10,
     "duration": 3,
     "poste_specifique": "Service midi",
@@ -68,13 +68,13 @@
     "id": "shift_10",
     "employee_id": "emp_2",
     "day": "Vendredi",
-    "start_hour": 17,
+    "start_hour": 15,
     "duration": 6,
     "poste_specifique": "Cuisine soir",
     "notes": "Brigade du vendredi",
     "date_creation": "2024-06-01T08:45:00",
-    "end_hour": 23,
-    "formatted_hours": "17:00 - 23:00",
+    "end_hour": 21,
+    "formatted_hours": "15:00 - 21:00",
     "crosses_midnight": false
   },
   "shift_11": {
@@ -93,7 +93,7 @@
   "shift_14": {
     "id": "shift_14",
     "employee_id": "emp_7",
-    "day": "Samedi",
+    "day": "Dimanche",
     "start_hour": 18,
     "duration": 4,
     "poste_specifique": "Aide cuisine",
@@ -106,14 +106,14 @@
   "shift_15": {
     "id": "shift_15",
     "employee_id": "emp_8",
-    "day": "Jeudi",
-    "start_hour": 14,
+    "day": "Mardi",
+    "start_hour": 15,
     "duration": 3,
     "poste_specifique": "Commis service",
     "notes": "Aide au service soir",
     "date_creation": "2024-06-01T09:10:00",
-    "end_hour": 17,
-    "formatted_hours": "14:00 - 17:00",
+    "end_hour": 18,
+    "formatted_hours": "15:00 - 18:00",
     "crosses_midnight": false
   },
   "shift_16": {
@@ -145,14 +145,14 @@
   "shift_18": {
     "id": "shift_18",
     "employee_id": "emp_1",
-    "day": "Dimanche",
-    "start_hour": 11,
+    "day": "Mercredi",
+    "start_hour": 15,
     "duration": 4,
     "poste_specifique": "Service brunch",
     "notes": "Service brunch dominical",
     "date_creation": "2024-06-01T09:25:00",
-    "end_hour": 15,
-    "formatted_hours": "11:00 - 15:00",
+    "end_hour": 19,
+    "formatted_hours": "15:00 - 19:00",
     "crosses_midnight": false
   },
   "shift_1749501850074": {
@@ -171,14 +171,14 @@
   "shift_1749502612463": {
     "id": "shift_1749502612463",
     "employee_id": "emp_1",
-    "day": "Lundi",
-    "start_hour": 9,
+    "day": "Mardi",
+    "start_hour": 10,
     "duration": 2,
     "poste_specifique": "",
     "notes": "",
     "date_creation": "2025-06-09T22:56:52.463512",
-    "end_hour": 11,
-    "formatted_hours": "09:00 - 11:00",
+    "end_hour": 12,
+    "formatted_hours": "10:00 - 12:00",
     "crosses_midnight": false
   },
   "shift_1749503106911": {
@@ -197,14 +197,14 @@
   "shift_1749503867870": {
     "id": "shift_1749503867870",
     "employee_id": "emp_1749503087277",
-    "day": "Mardi",
-    "start_hour": 9,
+    "day": "Vendredi",
+    "start_hour": 13,
     "duration": 2,
     "poste_specifique": "",
     "notes": "",
     "date_creation": "2025-06-09T23:17:47.870039",
-    "end_hour": 11,
-    "formatted_hours": "09:00 - 11:00",
+    "end_hour": 15,
+    "formatted_hours": "13:00 - 15:00",
     "crosses_midnight": false
   }
 }
