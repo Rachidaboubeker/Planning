@@ -8,12 +8,15 @@
     "telephone": "06.12.34.56.78",
     "taux_horaire": 16.0,
     "actif": true,
+    "photo_data": null,
     "date_creation": "2024-01-15T10:30:00",
     "nom_complet": "Marie Dupont",
     "type_info": {
       "color": "#00b894",
       "name": "Serveur/se"
-    }
+    },
+    "has_photo": false,
+    "initials": "MD"
   },
   "emp_2": {
     "id": "emp_2",
@@ -24,12 +27,15 @@
     "telephone": "06.23.45.67.89",
     "taux_horaire": 18.5,
     "actif": true,
+    "photo_data": null,
     "date_creation": "2024-01-10T14:20:00",
     "nom_complet": "Pierre Martin",
     "type_info": {
       "color": "#74b9ff",
       "name": "Cuisinier"
-    }
+    },
+    "has_photo": false,
+    "initials": "PM"
   },
   "emp_3": {
     "id": "emp_3",
@@ -37,15 +43,18 @@
     "prenom": "Julie",
     "poste": "barman",
     "email": "julie.lemaire@restaurant.com",
-    "telephone": "06.34.56.78.90",
+    "telephone": "06.34.56.78.92",
     "taux_horaire": 17.0,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-01-20T09:15:00",
     "nom_complet": "Julie Lemaire",
     "type_info": {
       "color": "#fdcb6e",
       "name": "Barman"
-    }
+    },
+    "has_photo": false,
+    "initials": "JL"
   },
   "emp_4": {
     "id": "emp_4",
@@ -55,13 +64,16 @@
     "email": "thomas.durand@restaurant.com",
     "telephone": "06.45.67.89.01",
     "taux_horaire": 22.0,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-01-05T16:45:00",
     "nom_complet": "Thomas Durand",
     "type_info": {
       "color": "#a29bfe",
       "name": "Manager"
-    }
+    },
+    "has_photo": false,
+    "initials": "TD"
   },
   "emp_5": {
     "id": "emp_5",
@@ -71,13 +83,16 @@
     "email": "sophie.blanc@restaurant.com",
     "telephone": "06.56.78.90.12",
     "taux_horaire": 15.5,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-02-01T11:30:00",
     "nom_complet": "Sophie Blanc",
     "type_info": {
       "color": "#00b894",
       "name": "Serveur/se"
-    }
+    },
+    "has_photo": false,
+    "initials": "SB"
   },
   "emp_6": {
     "id": "emp_6",
@@ -87,13 +102,16 @@
     "email": "lucas.noir@restaurant.com",
     "telephone": "06.67.89.01.23",
     "taux_horaire": 19.0,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-02-10T08:45:00",
     "nom_complet": "Lucas Noir",
     "type_info": {
       "color": "#74b9ff",
       "name": "Cuisinier"
-    }
+    },
+    "has_photo": false,
+    "initials": "LN"
   },
   "emp_7": {
     "id": "emp_7",
@@ -103,13 +121,16 @@
     "email": "emma.roux@restaurant.com",
     "telephone": "06.78.90.12.34",
     "taux_horaire": 12.5,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-02-15T13:20:00",
     "nom_complet": "Emma Roux",
     "type_info": {
       "color": "#6c5ce7",
       "name": "Aide de cuisine"
-    }
+    },
+    "has_photo": false,
+    "initials": "ER"
   },
   "emp_8": {
     "id": "emp_8",
@@ -119,13 +140,16 @@
     "email": "antoine.vert@restaurant.com",
     "telephone": "06.89.01.23.45",
     "taux_horaire": 13.0,
-    "actif": true,
+    "actif": false,
+    "photo_data": null,
     "date_creation": "2024-03-01T10:15:00",
     "nom_complet": "Antoine Vert",
     "type_info": {
       "color": "#fd79a8",
       "name": "Commis"
-    }
+    },
+    "has_photo": false,
+    "initials": "AV"
   },
   "emp_1749503087277": {
     "id": "emp_1749503087277",
@@ -136,11 +160,128 @@
     "telephone": "0667448000",
     "taux_horaire": 15.0,
     "actif": true,
+    "photo_data": null,
     "date_creation": "2025-06-09T23:04:47.277889",
     "nom_complet": "Rachid Aboubeker",
     "type_info": {
       "color": "#00b894",
       "name": "Serveur/se"
-    }
+    },
+    "has_photo": false,
+    "initials": "RA"
+  },
+  "emp_1749941299635": {
+    "id": "emp_1749941299635",
+    "nom": "Doe",
+    "prenom": "John",
+    "poste": "serveur",
+    "email": "john@example.com",
+    "telephone": "0123456789",
+    "taux_horaire": 15.0,
+    "actif": false,
+    "photo_data": null,
+    "date_creation": "2025-06-15T00:48:19.635993",
+    "nom_complet": "John Doe",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    },
+    "has_photo": false,
+    "initials": "JD"
+  },
+  "emp_1749942088962": {
+    "id": "emp_1749942088962",
+    "nom": "Amaya",
+    "prenom": "Yassir",
+    "poste": "manager",
+    "email": "yassir.amaya@gmail.com",
+    "telephone": "0667448000",
+    "taux_horaire": 15.0,
+    "actif": true,
+    "photo_data": null,
+    "date_creation": "2025-06-15T01:01:28.962408",
+    "nom_complet": "Yassir Amaya",
+    "type_info": {
+      "color": "#a29bfe",
+      "name": "Manager"
+    },
+    "has_photo": false,
+    "initials": "YA"
+  },
+  "emp_1750024679973": {
+    "id": "emp_1750024679973",
+    "nom": "TEST_NOM",
+    "prenom": "TEST_PRENOM",
+    "poste": "cuisinier",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 15.0,
+    "actif": false,
+    "photo_data": null,
+    "date_creation": "2025-06-15T23:57:59.974758",
+    "nom_complet": "TEST_PRENOM TEST_NOM",
+    "type_info": {
+      "color": "#74b9ff",
+      "name": "Cuisinier"
+    },
+    "has_photo": false,
+    "initials": "TT"
+  },
+  "emp_1750025409984": {
+    "id": "emp_1750025409984",
+    "nom": "Bryselbout",
+    "prenom": "Savié",
+    "poste": "cuisinier",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 10.0,
+    "actif": true,
+    "photo_data": null,
+    "date_creation": "2025-06-16T00:10:09.984419",
+    "nom_complet": "Savié Bryselbout",
+    "type_info": {
+      "color": "#74b9ff",
+      "name": "Cuisinier"
+    },
+    "has_photo": false,
+    "initials": "SB"
+  },
+  "emp_1750107297784": {
+    "id": "emp_1750107297784",
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "poste": "serveur",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 16.0,
+    "actif": true,
+    "photo_data": null,
+    "date_creation": "2025-06-16T22:54:57.784795",
+    "nom_complet": "Jean Dupont",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    },
+    "has_photo": false,
+    "initials": "JD"
+  },
+  "emp_1750107331643": {
+    "id": "emp_1750107331643",
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "poste": "serveur",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 16.0,
+    "actif": true,
+    "photo_data": null,
+    "date_creation": "2025-06-16T22:55:31.643193",
+    "nom_complet": "Jean Dupont",
+    "type_info": {
+      "color": "#00b894",
+      "name": "Serveur/se"
+    },
+    "has_photo": false,
+    "initials": "JD"
   }
 }

@@ -86,482 +86,6 @@ body {
     color: var(--gray-600);
     border-radius: var(--border-radius-lg);
     transition: var(--transition);
-    font-weight: 500;
-}
-
-.nav-link:hover,
-.nav-link.active {
-    background: var(--primary-gradient);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-}
-
-/* Contenu principal */
-.main-content {
-    max-width: 1400px;
-    margin: 2rem auto;
-    padding: 0 2rem;
-}
-
-/* Planning */
-.planning-container {
-    background: white;
-    border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-}
-
-.planning-header {
-    background: var(--secondary-gradient);
-    padding: 2rem;
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.week-navigation {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-}
-
-.current-week {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.8rem;
-    font-weight: 300;
-}
-
-.planning-actions {
-    display: flex;
-    gap: 1rem;
-}
-
-/* Boutons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: var(--border-radius-lg);
-    font-weight: 500;
-    text-decoration: none;
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 0.95rem;
-    line-height: 1;
-}
-
-.btn-primary {
-    background: var(--primary-gradient);
-    color: white;
-    box-shadow: var(--shadow);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-secondary {
-    background: var(--gray-100);
-    color: var(--gray-700);
-}
-
-.btn-secondary:hover {
-    background: var(--gray-200);
-    transform: translateY(-1px);
-}
-
-.btn-outline {
-    background: transparent;
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Supprimer les anciens styles employee-legend et legend-color */
-
-/* Grille de planning */
-.planning-wrapper {
-    padding: 1.5rem;
-    background: white;
-}
-
-.planning-grid-container {
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
-    position: relative;
-}
-
-.planning-grid-header {
-    display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-    background: var(--gray-50);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-.time-column-header {
-    background: var(--gray-100);
-    padding: 1rem;
-    font-weight: 600;
-    text-align: center;
-    border-right: 2px solid var(--gray-300);
-    color: var(--gray-600);
-}
-
-.day-header {
-    background: var(--primary-gradient);
-    color: white;
-    padding: 1rem;
-    text-align: center;
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-.planning-grid {
-    display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-    grid-template-rows: repeat(19, 60px); /* 19 heures de 8h à 2h */
-    background: white;
-    position: relative;
-    min-height: 1140px; /* 19 heures * 60px */
-    gap: 0;
-}
-
-.time-slot {
-    background: var(--gray-50);
-    padding: 0 0.5rem;
-    text-align: center;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--gray-500);
-    border-right: 2px solid var(--gray-300);
-    border-bottom: 1px solid var(--gray-200);
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 10;
-    grid-column: 1;
-}
-
-.schedule-cell {
-    border-right: 1px solid var(--gray-200);
-    border-bottom: 1px solid var(--gray-200);
-    height: 60px;
-    position: relative;
-    background: white;
-    transition: var(--transition);
-    cursor: pointer;
-    z-index: 1;
-}
-
-.schedule-cell:hover,
-.schedule-cell.cell-hover {
-    background-color: var(--gray-50);
-    border-color: var(--primary-color);
-}
-
-.schedule-cell.drag-over {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-    border: 2px dashed var(--info-color);
-    transform: scale(1.02);
-}
-
-.schedule-cell.invalid-drop {
-    background: linear-gradient(135deg, #ffebee, #ffcdd2);
-    border: 2px dashed var(--error-color);
-}
-
-/* Blocs de créneaux */
-.shift-block {
-    color: white;
-    border-radius: var(--border-radius);
-    font-size: 0.85rem;
-    font-weight: 500;
-    text-align: center;
-    box-shadow: var(--shadow-sm);
-    cursor: grab;
-    transition: var(--transition);
-    user-select: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(1px);
-}
-
-.shift-block:hover {
-    transform: scale(1.02);
-    box-shadow: var(--shadow);
-    z-index: 15;
-}
-
-.shift-block:active {
-    cursor: grabbing;
-}
-
-.shift-block.dragging {
-    transform: rotate(5deg) scale(1.1);
-    box-shadow: var(--shadow-lg);
-    z-index: 1000;
-    opacity: 0.9;
-}
-
-/* Créneaux d'une heure */
-.single-hour-block {
-    position: relative;
-    z-index: 5;
-    margin: 2px;
-    height: calc(100% - 4px);
-    width: calc(100% - 4px);
-    padding: 0.25rem;
-}
-
-/* Créneaux multi-heures */
-.multi-hour-block {
-    position: relative;
-    z-index: 5;
-    margin: 2px;
-    padding: 0.5rem 0.25rem;
-    min-height: 56px;
-}
-
-/* Avatar et initiales */
-.shift-avatar {
-    margin-bottom: 0.25rem;
-    flex-shrink: 0;
-}
-
-.avatar-circle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    backdrop-filter: blur(2px);
-    transition: var(--transition);
-    flex-shrink: 0;
-}
-
-.avatar-initials {
-    font-size: 0.9rem;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
-}
-
-.shift-block:hover .avatar-circle {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: scale(1.05);
-}
-
-/* Ajustements pour créneaux d'une heure */
-.single-hour-block .avatar-circle {
-    width: 28px;
-    height: 28px;
-}
-
-.single-hour-block .avatar-initials {
-    font-size: 0.8rem;
-}
-
-/* Mise en page pour créneaux multi-heures */
-.shift-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    width: 100%;
-    flex-shrink: 0;
-}
-
-.shift-info {
-    flex: 1;
-    text-align: left;
-    min-width: 0;
-}
-
-.shift-employee-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    line-height: 1.1;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.shift-duration {
-    font-size: 0.7rem;
-    opacity: 0.9;
-    font-weight: 500;
-}
-
-.shift-time {
-    font-size: 0.75rem;
-    opacity: 0.9;
-    margin-top: 0.25rem;
-    line-height: 1;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0;
-}
-
-.shift-poste {
-    font-size: 0.7rem;
-    opacity: 0.8;
-    margin-top: 0.25rem;
-    font-style: italic;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.125rem 0.375rem;
-    border-radius: var(--border-radius);
-    display: inline-block;
-    flex-shrink: 0;
-}
-
-/* Gestion des chevauchements pour créneaux simples */
-.shift-overlap-container {
-    position: relative;
-    height: 100%;
-    width: 100%;
-}
-
-.shift-block.overlap-1-of-2 {
-    width: calc(50% - 1px) !important;
-    left: 0 !important;
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-}
-
-.shift-block.overlap-2-of-2 {
-    width: calc(50% - 1px) !important;
-    left: 50% !important;
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-}
-
-.shift-block.overlap-1-of-3 {
-    width: calc(33.33% - 1px) !important;
-    left: 0 !important;
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-}
-
-.shift-block.overlap-2-of-3 {
-    width: calc(33.33% - 1px) !important;
-    left: 33.33% !important;
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-}
-
-.shift-block.overlap-3-of-3 {
-    width: calc(33.33% - 1px) !important;
-    left: 66.66% !important;
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-}
-
-/* Ajustements pour les chevauchements avec avatars */
-.shift-block.overlap-1-of-2 .avatar-circle,
-.shift-block.overlap-2-of-2 .avatar-circle,
-.shift-block.overlap-1-of-3 .avatar-circle,
-.shift-block.overlap-2-of-3 .avatar-circle,
-.shift-block.overlap-3-of-3 .avatar-circle {
-    width: 24px !important;
-    height: 24px !important;
-}
-
-.shift-block.overlap-1-of-2 .avatar-initials,
-.shift-block.overlap-2-of-2 .avatar-initials,
-.shift-block.overlap-1-of-3 .avatar-initials,
-.shift-block.overlap-2-of-3 .avatar-initials,
-.shift-block.overlap-3-of-3 .avatar-initials {
-    font-size: 0.7rem !important;
-}
-
-/* Masquer certains éléments dans les petits créneaux */
-.shift-block.overlap-1-of-3 .shift-time,
-.shift-block.overlap-2-of-3 .shift-time,
-.shift-block.overlap-3-of-3 .shift-time,
-.shift-block.overlap-1-of-3 .shift-poste,
-.shift-block.overlap-2-of-3 .shift-poste,
-.shift-block.overlap-3-of-3 .shift-poste {
-    display: none !important;
-}
-
-.shift-block.overlap-1-of-3 .shift-employee-name,
-.shift-block.overlap-2-of-3 .shift-employee-name,
-.shift-block.overlap-3-of-3 .shift-employee-name {
-    font-size: 0.7rem !important;
-}
-
-/* Couleurs par type d'employé */
-.employee-cuisinier {
-    background: var(--info-color) !important;
-}
-
-.employee-serveur {
-    background: var(--success-color) !important;
-}
-
-.employee-barman {
-    background: var(--warning-color) !important;
-}
-
-.employee-manager {
-    background: #a29bfe !important;
-}
-
-.employee-aide {
-    background: #6c5ce7 !important;
-}
-
-.employee-commis {
-    background: #fd79a8 !important;
-}
-
-/* Statistiques rapides */
-.quick-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    padding: 1.5rem;
-    background: var(--gray-50);
-}
-
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: var(--border-radius-lg);
-    text-align: center;
-    box-shadow: var(--shadow);
-    transition: var(--transition);
 }
 
 .stat-card:hover {
@@ -855,334 +379,9 @@ body {
     }
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
-    .main-content {
-        padding: 0 1rem;
-    }
-
-    .planning-wrapper {
-        padding: 1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .nav-container {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
-
-    .nav-menu {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .planning-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
-    }
-
-    .week-navigation {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .current-week {
-        font-size: 1.5rem;
-    }
-
-    .planning-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .btn {
-        justify-content: center;
-    }
-
-    .employee-legend {
-        gap: 1rem;
-    }
-
-    .planning-grid {
-        font-size: 0.8rem;
-    }
-
-    .shift-block {
-        font-size: 0.75rem;
-        padding: 0.25rem;
-    }
-
-    .modal-content {
-        width: 95%;
-        margin: 1rem;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
-    .quick-stats {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-        padding: 1rem;
-    }
-
-    .stat-value {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .nav-container {
-        padding: 0.75rem;
-    }
-
-    .nav-brand {
-        font-size: 1.25rem;
-    }
-
-    .planning-header {
-        padding: 1.5rem;
-    }
-
-    .current-week {
-        font-size: 1.25rem;
-    }
-
-    .planning-grid-header,
-    .planning-grid {
-        grid-template-columns: 60px repeat(7, 1fr);
-    }
-
-    .time-column-header,
-    .time-slot {
-        padding: 0.5rem 0.25rem;
-        font-size: 0.8rem;
-    }
-
-    .day-header {
-        padding: 0.75rem 0.5rem;
-        font-size: 0.9rem;
-    }
-
-    .schedule-cell {
-        height: 50px;
-    }
-
-    .shift-block {
-        font-size: 0.7rem;
-        padding: 0.25rem;
-    }
-
-    .legend-item {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
-    }
-}
-
-/* États de chargement */
-.loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid var(--gray-300);
-    border-top-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Scroll personnalisé */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gray-300);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-400);
-}
-
-/* Accessibilité */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* Focus visible */
-.btn:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-/* Print styles */
-@media print {
-    .navbar,
-    .planning-actions,
-    .modal,
-    .notifications-container {
-        display: none !important;
-    }
-
-    .planning-container {
-        box-shadow: none;
-        border: 1px solid var(--gray-300);
-    }
-
-    .shift-block {
-        background: var(--gray-200) !important;
-        color: var(--gray-800) !important;
-        border: 1px solid var(--gray-400);
-    }
-}
 /* ========================================
-   PATCH CSS - GESTION DES CHEVAUCHEMENTS
-   À AJOUTER à la fin de votre style.css existant
+   STYLES AVATARS AVEC PHOTOS
    ======================================== */
-
-/* Amélioration des cellules pour gérer les chevauchements */
-.schedule-cell {
-    overflow: visible !important; /* Permet aux éléments absolus de dépasser */
-}
-
-/* Styles pour les shifts côte à côte */
-.shift-block.side-by-side {
-    position: absolute !important;
-    top: 2px !important;
-    bottom: 2px !important;
-    margin: 0 !important;
-    z-index: 10 !important;
-    border: 1px solid rgba(255, 255, 255, 0.8) !important;
-}
-
-.shift-block.side-by-side:hover {
-    z-index: 20 !important;
-    transform: scale(1.05) !important;
-    box-shadow: var(--shadow-lg) !important;
-}
-
-/* Ajustements pour créneaux étroits */
-.shift-block.narrow-shift {
-    font-size: 0.7rem !important;
-    padding: 0.2rem !important;
-}
-
-.shift-block.narrow-shift .avatar-circle {
-    width: 20px !important;
-    height: 20px !important;
-}
-
-.shift-block.narrow-shift .avatar-initials {
-    font-size: 0.6rem !important;
-}
-
-/* Masquer certains éléments dans les shifts très étroits */
-.shift-block.very-narrow-shift .shift-time {
-    display: none !important;
-}
-
-.shift-block.very-narrow-shift .shift-duration {
-    font-size: 0.6rem !important;
-}
-
-/* Indicateur de chevauchement */
-.overlap-count {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--primary-color);
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    font-size: 0.6rem;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-}
-
-/* Animation pour les déplacements */
-.shift-block.repositioning {
-    transition: all 0.3s ease !important;
-}
-
-/* Responsive pour les chevauchements */
-@media (max-width: 768px) {
-    .shift-block.side-by-side {
-        font-size: 0.65rem !important;
-        padding: 0.15rem !important;
-    }
-
-    .shift-block.side-by-side .avatar-circle {
-        width: 18px !important;
-        height: 18px !important;
-    }
-
-    .shift-block.side-by-side .avatar-initials {
-        font-size: 0.55rem !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .shift-block.side-by-side {
-        font-size: 0.6rem !important;
-        padding: 0.1rem !important;
-    }
-
-    .shift-block.side-by-side .avatar-circle {
-        width: 16px !important;
-        height: 16px !important;
-    }
-
-    .shift-block.side-by-side .avatar-initials {
-        font-size: 0.5rem !important;
-    }
-
-    /* Masquer les détails sur très petit écran */
-    .shift-block.side-by-side .shift-time,
-    .shift-block.side-by-side .shift-duration {
-        display: none !important;
-    }
-}
-
-/* === STYLES AVATARS AVEC PHOTOS === */
 
 /* Conteneur d'avatar */
 .shift-avatar-container {
@@ -1528,9 +727,103 @@ textarea:focus-visible {
     white-space: nowrap;
 }
 
-/* === RESPONSIVE POUR AVATARS === */
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 1200px) {
+    .main-content {
+        padding: 0 1rem;
+    }
+
+    .planning-wrapper {
+        padding: 1rem;
+    }
+}
 
 @media (max-width: 768px) {
+    .nav-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .nav-menu {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .planning-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .week-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .current-week {
+        font-size: 1.5rem;
+    }
+
+    .planning-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn {
+        justify-content: center;
+    }
+
+    .planning-grid {
+        font-size: 0.8rem;
+    }
+
+    .shift-block {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-stats {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    /* Responsive pour les chevauchements */
+    .shift-block.side-by-side {
+        font-size: 0.65rem !important;
+        padding: 0.15rem !important;
+    }
+
+    .shift-block.side-by-side .avatar-circle {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .shift-block.side-by-side .avatar-initials {
+        font-size: 0.55rem !important;
+    }
+
     .avatar-preview .current-avatar-img {
         width: 80px;
         height: 80px;
@@ -1568,6 +861,67 @@ textarea:focus-visible {
 }
 
 @media (max-width: 480px) {
+    .nav-container {
+        padding: 0.75rem;
+    }
+
+    .nav-brand {
+        font-size: 1.25rem;
+    }
+
+    .planning-header {
+        padding: 1.5rem;
+    }
+
+    .current-week {
+        font-size: 1.25rem;
+    }
+
+    .planning-grid-header,
+    .planning-grid {
+        grid-template-columns: 60px repeat(7, 1fr);
+    }
+
+    .time-column-header,
+    .time-slot {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+
+    .day-header {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .schedule-cell {
+        height: 50px;
+    }
+
+    .shift-block {
+        font-size: 0.7rem;
+        padding: 0.25rem;
+    }
+
+    .shift-block.side-by-side {
+        font-size: 0.6rem !important;
+        padding: 0.1rem !important;
+    }
+
+    .shift-block.side-by-side .avatar-circle {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .shift-block.side-by-side .avatar-initials {
+        font-size: 0.5rem !important;
+    }
+
+    /* Masquer les détails sur très petit écran */
+    .shift-block.side-by-side .shift-time,
+    .shift-block.side-by-side .shift-duration {
+        display: none !important;
+    }
+
     .shift-avatar-container.normal {
         width: 24px;
         height: 24px;
@@ -1592,6 +946,90 @@ textarea:focus-visible {
     }
 }
 
+/* États de chargement */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--gray-300);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Scroll personnalisé */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+/* Accessibilité */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus visible */
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .planning-actions,
+    .modal,
+    .notifications-container {
+        display: none !important;
+    }
+
+    .planning-container {
+        box-shadow: none;
+        border: 1px solid var(--gray-300);
+    }
+
+    .shift-block {
+        background: var(--gray-200) !important;
+        color: var(--gray-800) !important;
+        border: 1px solid var(--gray-400);
+    }
+}
+
 /* === ANIMATIONS POUR AVATARS === */
 
 @keyframes avatarPulse {
@@ -1611,4 +1049,1682 @@ textarea:focus-visible {
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.8); }
     to { opacity: 1; transform: scale(1); }
+}: var(--transition);
+    font-weight: 500;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: var(--primary-gradient);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Contenu principal */
+.main-content {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+/* Planning */
+.planning-container {
+    background: white;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.planning-header {
+    background: var(--secondary-gradient);
+    padding: 2rem;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.week-navigation {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.current-week {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.8rem;
+    font-weight: 300;
+}
+
+.planning-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Boutons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius-lg);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-200);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Supprimer les anciens styles employee-legend et legend-color */
+
+/* Grille de planning */
+.planning-wrapper {
+    padding: 1.5rem;
+    background: white;
+}
+
+.planning-grid-container {
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+}
+
+.planning-grid-header {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    background: var(--gray-50);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.time-column-header {
+    background: var(--gray-100);
+    padding: 1rem;
+    font-weight: 600;
+    text-align: center;
+    border-right: 2px solid var(--gray-300);
+    color: var(--gray-600);
+}
+
+.day-header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* GRILLE CORRIGÉE - Force la grille à être parfaitement alignée */
+.planning-grid {
+    display: grid !important;
+    grid-template-columns: 80px repeat(7, 1fr) !important;
+    grid-template-rows: repeat(19, 60px) !important;
+    background: white;
+    position: relative;
+    min-height: 1140px;
+    gap: 0 !important;
+}
+
+/* TIME SLOT CORRIGÉ - Assure que chaque élément de la grille est bien positionné */
+.time-slot {
+    background: var(--gray-50) !important;
+    padding: 0 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    border-right: 2px solid var(--gray-300) !important;
+    border-bottom: 1px solid var(--gray-200);
+    height: 60px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative;
+    z-index: 10;
+    grid-column: 1 !important;
+}
+
+/* CELLULES CORRIGÉES */
+.schedule-cell {
+    border-right: 1px solid var(--gray-200) !important;
+    border-bottom: 1px solid var(--gray-200) !important;
+    height: 60px;
+    position: relative !important;
+    background: white;
+    transition: var(--transition);
+    cursor: pointer;
+    z-index: 1;
+    grid-column: auto !important;
+    overflow: visible !important;
+}
+
+.schedule-cell:hover,
+.schedule-cell.cell-hover {
+    background-color: var(--gray-50);
+    border-color: var(--primary-color);
+}
+
+.schedule-cell.drag-over {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 2px dashed var(--info-color);
+    transform: scale(1.02);
+}
+
+.schedule-cell.invalid-drop {
+    background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    border: 2px dashed var(--error-color);
+}
+
+/* Blocs de créneaux */
+.shift-block {
+    color: white;
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+    transition: var(--transition);
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(1px);
+}
+
+.shift-block:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow);
+    z-index: 15;
+}
+
+.shift-block:active {
+    cursor: grabbing;
+}
+
+.shift-block.dragging {
+    transform: rotate(5deg) scale(1.1);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    opacity: 0.9;
+}
+
+/* Créneaux d'une heure */
+.single-hour-block {
+    position: relative;
+    z-index: 5;
+    margin: 2px;
+    height: calc(100% - 4px);
+    width: calc(100% - 4px);
+    padding: 0.25rem;
+}
+
+/* Créneaux multi-heures */
+.multi-hour-block {
+    position: relative;
+    z-index: 5;
+    margin: 2px;
+    padding: 0.5rem 0.25rem;
+    min-height: 56px;
+}
+
+/* Avatar et initiales */
+.shift-avatar {
+    margin-bottom: 0.25rem;
+    flex-shrink: 0;
+}
+
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    backdrop-filter: blur(2px);
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.avatar-initials {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.shift-block:hover .avatar-circle {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: scale(1.05);
+}
+
+/* Ajustements pour créneaux d'une heure */
+.single-hour-block .avatar-circle {
+    width: 28px;
+    height: 28px;
+}
+
+.single-hour-block .avatar-initials {
+    font-size: 0.8rem;
+}
+
+/* Mise en page pour créneaux multi-heures */
+.shift-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.shift-info {
+    flex: 1;
+    text-align: left;
+    min-width: 0;
+}
+
+.shift-employee-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shift-duration {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.shift-time {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+}
+
+.shift-poste {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-top: 0.25rem;
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--border-radius);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   GESTION DES CHEVAUCHEMENTS CORRIGÉE
+   ======================================== */
+
+/* Conteneur pour chevauchements */
+.shift-overlap-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+/* Styles génériques pour les éléments en chevauchement */
+.shift-block.overlapped-shift {
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+    margin: 0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    box-sizing: border-box !important;
+}
+
+.shift-block.side-by-side {
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+    margin: 0 !important;
+    z-index: 10 !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    box-sizing: border-box !important;
+}
+
+.shift-block.side-by-side:hover {
+    z-index: 20 !important;
+    transform: scale(1.02) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Classes de largeur précises pour 2 créneaux */
+.shift-block.overlap-1-of-2 {
+    width: 49% !important;
+    left: 0% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-2-of-2 {
+    width: 49% !important;
+    left: 50% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+/* Classes de largeur précises pour 3 créneaux */
+.shift-block.overlap-1-of-3 {
+    width: 32% !important;
+    left: 0% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-2-of-3 {
+    width: 32% !important;
+    left: 34% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-3-of-3 {
+    width: 32% !important;
+    left: 67% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+/* Classes de largeur précises pour 4 créneaux */
+.shift-block.overlap-1-of-4 {
+    width: 24% !important;
+    left: 0% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-2-of-4 {
+    width: 24% !important;
+    left: 25% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-3-of-4 {
+    width: 24% !important;
+    left: 50% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+.shift-block.overlap-4-of-4 {
+    width: 24% !important;
+    left: 75% !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 2px !important;
+}
+
+/* Ajustements pour les chevauchements avec avatars */
+.shift-block.overlap-1-of-2 .avatar-circle,
+.shift-block.overlap-2-of-2 .avatar-circle,
+.shift-block.overlap-1-of-3 .avatar-circle,
+.shift-block.overlap-2-of-3 .avatar-circle,
+.shift-block.overlap-3-of-3 .avatar-circle,
+.shift-block.overlap-1-of-4 .avatar-circle,
+.shift-block.overlap-2-of-4 .avatar-circle,
+.shift-block.overlap-3-of-4 .avatar-circle,
+.shift-block.overlap-4-of-4 .avatar-circle {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+.shift-block.overlap-1-of-2 .avatar-initials,
+.shift-block.overlap-2-of-2 .avatar-initials,
+.shift-block.overlap-1-of-3 .avatar-initials,
+.shift-block.overlap-2-of-3 .avatar-initials,
+.shift-block.overlap-3-of-3 .avatar-initials,
+.shift-block.overlap-1-of-4 .avatar-initials,
+.shift-block.overlap-2-of-4 .avatar-initials,
+.shift-block.overlap-3-of-4 .avatar-initials,
+.shift-block.overlap-4-of-4 .avatar-initials {
+    font-size: 0.7rem !important;
+}
+
+/* Masquer certains éléments dans les petits créneaux */
+.shift-block.overlap-1-of-3 .shift-time,
+.shift-block.overlap-2-of-3 .shift-time,
+.shift-block.overlap-3-of-3 .shift-time,
+.shift-block.overlap-1-of-3 .shift-poste,
+.shift-block.overlap-2-of-3 .shift-poste,
+.shift-block.overlap-3-of-3 .shift-poste,
+.shift-block.overlap-1-of-4 .shift-time,
+.shift-block.overlap-2-of-4 .shift-time,
+.shift-block.overlap-3-of-4 .shift-time,
+.shift-block.overlap-4-of-4 .shift-time,
+.shift-block.overlap-1-of-4 .shift-poste,
+.shift-block.overlap-2-of-4 .shift-poste,
+.shift-block.overlap-3-of-4 .shift-poste,
+.shift-block.overlap-4-of-4 .shift-poste {
+    display: none !important;
+}
+
+.shift-block.overlap-1-of-3 .shift-employee-name,
+.shift-block.overlap-2-of-3 .shift-employee-name,
+.shift-block.overlap-3-of-3 .shift-employee-name,
+.shift-block.overlap-1-of-4 .shift-employee-name,
+.shift-block.overlap-2-of-4 .shift-employee-name,
+.shift-block.overlap-3-of-4 .shift-employee-name,
+.shift-block.overlap-4-of-4 .shift-employee-name {
+    font-size: 0.7rem !important;
+}
+
+/* Ajustements pour créneaux étroits */
+.shift-block.narrow-shift {
+    font-size: 0.7rem !important;
+    padding: 0.2rem !important;
+}
+
+.shift-block.narrow-shift .avatar-circle {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.shift-block.narrow-shift .avatar-initials {
+    font-size: 0.6rem !important;
+}
+
+/* Masquer certains éléments dans les shifts très étroits */
+.shift-block.very-narrow-shift .shift-time {
+    display: none !important;
+}
+
+.shift-block.very-narrow-shift .shift-duration {
+    font-size: 0.6rem !important;
+}
+
+/* Indicateur de chevauchement */
+.overlap-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+/* Animation pour les déplacements */
+.shift-block.repositioning {
+    transition: all 0.3s ease !important;
+}
+
+/* Couleurs par type d'employé */
+.employee-cuisinier {
+    background: var(--info-color) !important;
+}
+
+.employee-serveur {
+    background: var(--success-color) !important;
+}
+
+.employee-barman {
+    background: var(--warning-color) !important;
+}
+
+.employee-manager {
+    background: #a29bfe !important;
+}
+
+.employee-aide {
+    background: #6c5ce7 !important;
+}
+
+.employee-commis {
+    background: #fd79a8 !important;
+}
+
+/* Statistiques rapides */
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--gray-50);
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+    box-shadow: var(--shadow);
+    transition
+}
+
+/* ==================== CORRECTIONS POUR LES SUPERPOSITIONS ==================== */
+
+/* Cellules de planning */
+.schedule-cell {
+    position: relative;
+    border: 1px solid var(--gray-200);
+    background: white;
+    min-height: 60px;
+    cursor: pointer;
+    transition: var(--transition);
+    overflow: visible; /* Important pour les créneaux qui débordent */
+}
+
+.schedule-cell:hover {
+    background: var(--gray-50);
+}
+
+.schedule-cell.cell-hover {
+    background: rgba(99, 102, 241, 0.05);
+    border-color: var(--primary-color);
+}
+
+/* Blocs de créneaux */
+.shift-block {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    color: white;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    cursor: grab;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    z-index: 10;
+}
+
+.shift-block:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 20;
+}
+
+.shift-block:active {
+    cursor: grabbing;
+}
+
+/* Créneaux multi-heures */
+.shift-block.multi-hour {
+    position: relative; /* Important pour CSS Grid */
+    margin: 2px;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    min-height: 56px; /* 60px - 4px de marge */
+}
+
+/* Créneaux d'une heure */
+.shift-block.single-hour {
+    height: calc(100% - 4px);
+}
+
+/* ==================== GESTION DES CHEVAUCHEMENTS ==================== */
+
+/* Créneaux qui se chevauchent */
+.shift-block.overlapping-shift {
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.15),
+        0 0 0 1px rgba(255,255,255,0.5);
+}
+
+.shift-block.overlapping-shift:hover {
+    transform: scale(1.05) !important;
+    z-index: 25 !important;
+    border-color: rgba(255,255,255,1);
+}
+
+/* Styles pour différents niveaux de chevauchement */
+.schedule-cell[data-overlap="2"] .shift-block {
+    width: 48% !important;
+}
+
+.schedule-cell[data-overlap="2"] .shift-block:nth-child(1) {
+    left: 1% !important;
+}
+
+.schedule-cell[data-overlap="2"] .shift-block:nth-child(2) {
+    left: 51% !important;
+}
+
+.schedule-cell[data-overlap="3"] .shift-block {
+    width: 32% !important;
+}
+
+.schedule-cell[data-overlap="3"] .shift-block:nth-child(1) {
+    left: 1% !important;
+}
+
+.schedule-cell[data-overlap="3"] .shift-block:nth-child(2) {
+    left: 34% !important;
+}
+
+.schedule-cell[data-overlap="3"] .shift-block:nth-child(3) {
+    left: 67% !important;
+}
+
+/* ==================== CONTENU DES CRÉNEAUX ==================== */
+
+.shift-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    pointer-events: none; /* Évite les conflits avec le drag */
+}
+
+.shift-employee-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.shift-time {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.shift-employee-type {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: auto;
+}
+
+/* ==================== DRAG & DROP ==================== */
+
+.shift-block.dragging {
+    opacity: 0.8;
+    transform: rotate(2deg) scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.schedule-cell.drop-target {
+    background: rgba(99, 102, 241, 0.1);
+    border: 2px dashed var(--primary-color);
+}
+
+.schedule-cell.drop-target.invalid {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--error-color);
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .shift-block {
+        font-size: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    .shift-employee-name {
+        font-size: 0.8rem;
+    }
+
+    .shift-time {
+        font-size: 0.7rem;
+    }
+
+    .shift-employee-type {
+        font-size: 0.65rem;
+    }
+
+    /* Simplifier les chevauchements sur mobile */
+    .shift-block.overlapping-shift {
+        opacity: 0.9;
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes shiftPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.shift-block.just-created {
+    animation: shiftPulse 0.6s ease-in-out;
+}
+
+.shift-block.just-updated {
+    animation: shiftPulse 0.4s ease-in-out;
+}
+
+/* ==================== ÉTATS D'ERREUR ==================== */
+
+.shift-block.error {
+    background: var(--error-color) !important;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.shift-block.error::before {
+    content: "⚠️";
+    margin-right: 0.5rem;
+}
+
+/* ==================== DEBUG (à retirer en production) ==================== */
+
+.debug .shift-block {
+    border: 1px solid #ff0000;
+}
+
+.debug .shift-block::after {
+    content: attr(data-shift-id);
+    position: absolute;
+    top: -15px;
+    left: 0;
+    font-size: 0.6rem;
+    background: #000;
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+.field-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.field-error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* Force les boutons Supprimer à être actifs */
+.modal .btn-danger:contains("Supprimer"),
+.modal button[type="button"].btn-danger {
+    opacity: 1 !important;
+    cursor: pointer !important;
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+    pointer-events: auto !important;
+}
+
+/* ========================================
+   CSS POUR LE MODAL DE MODIFICATION D'EMPLOYÉ
+   À ajouter dans votre style.css
+   ======================================== */
+
+/* Formulaires d'édition d'employés */
+.form-control-readonly {
+    background-color: var(--gray-100) !important;
+    border-color: var(--gray-300) !important;
+    color: var(--gray-600) !important;
+    cursor: not-allowed;
+}
+
+.form-control-readonly:focus {
+    box-shadow: none !important;
+    border-color: var(--gray-300) !important;
+}
+
+/* Informations dans les modals */
+.form-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--primary-color);
+}
+
+.form-info p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.form-info i {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+/* Détails d'employé dans confirmation de suppression */
+.employee-details {
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin: 1rem 0;
+    border-left: 4px solid var(--primary-color);
+}
+
+.employee-details strong {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+/* Confirmation de suppression */
+.confirm-delete {
+    text-align: left;
+}
+
+.confirm-delete p {
+    margin: 1rem 0;
+    font-size: 1rem;
+    color: var(--gray-700);
+}
+
+/* Alertes dans les modals */
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+.alert i {
+    font-size: 1.1rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.alert strong {
+    font-weight: 600;
+}
+
+/* Amélioration des sélecteurs */
+select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Liste déroulante d'employés avec indicateur de type */
+#shiftEmployee option[data-type="cuisinier"]::before {
+    content: "🍳 ";
+}
+
+#shiftEmployee option[data-type="serveur"]::before {
+    content: "🍽️ ";
+}
+
+#shiftEmployee option[data-type="barman"]::before {
+    content: "🍸 ";
+}
+
+#shiftEmployee option[data-type="manager"]::before {
+    content: "👔 ";
+}
+
+#shiftEmployee option[data-type="aide"]::before {
+    content: "🤝 ";
+}
+
+#shiftEmployee option[data-type="commis"]::before {
+    content: "👨‍🍳 ";
+}
+
+/* Checkbox personnalisés */
+input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-right: 0.5rem;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+input[type="checkbox"]:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Aide pour les formulaires */
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    font-style: italic;
+}
+
+/* Amélioration des boutons dans les modals */
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+.modal-footer .btn {
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+/* States de chargement pour les boutons */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: btn-spin 1s linear infinite;
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive pour les modals */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-height: 95vh;
+        margin: 0.5rem;
+    }
+
+    .modal-header {
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Fix pour la visibilité des listes déroulantes */
+select {
+    position: relative;
+    z-index: 1;
+}
+
+.modal {
+    z-index: 1050;
+}
+
+.modal-content {
+    position: relative;
+    z-index: 1051;
+}
+
+/* S'assurer que les sélecteurs sont visibles au-dessus de tout */
+.form-group select {
+    position: relative;
+    z-index: 10;
+}
+
+/* Animation d'ouverture du modal */
+.modal.show {
+    display: block;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal.show .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   CSS CORRIGÉ POUR LES MODALS ET LISTES DÉROULANTES
+   Remplace le CSS défaillant dans style.css
+   ======================================== */
+
+/* Modals - Styles de base */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1001;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.modal-close {
+    font-size: 2rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: white;
+    transform: scale(1.1);
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ========================================
+   FORMULAIRES - CORRECTION MAJEURE
+   ======================================== */
+
+.form {
+    width: 100%;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    flex: 1;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+/* ========================================
+   INPUTS ET SELECTS - CORRECTION CRITIQUE
+   ======================================== */
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: white;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ✅ CORRECTION CRITIQUE : Selects avec flèche personnalisée */
+.form-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 3rem;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+.form-group select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23667eea' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* ✅ CORRECTION : Options des selects */
+.form-group select option {
+    padding: 0.5rem;
+    background: white;
+    color: #333;
+}
+
+.form-group select option:checked {
+    background: #667eea;
+    color: white;
+}
+
+/* Textarea */
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+/* ========================================
+   BOUTONS - STYLES MODERNES
+   ======================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    line-height: 1;
+    min-width: 120px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ========================================
+   VALIDATION ET ERREURS
+   ======================================== */
+
+.field-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+}
+
+.field-error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+    font-weight: 500;
+}
+
+.form-control-readonly {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   CHECKBOXES ET AUTRES INPUTS
+   ======================================== */
+
+input[type="checkbox"] {
+    width: auto !important;
+    margin-right: 0.5rem;
+    transform: scale(1.2);
+    accent-color: #667eea;
+}
+
+input[type="file"] {
+    padding: 0.5rem;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+input[type="file"]:hover {
+    border-color: #667eea;
+    background: #f0f3ff;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+.modal.show {
+    display: block;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal.show .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   CORRECTIONS SPÉCIFIQUES AU PLANNING
+   ======================================== */
+
+/* S'assurer que les modals sont au-dessus de tout */
+.modal {
+    z-index: 9999 !important;
+}
+
+.modal-content {
+    z-index: 10000 !important;
+}
+
+/* Corriger les conflicts avec le planning */
+.modal select,
+.modal input,
+.modal textarea {
+    position: relative;
+    z-index: 10001;
+}
+
+/* Empêcher les interférences avec les autres éléments */
+.modal * {
+    box-sizing: border-box;
+}
+
+/* ========================================
+   STYLES POUR LES INFOS DANS LES MODALS
+   ======================================== */
+
+.form-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.form-info p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.form-info i {
+    color: #667eea;
+    margin-right: 0.5rem;
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* ========================================
+   ALERTES DANS LES MODALS
+   ======================================== */
+
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert i {
+    font-size: 1.1rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   CORRECTIONS FINALES
+   ======================================== */
+
+/* Forcer l'affichage correct des listes déroulantes */
+.modal select {
+    background-color: white !important;
+    border: 2px solid #e1e5e9 !important;
+    color: #333 !important;
+}
+
+/* Empêcher tout style externe d'interférer */
+.modal .form-group select {
+    all: revert;
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 3rem;
+    cursor: pointer;
+}
+
+/* Debug : Forcer la visibilité */
+.modal select option {
+    background: white !important;
+    color: #333 !important;
+    padding: 0.5rem !important;
+    display: block !important;
 }

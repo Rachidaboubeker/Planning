@@ -1,6 +1,6 @@
 /**
  * Planning Restaurant - Gestionnaire principal du planning
- * Logique centrale pour l'affichage et la gestion des créneaux
+ * Version corrigée pour les chevauchements et décalages
  */
 
 class PlanningManager {
@@ -28,8 +28,8 @@ class PlanningManager {
             // Configurer les événements
             this.setupEventListeners();
 
-            // Générer l'interface
-            this.generatePlanningGrid();
+            // Générer l'interface AVEC CORRECTIONS
+            this.generatePlanningGridFixed();
             this.updateQuickStats();
             this.updateLegend();
 
@@ -87,7 +87,9 @@ class PlanningManager {
             }
 
             // Initialiser les structures de données
-            initializeDataStructures();
+            if (typeof initializeDataStructures === 'function') {
+                initializeDataStructures();
+            }
 
         } catch (error) {
             Logger.error('Erreur lors du chargement des données:', error);
@@ -117,127 +119,34 @@ class PlanningManager {
     }
 
     /**
-     * Gère la navigation par clavier
+     * MÉTHODE CORRIGÉE - Génère la grille de planning sans décalages
      */
-    handleKeyboardNavigation(e) {
-        if (e.ctrlKey || e.metaKey) {
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    this.previousWeek();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    this.nextWeek();
-                    break;
-                case 's':
-                    e.preventDefault();
-                    this.saveChanges();
-                    break;
-                case 'z':
-                    e.preventDefault();
-                    // TODO: Implémenter l'annulation
-                    if (typeof NotificationManager !== 'undefined') {
-                        NotificationManager.show('💡 Fonction d\'annulation à venir', 'info');
-                    }
-                    break;
-            }
-        }
-
-        if (e.key === 'Escape') {
-            if (typeof PlanningUI !== 'undefined') {
-                PlanningUI.closeAllModals();
-            }
-        }
-    }
-
-    /**
-     * Gère l'ajout d'un créneau
-     */
-    handleShiftAdded(data) {
-        Logger.debug('Créneau ajouté:', data);
-        this.refreshPlanningDisplay();
-    }
-
-    /**
-     * Gère la mise à jour d'un créneau
-     */
-    handleShiftUpdated(data) {
-        Logger.debug('Créneau mis à jour:', data);
-        this.refreshPlanningDisplay();
-    }
-
-    /**
-     * Gère la suppression d'un créneau
-     */
-    handleShiftDeleted(data) {
-        Logger.debug('Créneau supprimé:', data);
-        this.refreshPlanningDisplay();
-    }
-
-    /**
-     * Gère l'ajout d'un employé
-     */
-    handleEmployeeAdded(data) {
-        Logger.debug('Employé ajouté:', data);
-        this.updateLegend();
-    }
-
-    /**
-     * Gère la mise à jour d'une photo
-     */
-    handlePhotoUpdated(data) {
-        Logger.debug('Photo mise à jour:', data);
-        // Seulement régénérer si nécessaire
-        this.renderShifts();
-        this.updateLegend();
-    }
-
-    /**
-     * Gère l'événement avant fermeture
-     */
-    handleBeforeUnload(e) {
-        if (AppState.isDirty) {
-            e.preventDefault();
-            e.returnValue = 'Vous avez des modifications non sauvegardées.';
-        }
-
-        // Sauvegarder les photos
-        if (window.avatarManager) {
-            window.avatarManager.savePhotos();
-        }
-    }
-
-    /**
-     * Gère le redimensionnement de la fenêtre
-     */
-    handleWindowResize() {
-        Logger.debug('Redimensionnement de la fenêtre');
-        // Recalculer les positions si nécessaire
-        this.renderShifts();
-    }
-
-    /**
-     * Génère la grille de planning
-     */
-    generatePlanningGrid() {
+    generatePlanningGridFixed() {
         const grid = document.getElementById('planningGrid');
         if (!grid) {
             Logger.warn('Élément planningGrid non trouvé');
             return;
         }
 
-        Logger.info('Génération de la grille de planning...');
+        Logger.info('Génération de la grille de planning corrigée...');
 
         // Vider la grille
         grid.innerHTML = '';
 
-        // Créer les cellules en ordre séquentiel
-        PlanningConfig.HOURS_RANGE.forEach(hour => {
-            // Colonne heure
+        // FORCER la grille à avoir exactement les bonnes colonnes
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+        grid.style.gridTemplateRows = `repeat(${PlanningConfig.HOURS_RANGE.length}, 60px)`;
+        grid.style.gap = '0';
+
+        // Créer les cellules avec positionnement explicite
+        PlanningConfig.HOURS_RANGE.forEach((hour, hourIndex) => {
+            // Colonne heure (première colonne)
             const timeSlot = document.createElement('div');
             timeSlot.className = 'time-slot';
             timeSlot.textContent = PlanningUtils.formatHour(hour);
+            timeSlot.style.gridColumn = '1';           // FORCE première colonne
+            timeSlot.style.gridRow = `${hourIndex + 1}`;
             grid.appendChild(timeSlot);
 
             // Colonnes jours
@@ -247,6 +156,8 @@ class PlanningManager {
                 cell.dataset.hour = hour;
                 cell.dataset.day = day;
                 cell.dataset.dayIndex = dayIndex;
+                cell.style.gridColumn = `${dayIndex + 2}`;  // FORCE colonne correcte
+                cell.style.gridRow = `${hourIndex + 1}`;
 
                 this.setupCellEvents(cell, day, hour);
                 grid.appendChild(cell);
@@ -255,8 +166,8 @@ class PlanningManager {
 
         Logger.info(`Grille créée: ${PlanningConfig.HOURS_RANGE.length} × ${PlanningConfig.DAYS_OF_WEEK.length} cellules`);
 
-        // Rendre les créneaux
-        this.renderShifts();
+        // Rendre les créneaux avec gestion des chevauchements
+        this.renderShiftsFixed();
     }
 
     /**
@@ -287,9 +198,9 @@ class PlanningManager {
     }
 
     /**
-     * Rend tous les créneaux
+     * MÉTHODE CORRIGÉE - Rend tous les créneaux avec gestion des chevauchements
      */
-    renderShifts() {
+    renderShiftsFixed() {
         if (this.renderingInProgress) {
             Logger.debug('Rendu déjà en cours, ignoré');
             return;
@@ -306,7 +217,7 @@ class PlanningManager {
             grid.querySelectorAll('.shift-block').forEach(block => block.remove());
 
             // Organiser les créneaux par cellule pour détecter les chevauchements
-            const shiftsByCell = this.organizeShiftsForRendering();
+            const shiftsByCell = this.organizeShiftsForRenderingFixed();
 
             let rendered = 0;
 
@@ -318,11 +229,11 @@ class PlanningManager {
                 if (shifts.length === 1) {
                     // Créneau unique
                     const shiftData = shifts[0];
-                    this.renderSingleShift(shiftData.shift, shiftData.employee, shiftData.isMultiHour);
+                    this.renderSingleShiftFixed(shiftData.shift, shiftData.employee, shiftData.isMultiHour);
                     rendered++;
                 } else if (shifts.length > 1) {
                     // Créneaux multiples - gestion des chevauchements
-                    this.renderOverlappingShifts(shifts, day, hour);
+                    this.renderOverlappingShiftsFixed(shifts, day, hour);
                     rendered += shifts.length;
                 }
             });
@@ -337,9 +248,9 @@ class PlanningManager {
     }
 
     /**
-     * Organise les créneaux pour le rendu en gérant les chevauchements
+     * MÉTHODE CORRIGÉE - Organise les créneaux pour le rendu
      */
-    organizeShiftsForRendering() {
+    organizeShiftsForRenderingFixed() {
         const shiftsByCell = new Map();
 
         AppState.shifts.forEach(shift => {
@@ -380,9 +291,9 @@ class PlanningManager {
     }
 
     /**
-     * Rend un créneau unique
+     * MÉTHODE CORRIGÉE - Rend un créneau unique
      */
-    renderSingleShift(shift, employee, isMultiHour) {
+    renderSingleShiftFixed(shift, employee, isMultiHour) {
         if (isMultiHour) {
             this.renderMultiHourShift(shift, employee);
         } else {
@@ -391,9 +302,9 @@ class PlanningManager {
     }
 
     /**
-     * Rend des créneaux qui se chevauchent
+     * MÉTHODE CORRIGÉE - Rend des créneaux qui se chevauchent
      */
-    renderOverlappingShifts(shifts, day, hour) {
+    renderOverlappingShiftsFixed(shifts, day, hour) {
         const cell = document.querySelector(`[data-day="${day}"][data-hour="${hour}"]`);
         if (!cell) {
             Logger.warn(`Cellule introuvable: ${day} ${hour}h`);
@@ -413,22 +324,31 @@ class PlanningManager {
 
         // Rendre les créneaux d'une heure avec gestion des chevauchements
         if (singleHourShifts.length > 0) {
-            this.renderSingleHourShiftsWithOverlap(singleHourShifts, cell);
+            this.renderSingleHourShiftsWithOverlapFixed(singleHourShifts, cell);
         }
     }
 
     /**
-     * Rend des créneaux d'une heure avec gestion des chevauchements
+     * MÉTHODE CORRIGÉE - Rend des créneaux d'une heure avec gestion des chevauchements
      */
-    renderSingleHourShiftsWithOverlap(shifts, cell) {
+    renderSingleHourShiftsWithOverlapFixed(shifts, cell) {
+        // Nettoyer complètement la cellule
+        const existingBlocks = cell.querySelectorAll('.shift-block:not(.multi-hour)');
+        existingBlocks.forEach(block => block.remove());
+
+        // S'assurer que la cellule peut contenir des éléments absolus
+        if (window.getComputedStyle(cell).position === 'static') {
+            cell.style.position = 'relative';
+        }
+
         const totalShifts = shifts.length;
 
         shifts.forEach((shiftData, index) => {
             const block = this.createShiftBlock(shiftData.shift, shiftData.employee, false);
 
+            // Appliquer TOUJOURS le style de chevauchement s'il y en a plusieurs
             if (totalShifts > 1) {
-                // Appliquer le style de chevauchement
-                this.applyOverlapStyle(block, index, totalShifts);
+                this.applyOverlapStyleFixed(block, index, totalShifts);
             }
 
             cell.appendChild(block);
@@ -436,7 +356,79 @@ class PlanningManager {
     }
 
     /**
-     * Rend un créneau d'une heure
+     * MÉTHODE CORRIGÉE - Applique le style de chevauchement
+     */
+    applyOverlapStyleFixed(block, index, total) {
+        // Nettoyer les classes existantes
+        block.classList.remove('overlapped-shift', 'side-by-side');
+        for (let i = 1; i <= 4; i++) {
+            for (let j = 1; j <= 4; j++) {
+                block.classList.remove(`overlap-${i}-of-${j}`);
+            }
+        }
+
+        // Configuration du positionnement absolu
+        block.style.position = 'absolute';
+        block.style.top = '2px';
+        block.style.bottom = '2px';
+        block.style.margin = '0';
+        block.style.boxSizing = 'border-box';
+
+        // Calcul précis des largeurs pour éviter les débordements
+        let width, left;
+        if (total === 2) {
+            width = '49%';
+            left = index === 0 ? '0%' : '50%';
+        } else if (total === 3) {
+            width = '32%';
+            left = index === 0 ? '0%' : index === 1 ? '34%' : '67%';
+        } else if (total === 4) {
+            width = '24%';
+            left = `${index * 25}%`;
+        } else {
+            // Calcul générique pour plus de 4
+            const widthPercent = Math.floor(100 / total);
+            width = `${widthPercent - 1}%`;
+            left = `${widthPercent * index}%`;
+        }
+
+        block.style.width = width;
+        block.style.left = left;
+        block.style.zIndex = `${10 + index}`;
+
+        // Ajouter les classes CSS
+        block.classList.add('overlapped-shift', 'side-by-side', `overlap-${index + 1}-of-${total}`);
+
+        // Réductions pour petits créneaux
+        if (total > 2) {
+            this.adjustElementsForSmallSpace(block);
+        }
+    }
+
+    /**
+     * Ajuste les éléments pour les petits espaces
+     */
+    adjustElementsForSmallSpace(block) {
+        const avatarContainer = block.querySelector('.shift-avatar-container');
+        if (avatarContainer) {
+            avatarContainer.classList.add('small');
+        }
+
+        const shiftName = block.querySelector('.shift-employee-name, .shift-name');
+        if (shiftName) {
+            shiftName.style.fontSize = '0.7rem';
+
+            // Tronquer le nom si nécessaire
+            const originalText = shiftName.textContent;
+            if (originalText.length > 6) {
+                shiftName.textContent = originalText.substring(0, 5) + '…';
+                shiftName.title = originalText;
+            }
+        }
+    }
+
+    /**
+     * Rend un créneau d'une heure (version existante gardée)
      */
     renderSingleHourShift(shift, employee) {
         const grid = document.getElementById('planningGrid');
@@ -452,7 +444,7 @@ class PlanningManager {
     }
 
     /**
-     * Rend un créneau multi-heures
+     * Rend un créneau multi-heures (version existante gardée)
      */
     renderMultiHourShift(shift, employee) {
         const grid = document.getElementById('planningGrid');
@@ -476,7 +468,7 @@ class PlanningManager {
     }
 
     /**
-     * Crée un bloc de créneau
+     * Crée un bloc de créneau (version existante gardée)
      */
     createShiftBlock(shift, employee, isMultiHour) {
         const color = this.getShiftColor(shift.employee_id);
@@ -557,51 +549,6 @@ class PlanningManager {
     }
 
     /**
-     * Applique le style de chevauchement
-     */
-    applyOverlapStyle(block, index, total) {
-        const widthPercent = Math.floor(100 / total);
-        const leftPercent = widthPercent * index;
-
-        block.style.position = 'absolute';
-        block.style.left = `${leftPercent}%`;
-        block.style.width = `${Math.max(widthPercent - 1, 25)}%`; // Largeur minimum de 25%
-        block.style.top = '2px';
-        block.style.bottom = '2px';
-        block.style.zIndex = `${10 + index}`;
-
-        // Réduire la taille des éléments pour les petits créneaux
-        if (total > 2) {
-            this.adjustElementsForSmallSpace(block);
-        }
-
-        // Ajouter une classe pour le style CSS
-        block.classList.add('overlapped-shift', `overlap-${index + 1}-of-${total}`);
-    }
-
-    /**
-     * Ajuste les éléments pour les petits espaces
-     */
-    adjustElementsForSmallSpace(block) {
-        const avatarContainer = block.querySelector('.shift-avatar-container');
-        if (avatarContainer) {
-            avatarContainer.classList.add('small');
-        }
-
-        const shiftName = block.querySelector('.shift-name');
-        if (shiftName) {
-            shiftName.style.fontSize = '0.7rem';
-
-            // Tronquer le nom si nécessaire
-            const originalText = shiftName.textContent;
-            if (originalText.length > 6) {
-                shiftName.textContent = originalText.substring(0, 5) + '…';
-                shiftName.title = originalText;
-            }
-        }
-    }
-
-    /**
      * Crée un tooltip pour un créneau
      */
     createShiftTooltip(shift, employee) {
@@ -677,6 +624,107 @@ class PlanningManager {
             border: '#0984e3',
             text: 'white'
         };
+    }
+
+    /**
+     * Gère la navigation par clavier
+     */
+    handleKeyboardNavigation(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.previousWeek();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.nextWeek();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    this.saveChanges();
+                    break;
+                case 'z':
+                    e.preventDefault();
+                    // TODO: Implémenter l'annulation
+                    if (typeof NotificationManager !== 'undefined') {
+                        NotificationManager.show('💡 Fonction d\'annulation à venir', 'info');
+                    }
+                    break;
+            }
+        }
+
+        if (e.key === 'Escape') {
+            if (typeof PlanningUI !== 'undefined') {
+                PlanningUI.closeAllModals();
+            }
+        }
+    }
+
+    /**
+     * Gère l'ajout d'un créneau
+     */
+    handleShiftAdded(data) {
+        Logger.debug('Créneau ajouté:', data);
+        this.refreshPlanningDisplay();
+    }
+
+    /**
+     * Gère la mise à jour d'un créneau
+     */
+    handleShiftUpdated(data) {
+        Logger.debug('Créneau mis à jour:', data);
+        this.refreshPlanningDisplay();
+    }
+
+    /**
+     * Gère la suppression d'un créneau
+     */
+    handleShiftDeleted(data) {
+        Logger.debug('Créneau supprimé:', data);
+        this.refreshPlanningDisplay();
+    }
+
+    /**
+     * Gère l'ajout d'un employé
+     */
+    handleEmployeeAdded(data) {
+        Logger.debug('Employé ajouté:', data);
+        this.updateLegend();
+    }
+
+    /**
+     * Gère la mise à jour d'une photo
+     */
+    handlePhotoUpdated(data) {
+        Logger.debug('Photo mise à jour:', data);
+        // Seulement régénérer si nécessaire
+        this.renderShiftsFixed();
+        this.updateLegend();
+    }
+
+    /**
+     * Gère l'événement avant fermeture
+     */
+    handleBeforeUnload(e) {
+        if (AppState.isDirty) {
+            e.preventDefault();
+            e.returnValue = 'Vous avez des modifications non sauvegardées.';
+        }
+
+        // Sauvegarder les photos
+        if (window.avatarManager) {
+            window.avatarManager.savePhotos();
+        }
+    }
+
+    /**
+     * Gère le redimensionnement de la fenêtre
+     */
+    handleWindowResize() {
+        Logger.debug('Redimensionnement de la fenêtre');
+        // Recalculer les positions si nécessaire
+        this.renderShiftsFixed();
     }
 
     /**
@@ -957,10 +1005,12 @@ class PlanningManager {
         Logger.debug('Actualisation de l\'affichage du planning');
 
         // Réorganiser les données
-        initializeDataStructures();
+        if (typeof initializeDataStructures === 'function') {
+            initializeDataStructures();
+        }
 
         // Rerendre les créneaux
-        this.renderShifts();
+        this.renderShiftsFixed();
 
         // Mettre à jour les statistiques
         this.updateQuickStats();
@@ -998,4 +1048,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = PlanningManager;
 }
 
-Logger.info('PlanningManager chargé avec succès');
+Logger.info('PlanningManager corrigé chargé avec succès');
