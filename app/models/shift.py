@@ -153,6 +153,139 @@ class ShiftManager:
         except Exception as e:
             print(f"Erreur lors de la sauvegarde des créneaux: {e}")
 
+    def validate_shift_data(self, data, shift_id=None):
+        """Validation étendue avec support des minutes et granularité"""
+        from config import Config
+
+        errors = []
+
+        # Validation de base
+        if not data.get('employee_id'):
+            errors.append('ID employé requis')
+
+        if not data.get('day'):
+            errors.append('Jour requis')
+        elif data.get('day') not in Config.DAYS_OF_WEEK:
+            errors.append('Jour invalide')
+
+        if 'start_hour' not in data:
+            errors.append('Heure de début requise')
+        else:
+            try:
+                start_hour = int(data['start_hour'])
+                if start_hour not in Config.get_hours_range():
+                    errors.append('Heure de début en dehors des heures d\'ouverture')
+            except (ValueError, TypeError):
+                errors.append('Heure de début invalide')
+
+        # Validation des minutes avec granularité
+        start_minutes = data.get('start_minutes', 0)
+        try:
+            start_minutes = int(start_minutes)
+            granularity = getattr(Config, 'TIME_SLOT_GRANULARITY', 60)
+
+            # Vérifier que les minutes correspondent à la granularité
+            if start_minutes % granularity != 0:
+                errors.append(f'Minutes invalides pour granularité {granularity}min')
+
+            if start_minutes < 0 or start_minutes >= 60:
+                errors.append('Minutes doivent être entre 0 et 59')
+
+        except (ValueError, TypeError):
+            errors.append('Minutes invalides')
+
+        # Validation de la durée
+        if 'duration' in data:
+            try:
+                duration = float(data['duration'])
+                min_duration = getattr(Config, 'MIN_SHIFT_DURATION', 0.5)
+                max_duration = getattr(Config, 'MAX_SHIFT_DURATION', 12)
+
+                if duration < min_duration or duration > max_duration:
+                    errors.append(f'Durée doit être entre {min_duration}h et {max_duration}h')
+            except (ValueError, TypeError):
+                errors.append('Durée invalide')
+
+        # Vérifier les chevauchements
+        if not errors:  # Seulement si les données de base sont valides
+            conflicts = self.check_conflicts_with_granularity(
+                data.get('employee_id'),
+                data.get('day'),
+                int(data.get('start_hour')),
+                start_minutes,
+                float(data.get('duration', 1)),
+                shift_id
+            )
+
+            if conflicts:
+                conflicts_str = ', '.join([c.get('formatted_time', 'conflit') for c in conflicts])
+                errors.append(f'Conflit avec créneaux existants: {conflicts_str}')
+
+        return errors
+
+    def check_conflicts_with_granularity(self, employee_id, day, start_hour, start_minutes, duration,
+                                         exclude_shift_id=None):
+        """Vérifie les conflits avec support de la granularité"""
+        conflicts = []
+
+        # Convertir les temps en minutes depuis minuit pour la comparaison
+        new_start_minutes_total = start_hour * 60 + start_minutes
+        new_end_minutes_total = new_start_minutes_total + (duration * 60)
+
+        for shift in self._shifts.values():
+            # Ignorer le shift qu'on est en train de modifier
+            if exclude_shift_id and shift.id == exclude_shift_id:
+                continue
+
+            # Vérifier même employé et même jour
+            if shift.employee_id != employee_id or shift.day != day:
+                continue
+
+            # Calculer les temps du shift existant
+            existing_start_minutes_total = shift.start_hour * 60 + getattr(shift, 'start_minutes', 0)
+            existing_end_minutes_total = existing_start_minutes_total + (shift.duration * 60)
+
+            # Vérifier le chevauchement
+            if (new_start_minutes_total < existing_end_minutes_total and
+                    new_end_minutes_total > existing_start_minutes_total):
+                conflicts.append({
+                    'shift_id': shift.id,
+                    'formatted_time': f"{shift.start_hour:02d}:{getattr(shift, 'start_minutes', 0):02d}"
+                })
+
+        return conflicts
+
+    def update_shift(self, shift_id, updates):
+        """Met à jour un créneau avec support des minutes"""
+        if shift_id not in self._shifts:
+            return False
+
+        try:
+            shift = self._shifts[shift_id]
+
+            # Mettre à jour les champs, y compris start_minutes
+            if 'day' in updates:
+                shift.day = updates['day']
+            if 'start_hour' in updates:
+                shift.start_hour = int(updates['start_hour'])
+            if 'start_minutes' in updates:
+                # Ajouter l'attribut start_minutes s'il n'existe pas
+                shift.start_minutes = int(updates['start_minutes'])
+            if 'duration' in updates:
+                shift.duration = float(updates['duration'])
+            if 'notes' in updates:
+                shift.notes = updates['notes']
+            if 'employee_id' in updates:
+                shift.employee_id = updates['employee_id']
+
+            # Sauvegarder
+            return self.save_shifts()
+
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour du créneau: {e}")
+            return False
+
+
     def add_shift(self, shift: Shift) -> Tuple[bool, str]:
         """Ajoute un créneau avec validation"""
         try:
@@ -177,6 +310,7 @@ class ShiftManager:
         return list(self._shifts.values())
 
     def get_shifts_by_day(self, day: str) -> List[Shift]:
+
         """Récupère les créneaux d'un jour"""
         return [shift for shift in self._shifts.values() if shift.day == day]
 
@@ -190,29 +324,6 @@ class ShiftManager:
         for day in week_days:
             week_shifts[day] = self.get_shifts_by_day(day)
         return week_shifts
-
-    def update_shift(self, shift_id: str, data: Dict) -> Tuple[bool, str]:
-        """Met à jour un créneau"""
-        try:
-            if shift_id not in self._shifts:
-                return False, "Créneau introuvable"
-
-            # Créer une copie pour validation
-            updated_shift = Shift.from_dict({**self._shifts[shift_id].to_dict(), **data})
-            updated_shift.id = shift_id
-
-            # Vérifier les conflits (excluant le créneau actuel)
-            conflicts = self.get_conflicts(updated_shift, exclude_id=shift_id)
-            if conflicts:
-                conflict_names = [f"{c.day} {c.formatted_hours}" for c in conflicts]
-                return False, f"Conflit avec: {', '.join(conflict_names)}"
-
-            # Appliquer les modifications
-            self._shifts[shift_id] = updated_shift
-            self.save_shifts()
-            return True, "Créneau modifié avec succès"
-        except Exception as e:
-            return False, f"Erreur lors de la modification: {e}"
 
     def delete_shift(self, shift_id: str) -> bool:
         """Supprime un créneau"""

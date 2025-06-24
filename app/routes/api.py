@@ -4,7 +4,7 @@ API REST complète pour le planning restaurant avec gestion de la granularité
 
 from flask import Blueprint, request, jsonify, send_file
 from app.models.employee import EmployeeManager, Employee
-from app.models.shift import ShiftManager, Shift
+from app.routes.shift import ShiftManager, Shift
 from config import Config
 import base64
 import io
