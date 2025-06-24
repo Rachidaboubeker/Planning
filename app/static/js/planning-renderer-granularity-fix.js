@@ -1,12 +1,10 @@
-// ==================== CORRECTION UNIFIÉE GRANULARITÉ + COLONNES ====================
-// Ce fichier corrige l'intégration entre la granularité et les colonnes d'employés
-
 /**
- * CORRECTION UNIFIÉE : Granularité + Colonnes d'employés
- * Cette correction résout les conflits entre les deux systèmes
+ * CORRECTION UNIFIÉE GRANULARITÉ + COLONNES - SANS DRAG & DROP
+ * Le drag & drop est maintenant géré par drag-drop-unified-fix.js
+ * Ce fichier se contente du rendu selon la granularité et les colonnes
  */
 
-console.log('🔧 Chargement de la correction unifiée granularité + colonnes...');
+console.log('🔧 Chargement de la correction unifiée granularité + colonnes (sans drag & drop)...');
 
 // ==================== MÉTHODES UTILITAIRES ====================
 
@@ -63,26 +61,24 @@ function calculateCellHeight(granularity) {
 
 // ==================== CORRECTION PLANNINGRENDERER ====================
 
-// Sauvegarder les méthodes originales
+// Sauvegarder la méthode originale
 const originalGeneratePlanningGrid = PlanningRenderer.generatePlanningGrid;
-const originalRenderShifts = PlanningRenderer.renderShifts;
 
 /**
- * Méthode unifiée generatePlanningGrid
- * Gère à la fois la granularité ET les colonnes d'employés
+ * Génération unifiée de la grille (granularité + colonnes)
  */
 PlanningRenderer.generatePlanningGrid = function() {
     console.log('🏗️ Génération grille UNIFIÉE (granularité + colonnes)...');
 
     const grid = document.getElementById('planningGrid');
     if (!grid) {
-        console.warn('❌ Élément planningGrid non trouvé');
+        console.error('❌ Element planningGrid non trouvé');
         return;
     }
 
-    // Récupérer la configuration
+    // Configuration
     const granularity = window.FLASK_CONFIG?.TIME_SLOT_GRANULARITY || 60;
-    const hoursRange = window.FLASK_CONFIG?.HOURS_RANGE || PlanningConfig.HOURS_RANGE || [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+    const hoursRange = window.FLASK_CONFIG?.HOURS_RANGE || [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
     const hasColumnSystem = typeof employeeColumnManager !== 'undefined';
 
     console.log('📏 Configuration détectée:', {
@@ -91,95 +87,74 @@ PlanningRenderer.generatePlanningGrid = function() {
         heures: hoursRange.length
     });
 
-    // Initialiser les colonnes d'employés si disponibles
-    if (hasColumnSystem) {
-        employeeColumnManager.initializeEmployeeColumns();
-    }
-
-    // Vider la grille
+    // Nettoyer la grille
     grid.innerHTML = '';
+    grid.className = 'planning-grid unified-grid';
 
-    // Générer l'échelle temporelle selon la granularité
+    // Générer les créneaux temporels
     const timeSlots = generateTimeSlots(granularity, hoursRange);
     const cellHeight = calculateCellHeight(granularity);
 
     console.log('⏰ Créneaux générés:', timeSlots.length, 'avec hauteur', cellHeight + 'px');
 
-    // Configuration de la grille CSS
-    const numDays = PlanningConfig.DAYS_OF_WEEK.length;
-    grid.style.cssText = `
-        display: grid;
-        grid-template-columns: 100px repeat(${numDays}, 1fr);
-        grid-template-rows: repeat(${timeSlots.length}, ${cellHeight}px);
-        gap: 1px;
-        background-color: #e2e8f0;
-        position: relative;
-        width: 100%;
-    `;
+    // Configuration CSS Grid
+    const days = window.FLASK_CONFIG?.DAYS_OF_WEEK || ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    grid.style.gridTemplateColumns = `80px repeat(${days.length}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${timeSlots.length}, ${cellHeight}px)`;
 
-    // Créer les cellules selon la granularité
+    // En-têtes des jours
+    const emptyCorner = document.createElement('div');
+    emptyCorner.className = 'corner-cell';
+    emptyCorner.style.gridColumn = '1';
+    emptyCorner.style.gridRow = '1';
+    grid.appendChild(emptyCorner);
+
+    days.forEach((day, dayIndex) => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-header';
+        dayHeader.textContent = day;
+        dayHeader.style.gridColumn = `${dayIndex + 2}`;
+        dayHeader.style.gridRow = '1';
+        grid.appendChild(dayHeader);
+    });
+
+    // Générer les cellules
     timeSlots.forEach((timeSlot, rowIndex) => {
-        // Cellule d'heure (première colonne)
+        // Colonne heure
         const timeCell = document.createElement('div');
-        timeCell.className = 'time-slot' + (timeSlot.isSubSlot ? ' sub-time-slot' : '');
+        timeCell.className = `time-cell ${timeSlot.isSubSlot ? 'sub-slot' : 'main-hour'}`;
         timeCell.textContent = timeSlot.display;
-        timeCell.style.cssText = `
-            grid-column: 1;
-            grid-row: ${rowIndex + 1};
-            background: ${timeSlot.isMainHour ? 'linear-gradient(135deg, #6f42c1, #8b5cf6)' : '#f8f9fa'};
-            color: ${timeSlot.isMainHour ? 'white' : '#6c757d'};
-            border: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: ${timeSlot.isMainHour ? '600' : '400'};
-            font-size: ${cellHeight < 20 ? '0.6rem' : '0.875rem'};
-            font-style: ${timeSlot.isSubSlot ? 'italic' : 'normal'};
-        `;
+        timeCell.style.gridColumn = '1';
+        timeCell.style.gridRow = `${rowIndex + 2}`;
+
+        // Style différent pour les sous-créneaux
+        if (timeSlot.isSubSlot) {
+            timeCell.style.fontSize = '0.7rem';
+            timeCell.style.opacity = '0.7';
+            timeCell.style.borderTop = '1px dotted #ddd';
+        }
+
         grid.appendChild(timeCell);
 
-        // Cellules de jours (colonnes 2 à 8)
-        PlanningConfig.DAYS_OF_WEEK.forEach((day, dayIndex) => {
+        // Cellules pour chaque jour
+        days.forEach((day, dayIndex) => {
             const dayCell = document.createElement('div');
-
-            // Classes selon le système disponible
-            if (hasColumnSystem) {
-                dayCell.className = 'schedule-cell-with-columns';
-            } else {
-                dayCell.className = 'schedule-cell';
-            }
-
-            // Attributs de données
-            dayCell.dataset.hour = timeSlot.hour;
-            dayCell.dataset.minutes = timeSlot.minutes || 0;
+            dayCell.className = hasColumnSystem ? 'schedule-cell-with-columns' : 'schedule-cell';
             dayCell.dataset.day = day;
-            dayCell.dataset.dayIndex = dayIndex;
-            dayCell.dataset.timeKey = timeSlot.key;
-
-            dayCell.style.cssText = `
-                grid-column: ${dayIndex + 2};
-                grid-row: ${rowIndex + 1};
-                background: white;
-                border: 1px solid #e2e8f0;
-                position: relative;
-                cursor: pointer;
-                min-height: ${cellHeight}px;
-                height: ${cellHeight}px;
-            `;
-
-            // Bordures spéciales pour granularité
-            if (timeSlot.isMainHour) {
-                dayCell.style.borderTop = '2px solid #6f42c1';
-            } else if (timeSlot.isSubSlot) {
-                dayCell.style.borderTop = '1px dashed #ced4da';
-            }
+            dayCell.dataset.hour = timeSlot.hour;
+            dayCell.dataset.minutes = timeSlot.minutes;
+            dayCell.dataset.key = timeSlot.key;
+            dayCell.style.gridColumn = `${dayIndex + 2}`;
+            dayCell.style.gridRow = `${rowIndex + 2}`;
+            dayCell.style.position = 'relative';
+            dayCell.style.height = `${cellHeight}px`;
 
             // Ajouter les guides de colonnes si système disponible
             if (hasColumnSystem && typeof PlanningRendererColumnExtensions !== 'undefined') {
                 PlanningRendererColumnExtensions.addColumnGuides(dayCell);
             }
 
-            // Configuration des événements
+            // Configuration des événements (SANS drag & drop)
             setupUnifiedCellEvents(dayCell, day, timeSlot);
 
             grid.appendChild(dayCell);
@@ -192,55 +167,39 @@ PlanningRenderer.generatePlanningGrid = function() {
     setTimeout(() => {
         this.renderShifts();
 
-        // Initialiser le drag & drop pour les colonnes si disponible
-        if (hasColumnSystem && typeof PlanningRendererColumnExtensions !== 'undefined') {
-            PlanningRendererColumnExtensions.initializeAllDragDrop();
+        // Déclencher la configuration du drag & drop unifié
+        if (typeof window.UnifiedDragDropFix !== 'undefined') {
+            setTimeout(() => window.UnifiedDragDropFix.configureAll(), 100);
         }
     }, 100);
 };
 
 /**
- * Configuration unifiée des événements de cellule
+ * Configuration unifiée des événements de cellule (SANS drag & drop)
  */
 function setupUnifiedCellEvents(cell, day, timeSlot) {
     // Double-clic pour créer un créneau
     cell.addEventListener('dblclick', function(e) {
         e.preventDefault();
         if (typeof PlanningUI !== 'undefined' && PlanningUI.showAddShiftModal) {
-            PlanningUI.showAddShiftModal(day, timeSlot.hour);
+            PlanningUI.showAddShiftModal(day, timeSlot.hour, timeSlot.minutes);
         }
     });
 
-    // Drag & drop
-    cell.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.style.background = 'rgba(99, 102, 241, 0.1)';
-    });
-
-    cell.addEventListener('dragleave', function() {
-        this.style.background = 'white';
-    });
-
-    cell.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.style.background = 'white';
-
-        // Utiliser le gestionnaire approprié selon le système
-        if (typeof handleDropWithGranularity === 'function') {
-            handleDropWithGranularity(e, this);
-        } else if (typeof DragDropManager !== 'undefined' && DragDropManager.handleDrop) {
-            DragDropManager.handleDrop(e, this);
-        }
-    });
-
-    // Hover
+    // Hover simple
     cell.addEventListener('mouseenter', function() {
-        this.style.background = 'rgba(99, 102, 241, 0.05)';
+        if (!this.classList.contains('drag-over-valid') && !this.classList.contains('drag-over-invalid')) {
+            this.style.background = 'rgba(99, 102, 241, 0.05)';
+        }
     });
 
     cell.addEventListener('mouseleave', function() {
-        this.style.background = 'white';
+        if (!this.classList.contains('drag-over-valid') && !this.classList.contains('drag-over-invalid')) {
+            this.style.background = 'white';
+        }
     });
+
+    // Le drag & drop sera configuré par le gestionnaire unifié
 }
 
 /**
@@ -278,6 +237,11 @@ PlanningRenderer.renderShifts = function() {
     }
 
     console.log('✅ Créneaux rendus (mode unifié)');
+
+    // Déclencher la configuration du drag & drop après le rendu
+    if (typeof window.UnifiedDragDropFix !== 'undefined') {
+        setTimeout(() => window.UnifiedDragDropFix.configureAllShifts(), 50);
+    }
 };
 
 /**
@@ -346,33 +310,33 @@ PlanningRenderer.renderShiftWithGranularity = function(shift, employee, cellHeig
         display: flex;
         flex-direction: column;
         justify-content: center;
+        align-items: center;
         text-align: center;
-        cursor: grab;
+        cursor: pointer;
+        transition: all 0.2s ease;
         z-index: 10;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.3);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     `;
 
-    // Contenu adaptatif selon la taille
-    if (blockHeight >= 40) {
-        block.innerHTML = `
-            <div>${employee.prenom}</div>
-            <div style="font-size: 0.8em; opacity: 0.9;">${shift.duration}h</div>
-            <div style="font-size: 0.7em; opacity: 0.8;">${shift.start_hour}:${(startMinutes).toString().padStart(2, '0')}</div>
-        `;
-    } else if (blockHeight >= 25) {
-        block.innerHTML = `
-            <div>${employee.prenom}</div>
-            <div style="font-size: 0.8em;">${shift.duration}h</div>
-        `;
-    } else {
-        block.innerHTML = `<div>${employee.prenom.slice(0, 3)}</div>`;
-    }
+    // Contenu du bloc
+    block.innerHTML = `
+        <div class="shift-employee">${employee.prenom}</div>
+        <div class="shift-time" style="font-size: 0.7em; opacity: 0.9;">
+            ${shift.start_hour}:${startMinutes.toString().padStart(2,'0')}
+        </div>
+    `;
 
     // Tooltip
-    block.title = `${employee.nom_complet || `${employee.prenom} ${employee.nom}`}\n${employee.poste}\n${shift.day} ${shift.start_hour}:${startMinutes.toString().padStart(2, '0')} (${shift.duration}h)`;
+    block.title = [
+        `👤 ${employee.nom_complet}`,
+        `📍 ${shift.day}`,
+        `⏰ ${shift.start_hour}:${startMinutes.toString().padStart(2,'0')} (${shift.duration}h)`,
+        shift.notes ? `📝 ${shift.notes}` : '',
+        employee.taux_horaire ? `💰 ${(employee.taux_horaire * shift.duration).toFixed(2)}€` : ''
+    ].filter(Boolean).join('\n');
 
-    // Événements
+    // Events (sans drag & drop - géré par le gestionnaire unifié)
     setupShiftEvents(block, shift, employee);
 
     // Ajouter à la cellule
@@ -380,7 +344,7 @@ PlanningRenderer.renderShiftWithGranularity = function(shift, employee, cellHeig
 };
 
 /**
- * Rendu d'un créneau avec granularité ET colonnes
+ * Rendu d'un créneau dans une colonne avec granularité
  */
 PlanningRenderer.renderShiftInColumnWithGranularity = function(shift, employee, cellHeight, granularity) {
     const grid = document.getElementById('planningGrid');
@@ -391,11 +355,12 @@ PlanningRenderer.renderShiftInColumnWithGranularity = function(shift, employee, 
     const startCell = grid.querySelector(cellSelector);
 
     if (!startCell) {
-        console.warn('❌ Cellule non trouvée:', cellSelector);
+        console.warn('❌ Cellule non trouvée pour colonne:', cellSelector);
         return;
     }
 
-    const columnIndex = employeeColumnManager.getEmployeeColumn(employee.id);
+    // Récupérer l'index de colonne
+    const columnIndex = employeeColumnManager.getEmployeeColumn(shift.employee_id);
 
     console.log(`🎨 Rendu avec granularité: ${employee.prenom} → Col. ${columnIndex + 1}`);
 
@@ -445,7 +410,7 @@ PlanningRenderer.renderShiftInColumnWithGranularity = function(shift, employee, 
 };
 
 /**
- * Configuration des événements de créneau
+ * Configuration des événements de créneau (sans drag & drop)
  */
 function setupShiftEvents(block, shift, employee) {
     // Double-clic pour modifier
@@ -456,79 +421,37 @@ function setupShiftEvents(block, shift, employee) {
         }
     });
 
-    // Drag and drop
-    block.draggable = true;
-
-    block.addEventListener('dragstart', function(e) {
-        e.dataTransfer.setData('text/plain', shift.id);
-        this.style.opacity = '0.5';
-    });
-
-    block.addEventListener('dragend', function() {
-        this.style.opacity = '1';
-    });
-
-    // Hover
+    // Hover (sans conflit avec le drag & drop)
     block.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.02)';
-        this.style.zIndex = '20';
+        if (!this.classList.contains('dragging')) {
+            this.style.transform = 'scale(1.02)';
+            this.style.zIndex = '20';
+        }
     });
 
     block.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-        this.style.zIndex = '10';
+        if (!this.classList.contains('dragging')) {
+            this.style.transform = 'scale(1)';
+            this.style.zIndex = '10';
+        }
     });
+
+    // Le drag & drop sera configuré par le gestionnaire unifié
 }
 
-// ==================== GESTION COMBINÉE ====================
+// ==================== DÉSACTIVATION DES ANCIENS HANDLERS ====================
 
-/**
- * Méthode pour gérer le drop avec granularité
- */
-function handleDropWithGranularity(e, cell) {
-    const shiftId = e.dataTransfer.getData('text/plain');
-    if (!shiftId) return;
-
-    const shift = AppState.shifts.get(shiftId);
-    if (!shift) return;
-
-    const newDay = cell.dataset.day;
-    const newHour = parseInt(cell.dataset.hour);
-    const newMinutes = parseInt(cell.dataset.minutes) || 0;
-
-    console.log(`🎯 Drop avec granularité: ${shift.employee_id} → ${newDay} ${newHour}:${newMinutes.toString().padStart(2, '0')}`);
-
-    // Mettre à jour le créneau
-    shift.day = newDay;
-    shift.start_hour = newHour;
-    shift.start_minutes = newMinutes;
-
-    // Sauvegarder si possible
-    if (typeof APIManager !== 'undefined' && APIManager.put) {
-        APIManager.put(`/shifts/${shiftId}`, shift)
-            .then(response => {
-                if (response.success) {
-                    console.log('✅ Créneau déplacé avec granularité');
-                    PlanningRenderer.renderShifts();
-                } else {
-                    console.error('❌ Erreur de sauvegarde');
-                }
-            })
-            .catch(error => {
-                console.error('❌ Erreur de déplacement:', error);
-            });
-    } else {
-        // Rendu immédiat sans sauvegarde
-        PlanningRenderer.renderShifts();
-    }
-}
+// Désactiver handleDropWithGranularity
+window.handleDropWithGranularity = function() {
+    console.log('🚫 handleDropWithGranularity désactivé - gestionnaire unifié actif');
+};
 
 // ==================== PROTECTION ET INSTALLATION ====================
 
 // S'assurer que notre version unifiée est utilisée
 setTimeout(() => {
     if (window.PlanningRenderer && typeof window.PlanningRenderer.generatePlanningGrid === 'function') {
-        console.log('✅ PlanningRenderer unifié installé (granularité + colonnes)');
+        console.log('✅ PlanningRenderer unifié installé (granularité + colonnes, SANS drag & drop)');
 
         // Test de régénération si granularité active
         const granularity = window.FLASK_CONFIG?.TIME_SLOT_GRANULARITY || 60;
@@ -541,4 +464,4 @@ setTimeout(() => {
     }
 }, 2000);
 
-console.log('🔧 Correction unifiée chargée (granularité + colonnes d\'employés)');
+console.log('🔧 Correction unifiée chargée (granularité + colonnes, SANS drag & drop)');
