@@ -1,6 +1,7 @@
 /**
- * Planning Restaurant - Gestionnaire du drag & drop (AVEC SAUVEGARDE)
+ * Planning Restaurant - Gestionnaire du drag & drop (AVEC SAUVEGARDE + COLONNES)
  * Corrige le problème de non-sauvegarde lors du drag & drop
+ * NOUVEAU : Support des colonnes d'employés
  */
 
 class DragDropManager {
@@ -11,6 +12,7 @@ class DragDropManager {
         this.dropZones = new Set();
         this.isDragging = false;
         this.originalPosition = null;
+        this.draggedEmployeeId = null; // NOUVEAU : ID de l'employé en cours de drag
 
         this.init();
     }
@@ -20,7 +22,7 @@ class DragDropManager {
      */
     init() {
         this.setupGlobalEventListeners();
-        console.log('🔧 DragDropManager initialisé avec sauvegarde');
+        console.log('🔧 DragDropManager initialisé avec sauvegarde + colonnes');
     }
 
     /**
@@ -38,31 +40,59 @@ class DragDropManager {
     }
 
     /**
-     * Configure une zone de drop avec sauvegarde
+     * NOUVEAU : Configure une zone de drop avec support des colonnes
      */
     static setupDropZone(cell) {
         if (!cell) return;
 
         cell.classList.add('drop-zone');
 
-        // Dragover - autoriser le drop
+        // Dragover - autoriser le drop SEULEMENT dans la bonne colonne
         cell.addEventListener('dragover', (e) => {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            cell.classList.add('drag-over');
+
+            // NOUVEAU : Vérifier si le drop est autorisé dans cette colonne
+            if (DragDropManagerStatic.draggedEmployeeId && typeof employeeColumnManager !== 'undefined') {
+                const draggedColumnIndex = employeeColumnManager.getEmployeeColumn(DragDropManagerStatic.draggedEmployeeId);
+
+                // Calculer la position de la souris dans la cellule
+                const cellRect = cell.getBoundingClientRect();
+                const mouseX = e.clientX - cellRect.left;
+                const columnWidth = cellRect.width / employeeColumnManager.maxColumns;
+                const hoveredColumnIndex = Math.floor(mouseX / columnWidth);
+
+                if (hoveredColumnIndex === draggedColumnIndex) {
+                    // Drop autorisé dans la bonne colonne
+                    e.dataTransfer.dropEffect = 'move';
+                    cell.classList.add('drag-over-valid');
+
+                    // Highlight spécifique de la colonne
+                    DragDropManagerStatic.highlightTargetColumn(cell, draggedColumnIndex);
+                } else {
+                    // Drop non autorisé
+                    e.dataTransfer.dropEffect = 'none';
+                    cell.classList.add('drag-over-invalid');
+                }
+            } else {
+                // Fallback si pas de système de colonnes
+                e.dataTransfer.dropEffect = 'move';
+                cell.classList.add('drag-over');
+            }
         });
 
         // Dragleave - nettoyer
         cell.addEventListener('dragleave', (e) => {
             if (!cell.contains(e.relatedTarget)) {
-                cell.classList.remove('drag-over');
+                cell.classList.remove('drag-over', 'drag-over-valid', 'drag-over-invalid');
+                DragDropManagerStatic.removeColumnHighlight(cell);
             }
         });
 
-        // CORRECTION: Drop avec sauvegarde effective
+        // MODIFIÉ: Drop avec vérification de colonne
         cell.addEventListener('drop', async (e) => {
             e.preventDefault();
-            cell.classList.remove('drag-over');
+            cell.classList.remove('drag-over', 'drag-over-valid', 'drag-over-invalid');
+            DragDropManagerStatic.removeColumnHighlight(cell);
 
             const shiftId = e.dataTransfer.getData('text/plain');
             const newDay = cell.dataset.day;
@@ -70,13 +100,77 @@ class DragDropManager {
 
             console.log(`🎯 Drop détecté: ${shiftId} → ${newDay} ${newHour}h`);
 
+            // NOUVEAU : Vérifier la colonne avant de sauvegarder
+            if (DragDropManagerStatic.draggedEmployeeId && typeof employeeColumnManager !== 'undefined') {
+                const draggedColumnIndex = employeeColumnManager.getEmployeeColumn(DragDropManagerStatic.draggedEmployeeId);
+
+                // Calculer dans quelle colonne on a droppé
+                const cellRect = cell.getBoundingClientRect();
+                const mouseX = e.clientX - cellRect.left;
+                const columnWidth = cellRect.width / employeeColumnManager.maxColumns;
+                const droppedColumnIndex = Math.floor(mouseX / columnWidth);
+
+                if (droppedColumnIndex !== draggedColumnIndex) {
+                    console.warn(`❌ Drop refusé: colonne ${droppedColumnIndex + 1} != colonne attendue ${draggedColumnIndex + 1}`);
+
+                    if (typeof NotificationManager !== 'undefined') {
+                        const employee = AppState.employees.get(DragDropManagerStatic.draggedEmployeeId);
+                        const employeeName = employee ? employee.prenom : 'Cet employé';
+                        NotificationManager.show(
+                            `❌ ${employeeName} ne peut être déplacé que dans sa colonne (${draggedColumnIndex + 1})`,
+                            'warning'
+                        );
+                    }
+                    return;
+                }
+            }
+
             // Effectuer la sauvegarde
             await DragDropManagerStatic.saveShiftMove(shiftId, newDay, newHour);
         });
     }
 
     /**
-     * Configure le drag & drop pour un élément
+     * NOUVEAU : Met en évidence la colonne cible
+     */
+    static highlightTargetColumn(cell, columnIndex) {
+        const columnWidth = 100 / employeeColumnManager.maxColumns;
+        const left = columnIndex * columnWidth;
+
+        // Créer ou mettre à jour le highlight de colonne
+        let highlight = cell.querySelector('.column-drop-highlight');
+        if (!highlight) {
+            highlight = document.createElement('div');
+            highlight.className = 'column-drop-highlight';
+            cell.appendChild(highlight);
+        }
+
+        highlight.style.cssText = `
+            position: absolute;
+            left: ${left}%;
+            top: 0;
+            width: ${columnWidth}%;
+            height: 100%;
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid #28a745;
+            pointer-events: none;
+            z-index: 5;
+            border-radius: 4px;
+        `;
+    }
+
+    /**
+     * NOUVEAU : Supprime le highlight de colonne
+     */
+    static removeColumnHighlight(cell) {
+        const highlight = cell.querySelector('.column-drop-highlight');
+        if (highlight) {
+            highlight.remove();
+        }
+    }
+
+    /**
+     * MODIFIÉ : Configure le drag & drop pour un élément avec support colonnes
      */
     static setupDragAndDrop(element, shift) {
         if (!element || !shift) {
@@ -87,29 +181,94 @@ class DragDropManager {
         element.draggable = true;
         element.dataset.shiftId = shift.id;
 
-        // CORRECTION: Sauvegarder position originale
+        // MODIFIÉ : Dragstart avec info employé
         element.addEventListener('dragstart', (e) => {
-            console.log('🚀 Début du drag:', shift.id, `${shift.day} ${shift.start_hour}h`);
+            const employee = AppState.employees.get(shift.employee_id);
+            console.log(`🚀 Début du drag: ${shift.id} (${employee ? employee.prenom : 'Inconnu'}) ${shift.day} ${shift.start_hour}h`);
 
             e.dataTransfer.setData('text/plain', shift.id);
             element.classList.add('dragging');
+
+            // NOUVEAU : Stocker l'ID de l'employé pour les vérifications de colonne
+            DragDropManagerStatic.draggedEmployeeId = shift.employee_id;
 
             // Sauvegarder position originale
             DragDropManagerStatic.originalPosition = {
                 day: shift.day,
                 hour: shift.start_hour
             };
+
+            // NOUVEAU : Mettre en évidence toutes les zones de drop valides pour cet employé
+            if (typeof employeeColumnManager !== 'undefined') {
+                DragDropManagerStatic.highlightAllValidDropZones(shift.employee_id);
+            }
         });
 
         element.addEventListener('dragend', (e) => {
             console.log('🏁 Fin du drag:', shift.id);
             element.classList.remove('dragging');
             DragDropManagerStatic.originalPosition = null;
+            DragDropManagerStatic.draggedEmployeeId = null;
+
+            // NOUVEAU : Supprimer tous les highlights
+            DragDropManagerStatic.removeAllDropZoneHighlights();
         });
     }
 
     /**
-     * NOUVEAU: Sauvegarde effective du déplacement
+     * NOUVEAU : Met en évidence toutes les zones de drop valides pour un employé
+     */
+    static highlightAllValidDropZones(employeeId) {
+        if (typeof employeeColumnManager === 'undefined') return;
+
+        const columnIndex = employeeColumnManager.getEmployeeColumn(employeeId);
+        const employee = AppState.employees.get(employeeId);
+        const employeeName = employee ? employee.prenom : 'Cet employé';
+
+        console.log(`💡 Highlighting colonne ${columnIndex + 1} pour ${employeeName}`);
+
+        // Parcourir toutes les cellules du planning
+        document.querySelectorAll('.schedule-cell-with-columns, .schedule-cell').forEach(cell => {
+            const guide = cell.querySelector('.employee-column-guide:nth-child(' + (columnIndex + 1) + ')');
+            if (guide) {
+                guide.style.backgroundColor = 'rgba(40, 167, 69, 0.15)';
+                guide.style.borderRight = '2px solid #28a745';
+            }
+        });
+
+        // Ajouter une notification visuelle
+        if (typeof NotificationManager !== 'undefined') {
+            NotificationManager.show(
+                `🎯 ${employeeName} peut être déplacé dans la colonne ${columnIndex + 1}`,
+                'info',
+                2000
+            );
+        }
+    }
+
+    /**
+     * NOUVEAU : Supprime tous les highlights de zones de drop
+     */
+    static removeAllDropZoneHighlights() {
+        // Supprimer les highlights de guides
+        document.querySelectorAll('.employee-column-guide').forEach(guide => {
+            guide.style.backgroundColor = '';
+            guide.style.borderRight = '1px solid rgba(0,0,0,0.05)';
+        });
+
+        // Supprimer les highlights de colonnes
+        document.querySelectorAll('.column-drop-highlight').forEach(highlight => {
+            highlight.remove();
+        });
+
+        // Supprimer les classes de drag over
+        document.querySelectorAll('.drag-over-valid, .drag-over-invalid').forEach(cell => {
+            cell.classList.remove('drag-over-valid', 'drag-over-invalid');
+        });
+    }
+
+    /**
+     * NOUVEAU: Sauvegarde effective du déplacement (inchangé mais avec meilleure validation)
      */
     static async saveShiftMove(shiftId, newDay, newHour) {
         try {
@@ -129,6 +288,15 @@ class DragDropManager {
             if (originalDay === newDay && originalHour === newHour) {
                 console.log('⚠️ Position inchangée, pas de sauvegarde');
                 return true;
+            }
+
+            // NOUVEAU : Validation supplémentaire avec les colonnes
+            if (!DragDropManagerStatic.isValidMove(shiftId, newDay, newHour)) {
+                console.warn('❌ Déplacement non valide');
+                if (typeof NotificationManager !== 'undefined') {
+                    NotificationManager.show('❌ Déplacement non autorisé (conflit détecté)', 'error');
+                }
+                return false;
             }
 
             // Mettre à jour le créneau localement
@@ -209,7 +377,7 @@ class DragDropManager {
     }
 
     /**
-     * Vérifie si un déplacement est valide
+     * AMÉLIORÉ : Vérifie si un déplacement est valide (avec support colonnes)
      */
     static isValidMove(shiftId, newDay, newHour) {
         const shift = AppState.shifts.get(shiftId);
@@ -253,9 +421,12 @@ class DragDropManager {
             el.classList.remove('dragging');
         });
 
-        document.querySelectorAll('.drag-over').forEach(el => {
-            el.classList.remove('drag-over');
+        document.querySelectorAll('.drag-over, .drag-over-valid, .drag-over-invalid').forEach(el => {
+            el.classList.remove('drag-over', 'drag-over-valid', 'drag-over-invalid');
         });
+
+        // NOUVEAU : Supprimer les highlights de colonnes
+        DragDropManagerStatic.removeAllDropZoneHighlights();
     }
 
     /**
@@ -276,7 +447,12 @@ const DragDropManagerStatic = {
     setupDragAndDrop: DragDropManager.setupDragAndDrop,
     saveShiftMove: DragDropManager.saveShiftMove,
     isValidMove: DragDropManager.isValidMove,
+    highlightAllValidDropZones: DragDropManager.highlightAllValidDropZones,
+    removeAllDropZoneHighlights: DragDropManager.removeAllDropZoneHighlights,
+    highlightTargetColumn: DragDropManager.highlightTargetColumn,
+    removeColumnHighlight: DragDropManager.removeColumnHighlight,
     originalPosition: null,
+    draggedEmployeeId: null,
 
     getInstance: () => dragDropManagerInstance
 };
@@ -291,4 +467,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { DragDropManager: DragDropManagerStatic };
 }
 
-console.log('🔧 DragDropManager chargé avec SAUVEGARDE effective');
+console.log('🔧 DragDropManager chargé avec SAUVEGARDE effective + SUPPORT COLONNES');

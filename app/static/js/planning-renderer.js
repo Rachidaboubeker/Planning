@@ -10,6 +10,8 @@ class PlanningRenderer {
     /**
      * Génère la grille de planning complète
      */
+
+    /* LEGACY
     static generatePlanningGrid() {
         const grid = document.getElementById('planningGrid');
         if (!grid) {
@@ -89,6 +91,72 @@ class PlanningRenderer {
             }
         }, 100);
     }
+    */
+
+    static generatePlanningGrid() {
+        const grid = document.getElementById('planningGrid');
+        if (!grid) {
+            console.warn('❌ Élément planningGrid non trouvé');
+            return;
+        }
+
+        console.log('🏗️ Génération de la grille avec colonnes d\'employés...');
+
+        // Initialiser les colonnes d'employés
+        if (typeof employeeColumnManager !== 'undefined') {
+            employeeColumnManager.initializeEmployeeColumns();
+        }
+
+        // Vider la grille
+        grid.innerHTML = '';
+
+        // Configuration CSS Grid
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = '80px repeat(7, 1fr)';
+        grid.style.gridTemplateRows = `repeat(${PlanningConfig.HOURS_RANGE.length}, 60px)`;
+        grid.style.gap = '0';
+
+        // Créer les cellules
+        PlanningConfig.HOURS_RANGE.forEach((hour, hourIndex) => {
+            // Colonne heure
+            const timeSlot = document.createElement('div');
+            timeSlot.className = 'time-slot';
+            timeSlot.textContent = PlanningUtils.formatHour(hour);
+            timeSlot.style.gridColumn = '1';
+            timeSlot.style.gridRow = `${hourIndex + 1}`;
+            grid.appendChild(timeSlot);
+
+            // Colonnes jours avec subdivisions
+            PlanningConfig.DAYS_OF_WEEK.forEach((day, dayIndex) => {
+                const cell = document.createElement('div');
+                cell.className = 'schedule-cell-with-columns';
+                cell.dataset.hour = hour;
+                cell.dataset.day = day;
+                cell.dataset.dayIndex = dayIndex;
+                cell.style.gridColumn = `${dayIndex + 2}`;
+                cell.style.gridRow = `${hourIndex + 1}`;
+                cell.style.position = 'relative';
+
+                // Ajouter les guides visuels de colonnes
+                if (typeof PlanningRendererColumnExtensions !== 'undefined') {
+                    PlanningRendererColumnExtensions.addColumnGuides(cell);
+                }
+
+                this.setupCellEvents(cell, day, hour);
+                grid.appendChild(cell);
+            });
+        });
+
+        // Rendre les créneaux avec positionnement par colonnes
+        this.renderShiftsWithColumns();
+
+        console.log('✅ Grille avec colonnes générée');
+        setTimeout(() => {
+            if (typeof PlanningRendererColumnExtensions !== 'undefined') {
+                PlanningRendererColumnExtensions.initializeAllDragDrop();
+            }
+        }, 100); // Petit délai pour que les éléments soient complètement rendus
+    }
 
     /**
      * Configure les événements d'une cellule
@@ -120,7 +188,8 @@ class PlanningRenderer {
     /**
      * Rend les créneaux avec détection complète des conflits
      */
-    static renderShifts() {
+
+    static renderShiftsLegacy() {
         if (this.isRendering) {
             console.log('Rendu en cours, ignoré');
             return;
@@ -154,6 +223,124 @@ class PlanningRenderer {
             this.isRendering = false;
         }
     }
+
+    static renderShifts() {
+        // Si le système de colonnes est disponible, l'utiliser
+        if (typeof employeeColumnManager !== 'undefined' && typeof this.renderShiftsWithColumns === 'function') {
+            this.renderShiftsWithColumns();
+        } else {
+            // Sinon, utiliser l'ancien système (fallback)
+            this.renderShiftsLegacy();
+        }
+    }
+
+    // 🆕 AJOUTER CETTE NOUVELLE MÉTHODE :
+    static renderShiftsWithColumns() {
+        const grid = document.getElementById('planningGrid');
+
+        // Supprimer les anciens créneaux
+        grid.querySelectorAll('.shift-block').forEach(block => block.remove());
+
+        // Grouper les créneaux par cellule
+        const shiftsByCell = new Map();
+
+        AppState.shifts.forEach(shift => {
+            const employee = AppState.employees.get(shift.employee_id);
+            if (!employee) return;
+
+            const cellKey = `${shift.day}-${shift.start_hour}`;
+            if (!shiftsByCell.has(cellKey)) {
+                shiftsByCell.set(cellKey, []);
+            }
+
+            shiftsByCell.get(cellKey).push({ shift, employee });
+        });
+
+        // Rendre chaque groupe de créneaux
+        shiftsByCell.forEach((shiftsInCell, cellKey) => {
+            const [day, startHour] = cellKey.split('-');
+            const hour = parseInt(startHour);
+
+            // Séparer créneaux simples et multi-heures
+            const singleHourShifts = shiftsInCell.filter(s => s.shift.duration === 1);
+            const multiHourShifts = shiftsInCell.filter(s => s.shift.duration > 1);
+
+            // Rendre les créneaux d'une heure avec colonnes fixes
+            singleHourShifts.forEach(({ shift, employee }) => {
+                this.renderShiftInColumn(shift, employee);
+            });
+
+            // Rendre les créneaux multi-heures avec colonnes fixes
+            multiHourShifts.forEach(({ shift, employee }) => {
+                this.renderMultiHourShiftInColumn(shift, employee);
+            });
+        });
+
+        console.log('✅ Créneaux rendus avec système de colonnes');
+    }
+
+    // 🆕 AJOUTER CES NOUVELLES MÉTHODES :
+    static renderShiftInColumn(shift, employee) {
+        const cell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
+        if (!cell) return;
+
+        console.log(`🎨 Rendu: ${employee.prenom} → Col. ${employeeColumnManager.getEmployeeColumn(employee.id) + 1}`);
+
+        const columnIndex = employeeColumnManager.getEmployeeColumn(employee.id);
+        const block = PlanningRendererColumnExtensions.createShiftBlockForColumn(shift, employee, false);
+
+        // Positionnement dans la colonne
+        PlanningRendererColumnExtensions.positionShiftInColumn(block, columnIndex, 1);
+
+        cell.appendChild(block);
+    }
+
+    static renderMultiHourShiftInColumn(shift, employee) {
+    const startCell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
+    if (!startCell) {
+        console.warn(`❌ Cellule de départ introuvable: ${shift.day} ${shift.start_hour}h`);
+        return;
+    }
+
+    console.log(`🎨 Rendu multi-heures: ${employee.prenom} → Col. ${employeeColumnManager.getEmployeeColumn(employee.id) + 1}`);
+
+    const columnIndex = employeeColumnManager.getEmployeeColumn(employee.id);
+    const block = PlanningRendererColumnExtensions.createShiftBlockForColumn(shift, employee, true);
+
+    // Calculer la hauteur totale pour couvrir toutes les heures
+    const cellHeight = (typeof PlanningConfig !== 'undefined' && PlanningConfig.CELL_HEIGHT) ?
+        PlanningConfig.CELL_HEIGHT : 60;
+    const totalHeight = (cellHeight * shift.duration) - 4;
+
+    // Position dans la colonne avec hauteur étendue
+    const columnWidth = employeeColumnManager.getColumnWidth();
+    const left = employeeColumnManager.getColumnLeft(columnIndex);
+
+    // Appliquer le positionnement spécial pour multi-heures
+    block.style.cssText = `
+        position: absolute !important;
+        left: ${left}% !important;
+        top: 2px !important;
+        width: ${columnWidth - 1}% !important;
+        height: ${totalHeight}px !important;
+        z-index: 10 !important;
+        background: ${employee.type_info?.color || '#74b9ff'} !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        overflow: hidden !important;
+    `;
+
+    console.log(`🎯 Multi-heures: Col.${columnIndex + 1}, Left: ${left}%, Height: ${totalHeight}px`);
+
+    // Attacher à la cellule de départ (pas à la grille)
+    startCell.appendChild(block);
+}
+
+
+
 
     /**
      * Construit une matrice complète des conflits
@@ -421,6 +608,7 @@ class PlanningRenderer {
     /**
      * Positionnement optimisé
      */
+     /*
     static positionOptimizedShift(shiftElement, shift, startCell, position) {
         const grid = document.getElementById('planningGrid');
         const gridRect = grid.getBoundingClientRect();
@@ -454,7 +642,7 @@ class PlanningRenderer {
 
         console.log(`📐 Position optimisée: ${leftPosition}px, largeur: ${individualWidth}px (${position.index + 1}/${position.total})`);
     }
-
+    */
     /**
      * Configure les événements d'un créneau optimisé
      */

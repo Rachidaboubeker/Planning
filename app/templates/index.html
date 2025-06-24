@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <style>
-    /* Styles spécifiques pour la page index avec avatars */
+    /* Styles pour la gestion de la granularité */
     .planning-actions {
         display: flex;
         gap: 1rem;
@@ -12,18 +12,234 @@
         flex-wrap: wrap;
     }
 
-    .bulk-photo-upload {
+    .granularity-selector-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid #e1e5e9;
+    }
+
+    .granularity-selector-container label {
+        font-weight: 500;
+        color: #4a5568;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .granularity-select {
+        padding: 0.375rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 120px;
+    }
+
+    .granularity-select:hover {
+        border-color: #6366f1;
+    }
+
+    .granularity-select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .granularity-info {
+        font-size: 0.75rem;
+        color: #6b7280;
+        background: #f9fafb;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .granularity-info small {
+        display: block;
+        font-weight: 500;
+    }
+
+    #slotsCount {
+        font-weight: 600;
+        color: #4f46e5;
+    }
+
+    /* Styles pour la grille du planning avec granularité */
+    .planning-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: var(--gray-200, #dee2e6);
+        border-radius: 8px;
+        overflow: hidden;
         position: relative;
     }
 
-    .bulk-photo-input {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
+    .time-slot {
+        background: var(--gray-100, #e9ecef);
+        padding: 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--gray-700, #495057);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    /* Heures principales */
+    .time-slot:not(.sub-time-slot) {
+        background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+        color: white;
+        font-weight: bold;
+    }
+
+    /* Sous-créneaux pour granularité fine */
+    .time-slot.sub-time-slot {
+        background: #f8f9fa;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 0.75rem;
+        position: relative;
+    }
+
+    .time-slot.sub-time-slot::before {
+        content: '├';
+        margin-right: 0.25rem;
+        color: #6c757d;
+    }
+
+    .schedule-cell {
+        background: white;
+        min-height: 50px;
+        position: relative;
+        border: 1px solid #e1e5e9;
+        transition: all 0.2s ease;
         cursor: pointer;
     }
 
+    .schedule-cell:hover {
+        background: rgba(99, 102, 241, 0.05);
+        border-color: #6366f1;
+    }
+
+    .schedule-cell.drag-over {
+        background: rgba(0, 123, 255, 0.1);
+        border-color: var(--primary-color, #007bff);
+    }
+
+    /* Bordures pour différencier les heures pleines */
+    .schedule-cell[data-minutes="0"] {
+        border-top: 2px solid #6f42c1;
+    }
+
+    .schedule-cell:not([data-minutes="0"]) {
+        border-top: 1px dashed #ced4da;
+    }
+
+    /* Créneaux de travail */
+    .shift-block {
+        position: absolute;
+        border-radius: 6px;
+        color: white;
+        font-size: 0.85rem;
+        overflow: hidden;
+        cursor: grab;
+        transition: all 0.2s ease;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        padding: 0.4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    .shift-block:hover {
+        transform: scale(1.02);
+        z-index: 20;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .shift-block.dragging {
+        opacity: 0.8;
+        transform: rotate(2deg);
+        cursor: grabbing;
+    }
+
+    /* En-têtes du planning */
+    .planning-grid-header {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: var(--gray-200, #dee2e6);
+        border-radius: 8px 8px 0 0;
+        overflow: hidden;
+        margin-bottom: 1px;
+    }
+
+    .time-column-header,
+    .day-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .day-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Statistiques rapides */
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--gray-200, #dee2e6);
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color, #007bff);
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--gray-600, #6c757d);
+        font-weight: 500;
+    }
+
+    /* Actions rapides */
     .quick-actions {
         display: flex;
         gap: 0.5rem;
@@ -43,20 +259,121 @@
     }
 
     .btn-photo {
-        background: var(--info-color);
+        background: var(--info-color, #17a2b8);
         color: white;
     }
 
     .btn-photo:hover {
-        background: var(--primary-color);
+        background: var(--primary-color, #007bff);
         transform: scale(1.1);
+    }
+
+    /* Indicateur de granularité */
+    .granularity-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(111, 66, 193, 0.9);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .planning-grid,
+        .planning-grid-header {
+            grid-template-columns: 60px repeat(7, 1fr);
+        }
+
+        .time-slot,
+        .time-column-header {
+            padding: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        .day-header {
+            padding: 0.75rem 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        .quick-stats {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .planning-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .quick-actions {
+            margin-left: 0;
+            justify-content: center;
+        }
+
+        .granularity-selector-container {
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .granularity-indicator {
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.8rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .planning-grid,
+        .planning-grid-header {
+            grid-template-columns: 50px repeat(7, 1fr);
+        }
+
+        .day-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 0.5rem 0.25rem;
+        }
+
+        .shift-block {
+            font-size: 0.7rem;
+            padding: 0.2rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- CONFIGURATION FLASK POUR JAVASCRIPT -->
+<script>
+// Configuration Flask transmise à JavaScript
+window.FLASK_CONFIG = {
+    HOURS_RANGE: {{ config_data.HOURS_RANGE | tojson }},
+    DAYS_OF_WEEK: {{ config_data.DAYS_OF_WEEK | tojson }},
+    EMPLOYEE_TYPES: {{ config_data.EMPLOYEE_TYPES | tojson }},
+    TIME_SLOT_GRANULARITY: {{ config_data.TIME_SLOT_GRANULARITY | tojson }},
+    AVAILABLE_GRANULARITIES: {{ config_data.AVAILABLE_GRANULARITIES | tojson }},
+    ALL_TIME_SLOTS: {{ config_data.ALL_TIME_SLOTS | tojson }},
+    GRANULARITY_INFO: {{ config_data.GRANULARITY_INFO | tojson }}
+};
+
+window.FLASK_DATA = {
+    employees: {{ employees | tojson }},
+    shifts: {{ shifts | tojson }},
+    stats: {{ stats | tojson }}
+};
+
+console.log('📊 Configuration Flask chargée');
+</script>
+
 <div class="planning-container">
-    <!-- Header avec navigation semaine -->
     <div class="planning-header">
         <div class="week-navigation">
             <button class="btn btn-outline" onclick="previousWeek()">
@@ -75,45 +392,53 @@
             <button class="btn btn-primary" onclick="showAddShiftModal()">
                 <i class="fas fa-plus"></i> Ajouter un créneau
             </button>
-            <button class="btn btn-secondary" onclick="window.UIManager.showAddEmployeeModal()">
+            <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
                 <i class="fas fa-user-plus"></i> Nouvel équipier
             </button>
 
+            <div class="granularity-selector-container">
+                <label for="granularitySelect">
+                    <i class="fas fa-clock"></i> Granularité :
+                </label>
+                <select id="granularitySelect" class="granularity-select">
+                    {% for value, label in available_granularities.items() %}
+                    <option value="{{ value }}" {% if value == time_slot_granularity %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="granularity-info">
+                    <small>Créneaux: <span id="slotsCount">{{ config_data.GRANULARITY_INFO.total_slots }}</span></small>
+                </div>
+            </div>
+
             <div class="quick-actions">
-                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos d'équipe">
+                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos">
                     <i class="fas fa-camera"></i>
                 </button>
-                <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Générer des avatars aléatoires">
+                <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Avatars aléatoires">
                     <i class="fas fa-dice"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Légende des équipiers avec avatars -->
-    <div class="legend-container" id="legendContainer">
-        <!-- Généré par JavaScript avec avatars -->
-    </div>
+    <div class="legend-container" id="legendContainer"></div>
 
-    <!-- Grille du planning -->
     <div class="planning-wrapper">
         <div class="planning-grid-container">
-            <!-- En-têtes fixes -->
             <div class="planning-grid-header">
-                <div class="time-column-header">Heure</div>
+                <div class="time-column-header">
+                    <i class="fas fa-clock"></i> Heure
+                </div>
                 {% for day in days %}
                 <div class="day-header">{{ day }}</div>
                 {% endfor %}
             </div>
-
-            <!-- Grille principale avec positionnement relatif -->
-            <div class="planning-grid" id="planningGrid" style="position: relative;">
-                <!-- Généré par JavaScript avec avatars -->
-            </div>
+            <div class="planning-grid" id="planningGrid"></div>
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
     <div class="quick-stats">
         <div class="stat-card">
             <div class="stat-value" id="totalHoursDisplay">{{ stats.total_hours }}</div>
@@ -134,911 +459,71 @@
     </div>
 </div>
 
-<!-- Modal d'ajout de créneau -->
-<div id="addShiftModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-clock"></i> Ajouter un créneau</h2>
-            <span class="modal-close" onclick="closeModal('addShiftModal')">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="addShiftForm" class="form">
-                <div class="form-group">
-                    <label for="shiftEmployee">Équipier</label>
-                    <select id="shiftEmployee" required>
-                        <option value="">Sélectionner un équipier</option>
-                        {% for employee in employees %}
-                        <option value="{{ employee.id }}" data-type="{{ employee.poste }}">
-                            {{ employee.nom_complet }} ({{ employee.type_info.name }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="shiftDay">Jour</label>
-                        <select id="shiftDay" required>
-                            {% for day in days %}
-                            <option value="{{ day }}">{{ day }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="shiftStartHour">Heure de début</label>
-                        <select id="shiftStartHour" required>
-                            {% for hour in hours %}
-                            <option value="{{ hour }}">{{ "%02d"|format(hour) }}:00</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="shiftDuration">Durée (heures)</label>
-                        <select id="shiftDuration" required>
-                            {% for i in range(1, 13) %}
-                            <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }}h</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="shiftNotes">Notes (optionnel)</label>
-                    <textarea id="shiftNotes" placeholder="Service spécial, remarques..."></textarea>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('addShiftModal')">Annuler</button>
-            <button type="button" class="btn btn-primary" onclick="addShift()">
-                <i class="fas fa-plus"></i> Ajouter
-            </button>
-        </div>
-    </div>
+<div class="granularity-indicator" id="granularityIndicator">
+    <i class="fas fa-clock"></i>
+    <span id="granularityIndicatorText">{{ config_data.GRANULARITY_INFO.granularity_label }}</span>
 </div>
 
-<!-- Modal d'ajout d'équipier avec upload photo -->
-<div id="addEmployeeModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-user-plus"></i> Nouvel équipier</h2>
-            <span class="modal-close" onclick="closeModal('addEmployeeModal')">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="addEmployeeForm" class="form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="employeePrenom">Prénom *</label>
-                        <input type="text" id="employeePrenom" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="employeeNom">Nom *</label>
-                        <input type="text" id="employeeNom" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="employeePoste">Poste *</label>
-                        <select id="employeePoste" required>
-                            {% for type_key, type_info in employee_types.items() %}
-                            <option value="{{ type_key }}">{{ type_info.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="employeeTauxHoraire">Taux horaire (€)</label>
-                        <input type="number" id="employeeTauxHoraire" min="10" max="50" step="0.5" value="15">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="employeeEmail">Email</label>
-                        <input type="email" id="employeeEmail">
-                    </div>
-                    <div class="form-group">
-                        <label for="employeeTelephone">Téléphone</label>
-                        <input type="tel" id="employeeTelephone">
-                    </div>
-                </div>
-
-                <!-- Section photo -->
-                <div class="form-group">
-                    <label for="employeePhoto">Photo (optionnel)</label>
-                    <div class="upload-area" onclick="document.getElementById('employeePhoto').click()">
-                        <i class="fas fa-camera"></i>
-                        <p>Ajouter une photo</p>
-                        <small>JPG, PNG - Max 5MB</small>
-                    </div>
-                    <input type="file" id="employeePhoto" accept="image/*" style="display: none;">
-
-                    <div class="photo-preview" id="employeePhotoPreview" style="display: none;">
-                        <img id="employeePhotoImg" class="preview-img" style="max-width: 100px; max-height: 100px; border-radius: 50%;">
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">Annuler</button>
-            <button type="button" class="btn btn-primary" onclick="addEmployeeWithPhoto()">
-                <i class="fas fa-user-plus"></i> Créer
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de gestion en lot des photos -->
-<div id="bulkPhotoModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-images"></i> Gestion des photos d'équipe</h2>
-            <span class="modal-close" onclick="closeModal('bulkPhotoModal')">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="bulk-photo-manager">
-                <div class="bulk-actions">
-                    <button class="btn btn-primary" onclick="selectAllPhotos()">
-                        <i class="fas fa-check-square"></i> Tout sélectionner
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearAllPhotos()">
-                        <i class="fas fa-trash"></i> Supprimer sélectionnés
-                    </button>
-                    <button class="btn btn-info" onclick="generateRandomAvatars()">
-                        <i class="fas fa-dice"></i> Avatars aléatoires
-                    </button>
-                </div>
-
-                <div class="employees-photo-grid" id="employeesPhotoGrid">
-                    <!-- Généré par JavaScript -->
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('bulkPhotoModal')">Fermer</button>
-        </div>
-    </div>
-</div>
-
+<!-- JAVASCRIPT SPÉCIFIQUE À LA PAGE PLANNING -->
 <script>
-// Variables globales étendues
-let photoUploadQueue = new Map();
+document.addEventListener('DOMContentLoaded', function() {
+    let currentWeekOffset = 0;
+    let employees = new Map();
+    let shifts = new Map();
 
-// Fonction pour ajouter un équipier avec photo
-window.addEmployeeWithPhoto = async function() {
-    const form = document.getElementById('addEmployeeForm');
-    if (!form || !form.checkValidity()) {
-        form?.reportValidity();
-        return;
+    // Charger les données Flask dans les variables globales
+    if (window.FLASK_DATA?.employees) {
+        window.FLASK_DATA.employees.forEach(emp => employees.set(emp.id, emp));
+        window.employees = employees; // Exposer globalement
     }
 
-    const employeeData = {
-        prenom: document.getElementById('employeePrenom').value,
-        nom: document.getElementById('employeeNom').value,
-        poste: document.getElementById('employeePoste').value,
-        taux_horaire: parseFloat(document.getElementById('employeeTauxHoraire').value),
-        email: document.getElementById('employeeEmail').value,
-        telephone: document.getElementById('employeeTelephone').value
+    if (window.FLASK_DATA?.shifts) {
+        window.FLASK_DATA.shifts.forEach(shift => shifts.set(shift.id, shift));
+        window.shifts = shifts; // Exposer globalement
+    }
+
+    // Fonctions de navigation par semaine
+    window.previousWeek = function() {
+        currentWeekOffset--;
+        updateWeekDisplay();
     };
 
-    try {
-        const result = await APIManager.post('/employees', employeeData);
+    window.nextWeek = function() {
+        currentWeekOffset++;
+        updateWeekDisplay();
+    };
 
-        if (result.success) {
-            AppState.employees.set(result.employee.id, result.employee);
+    function updateWeekDisplay() {
+        const today = new Date();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - today.getDay() + 1 + (currentWeekOffset * 7));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
 
-            // Gérer la photo si elle existe
-            const photoFile = document.getElementById('employeePhoto').files[0];
-            if (photoFile) {
-                try {
-                    await window.avatarManager.setEmployeePhoto(result.employee.id, photoFile);
-                } catch (photoError) {
-                    console.warn('Erreur lors de la sauvegarde de la photo:', photoError);
-                }
-            }
+        const options = { day: 'numeric', month: 'long' };
+        const mondayStr = monday.toLocaleDateString('fr-FR', options);
+        const sundayStr = sunday.toLocaleDateString('fr-FR', options);
 
-            // Ajouter à la liste déroulante des créneaux
-            const shiftEmployeeSelect = document.getElementById('shiftEmployee');
-            if (shiftEmployeeSelect) {
-                const option = document.createElement('option');
-                option.value = result.employee.id;
-                option.textContent = `${result.employee.nom_complet} (${result.employee.type_info.name})`;
-                shiftEmployeeSelect.appendChild(option);
-            }
-
-            // Mettre à jour l'affichage
-            PlanningManager.updateLegend();
-            updatePhotoStats();
-
-            closeModal('addEmployeeModal');
-            form.reset();
-            document.getElementById('employeePhotoPreview').style.display = 'none';
-            NotificationManager.show('✅ Équipier ajouté avec succès', 'success');
-        } else {
-            NotificationManager.show(`❌ ${result.error}`, 'error');
-        }
-    } catch (error) {
-        NotificationManager.show('❌ Erreur de connexion', 'error');
-    }
-};
-
-// Fonction pour afficher le modal de gestion en lot
-window.showBulkPhotoModal = function() {
-    const modal = document.getElementById('bulkPhotoModal');
-    generateEmployeesPhotoGrid();
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-};
-
-// Générer la grille des employés pour la gestion des photos
-function generateEmployeesPhotoGrid() {
-    const grid = document.getElementById('employeesPhotoGrid');
-    if (!grid) return;
-
-    const employees = Array.from(AppState.employees.values())
-        .filter(emp => emp.actif)
-        .sort((a, b) => a.nom.localeCompare(b.nom));
-
-    grid.innerHTML = employees.map(employee => `
-        <div class="employee-photo-item" data-employee-id="${employee.id}">
-            <div class="employee-photo-card">
-                <img src="${window.avatarManager.getEmployeeAvatar(employee)}"
-                     alt="${employee.nom_complet}"
-                     class="employee-photo-img"
-                     onclick="window.openPhotoModal('${employee.id}')">
-                <div class="employee-photo-info">
-                    <div class="employee-photo-name">${employee.nom_complet}</div>
-                    <div class="employee-photo-role">${employee.type_info.name}</div>
-                </div>
-                <div class="employee-photo-actions">
-                    <input type="checkbox" class="photo-select" data-employee-id="${employee.id}">
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Fonction pour générer des avatars aléatoires
-window.generateRandomAvatars = function() {
-    const employees = Array.from(AppState.employees.values()).filter(emp => emp.actif);
-
-    employees.forEach(employee => {
-        window.avatarManager.generateRandomAvatar(employee.id);
-    });
-
-    PlanningManager.generatePlanningGrid();
-    PlanningManager.updateLegend();
-    updatePhotoStats();
-
-    NotificationManager.show('🎨 Nouveaux avatars générés', 'success');
-};
-
-// Fonction pour sélectionner toutes les photos
-window.selectAllPhotos = function() {
-    document.querySelectorAll('.photo-select').forEach(checkbox => {
-        checkbox.checked = true;
-    });
-};
-
-// Fonction pour supprimer les photos sélectionnées
-window.clearAllPhotos = function() {
-    const selectedCheckboxes = document.querySelectorAll('.photo-select:checked');
-
-    if (selectedCheckboxes.length === 0) {
-        NotificationManager.show('❌ Aucune photo sélectionnée', 'warning');
-        return;
+        document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
     }
 
-    if (confirm(`Supprimer ${selectedCheckboxes.length} photo(s) ?`)) {
-        selectedCheckboxes.forEach(checkbox => {
-            const employeeId = checkbox.dataset.employeeId;
-            window.avatarManager.removePhoto(employeeId);
-        });
-
-        generateEmployeesPhotoGrid();
-        PlanningManager.generatePlanningGrid();
-        PlanningManager.updateLegend();
-        updatePhotoStats();
-
-        NotificationManager.show('✅ Photos supprimées', 'success');
-    }
-};
-
-// Fonction pour mettre à jour les statistiques de photos
-function updatePhotoStats() {
-    const photoCount = window.avatarManager.photoCache.size;
-    const photoCountDisplay = document.getElementById('photoCountDisplay');
-    if (photoCountDisplay) {
-        photoCountDisplay.textContent = photoCount;
-    }
-}
-
-// Configuration de l'upload de photo lors de l'ajout d'employé
-document.addEventListener('DOMContentLoaded', function() {
-    const photoInput = document.getElementById('employeePhoto');
-    const photoPreview = document.getElementById('employeePhotoPreview');
-    const photoImg = document.getElementById('employeePhotoImg');
-
-    if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.size > 5 * 1024 * 1024) {
-                    NotificationManager.show('❌ Fichier trop volumineux (max 5MB)', 'error');
-                    this.value = '';
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoImg.src = e.target.result;
-                    photoPreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                photoPreview.style.display = 'none';
-            }
-        });
-    }
-
-    // Mettre à jour les stats de photos à l'initialisation
-    setTimeout(updatePhotoStats, 1000);
-});
-
-// Données transmises par Flask
-const employeesData = {{ employees | tojson }};
-const shiftsData = {{ shifts | tojson }};
-const employeeTypes = {{ employee_types | tojson }};
-const daysOfWeek = {{ days | tojson }};
-const hoursRange = {{ hours | tojson }};
-
-// Variables globales
-let currentWeekOffset = 0;
-let employees = new Map();
-let shifts = new Map();
-
-// Initialisation améliorée avec avatars
-document.addEventListener('DOMContentLoaded', function() {
-    // S'assurer que le gestionnaire d'avatars est prêt
-    if (!window.avatarManager) {
-        console.log('Initialisation du gestionnaire d\'avatars...');
-        window.avatarManager = new AvatarManager();
-    }
-
-    // Charger les données
-    loadEmployees();
-    loadShifts();
-
-    // Générer le planning avec avatars
+    // Attendre que tous les scripts soient chargés avant d'initialiser
     setTimeout(() => {
-        generatePlanningGrid();
-        updateQuickStats();
-        updatePhotoStats();
-    }, 100);
+        console.log('🎯 Initialisation spécifique à la page planning...');
+
+        // Initialiser la légende si les scripts sont prêts
+        if (typeof PlanningUI !== 'undefined' && PlanningUI.updateLegend) {
+            PlanningUI.updateLegend();
+        }
+
+        // Initialiser l'affichage si les scripts sont prêts
+        if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
+            PlanningRenderer.generatePlanningGrid();
+        }
+
+        console.log('✅ Page planning initialisée');
+    }, 1500);
 });
-
-function loadEmployees() {
-    employees.clear();
-    employeesData.forEach(emp => {
-        employees.set(emp.id, emp);
-    });
-
-    // Mettre à jour AppState pour le gestionnaire d'avatars
-    if (window.AppState) {
-        window.AppState.employees = employees;
-    } else {
-        window.AppState = { employees, shifts };
-    }
-}
-
-function loadShifts() {
-    shifts.clear();
-    shiftsData.forEach(shift => {
-        shifts.set(shift.id, shift);
-    });
-
-    // Mettre à jour AppState
-    if (window.AppState) {
-        window.AppState.shifts = shifts;
-    }
-}
-
-function generatePlanningGrid() {
-    const grid = document.getElementById('planningGrid');
-    grid.innerHTML = '';
-
-    hoursRange.forEach(hour => {
-        // Colonne heure
-        const timeSlot = document.createElement('div');
-        timeSlot.className = 'time-slot';
-        timeSlot.textContent = `${hour.toString().padStart(2, '0')}:00`;
-        grid.appendChild(timeSlot);
-
-        // Colonnes jours
-        daysOfWeek.forEach((day, dayIndex) => {
-            const cell = document.createElement('div');
-            cell.className = 'schedule-cell';
-            cell.dataset.hour = hour;
-            cell.dataset.day = day;
-            cell.dataset.dayIndex = dayIndex;
-
-            // Événements de drop
-            setupDropZone(cell);
-
-            // Ajouter un événement de double-clic pour créer un créneau
-            cell.addEventListener('dblclick', () => {
-                showAddShiftModal(day, hour);
-            });
-
-            grid.appendChild(cell);
-        });
-    });
-
-    // Rendre les créneaux avec avatars
-    renderShifts();
-
-    // Mettre à jour la légende avec avatars
-    updateLegendWithAvatars();
-}
-
-function renderShifts() {
-    const grid = document.getElementById('planningGrid');
-
-    // Supprimer les anciens blocs de créneaux
-    grid.querySelectorAll('.shift-block').forEach(block => block.remove());
-
-    shifts.forEach(shift => {
-        const employee = employees.get(shift.employee_id);
-        if (employee) {
-            if (shift.duration === 1) {
-                renderSingleHourShift(shift, employee);
-            } else {
-                renderMultiHourShift(shift, employee);
-            }
-        }
-    });
-}
-
-function renderSingleHourShift(shift, employee) {
-    const cell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
-    if (!cell) return;
-
-    const block = createShiftBlockWithAvatar(shift, employee, false);
-    cell.appendChild(block);
-}
-
-function renderMultiHourShift(shift, employee) {
-    const grid = document.getElementById('planningGrid');
-    const dayIndex = daysOfWeek.indexOf(shift.day);
-    const startRowIndex = hoursRange.indexOf(shift.start_hour);
-
-    if (dayIndex === -1 || startRowIndex === -1) return;
-
-    const block = createShiftBlockWithAvatar(shift, employee, true);
-
-    // Positionnement CSS Grid
-    const gridRowStart = startRowIndex + 2; // +2 pour en-tête
-    const gridRowEnd = gridRowStart + shift.duration;
-    const gridColumn = dayIndex + 2; // +2 pour colonne heure
-
-    block.style.gridRow = `${gridRowStart} / ${gridRowEnd}`;
-    block.style.gridColumn = `${gridColumn}`;
-    block.style.backgroundColor = employeeTypes[employee.poste].color;
-
-    grid.appendChild(block);
-}
-
-function createShiftBlockWithAvatar(shift, employee, isMultiHour) {
-    const block = document.createElement('div');
-    block.className = `shift-block ${isMultiHour ? 'multi-hour-block' : 'single-hour-block'}`;
-    block.dataset.shiftId = shift.id;
-    block.dataset.employeeId = shift.employee_id;
-
-    // Couleur de fond
-    block.style.backgroundColor = employeeTypes[employee.poste].color;
-
-    if (isMultiHour) {
-        // Créer l'avatar
-        const avatarElement = window.avatarManager.createAvatarElement(employee, 'normal');
-
-        block.innerHTML = `
-            <div class="shift-header">
-                <div class="shift-info">
-                    <div class="shift-employee-name">${employee.prenom}</div>
-                    <div class="shift-duration">${shift.duration}h</div>
-                </div>
-            </div>
-            <div class="shift-time">${shift.formatted_hours}</div>
-        `;
-
-        // Ajouter l'avatar au début du header
-        const shiftHeader = block.querySelector('.shift-header');
-        shiftHeader.insertBefore(avatarElement, shiftHeader.firstChild);
-    } else {
-        // Créneau d'une heure - avatar + nom
-        const avatarElement = window.avatarManager.createAvatarElement(employee, 'small');
-
-        block.appendChild(avatarElement);
-
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'shift-name';
-        nameDiv.textContent = employee.prenom;
-        block.appendChild(nameDiv);
-    }
-
-    // Tooltip avec mention photo
-    block.title = `${employee.nom_complet}\n${employee.poste}\n${shift.day} ${shift.formatted_hours}\n\n🖱️ Glisser pour déplacer\n📸 Clic pour changer la photo`;
-
-    // Événements
-    setupShiftEvents(block, shift, employee);
-
-    return block;
-}
-
-function setupShiftEvents(block, shift, employee) {
-    // Double-clic pour modifier le créneau
-    block.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        showEditShiftModal(shift);
-    });
-
-    // Clic simple sur l'avatar pour la photo
-    const avatarImg = block.querySelector('.shift-avatar-img');
-    if (avatarImg) {
-        avatarImg.addEventListener('click', (e) => {
-            e.stopPropagation();
-            window.openPhotoModal(employee.id);
-        });
-    }
-
-    // Drag and drop
-    setupDragAndDrop(block, shift);
-}
-
-function updateLegendWithAvatars() {
-    const container = document.getElementById('legendContainer');
-    if (!container) return;
-
-    const activeEmployees = Array.from(employees.values())
-        .filter(emp => emp.actif)
-        .sort((a, b) => a.nom.localeCompare(b.nom));
-
-    if (activeEmployees.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="legend-title">
-            <i class="fas fa-users"></i> Équipe (${activeEmployees.length} personnes)
-        </div>
-        <div class="legend-grid" id="legendGrid">
-            <!-- Généré par JavaScript -->
-        </div>
-    `;
-
-    const legendGrid = document.getElementById('legendGrid');
-
-    activeEmployees.forEach(employee => {
-        const legendItem = document.createElement('div');
-        legendItem.className = 'legend-item';
-        legendItem.dataset.employeeId = employee.id;
-
-        // Créer l'avatar
-        const avatarImg = document.createElement('img');
-        avatarImg.className = 'legend-avatar';
-        avatarImg.src = window.avatarManager.getEmployeeAvatar(employee);
-        avatarImg.alt = employee.nom_complet;
-        avatarImg.onerror = () => {
-            avatarImg.src = window.avatarManager.generateQuestionMarkAvatar();
-        };
-
-        // Informations de l'employé
-        const legendInfo = document.createElement('div');
-        legendInfo.className = 'legend-info';
-        legendInfo.innerHTML = `
-            <div class="legend-name">${employee.nom_complet}</div>
-            <div class="legend-role">${employee.type_info.name}</div>
-        `;
-
-        legendItem.appendChild(avatarImg);
-        legendItem.appendChild(legendInfo);
-
-        // Événements
-        legendItem.addEventListener('click', () => {
-            window.openPhotoModal(employee.id);
-        });
-
-        legendItem.addEventListener('mouseenter', () => {
-            // Mettre en surbrillance les créneaux de cet employé
-            document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
-                block.style.transform = 'scale(1.02)';
-                block.style.zIndex = '20';
-            });
-        });
-
-        legendItem.addEventListener('mouseleave', () => {
-            // Retirer la surbrillance
-            document.querySelectorAll(`[data-employee-id="${employee.id}"]`).forEach(block => {
-                block.style.transform = '';
-                block.style.zIndex = '';
-            });
-        });
-
-        legendGrid.appendChild(legendItem);
-    });
-}
-
-// Reste des fonctions existantes...
-function setupDropZone(cell) {
-    cell.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        cell.classList.add('drag-over');
-    });
-
-    cell.addEventListener('dragleave', () => {
-        cell.classList.remove('drag-over');
-    });
-
-    cell.addEventListener('drop', (e) => {
-        e.preventDefault();
-        cell.classList.remove('drag-over');
-        handleDrop(e, cell);
-    });
-}
-
-function setupDragAndDrop(block, shift) {
-    block.draggable = true;
-
-    block.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', shift.id);
-        block.classList.add('dragging');
-    });
-
-    block.addEventListener('dragend', () => {
-        block.classList.remove('dragging');
-    });
-}
-
-async function handleDrop(e, targetCell) {
-    const shiftId = e.dataTransfer.getData('text/plain');
-    const shift = shifts.get(shiftId);
-
-    if (!shift) return;
-
-    const newDay = targetCell.dataset.day;
-    const newHour = parseInt(targetCell.dataset.hour);
-
-    // Vérifier si le déplacement est nécessaire
-    if (shift.day === newDay && shift.start_hour === newHour) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/shifts/${shiftId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                day: newDay,
-                start_hour: newHour
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Mettre à jour les données locales
-            shift.day = newDay;
-            shift.start_hour = newHour;
-            shifts.set(shiftId, data.shift);
-
-            // Régénérer le planning
-            generatePlanningGrid();
-            updateQuickStats();
-
-            showNotification('✅ Créneau déplacé avec succès', 'success');
-        } else {
-            showNotification(`❌ ${data.error}`, 'error');
-        }
-    } catch (error) {
-        showNotification('❌ Erreur de connexion', 'error');
-    }
-}
-
-function showAddShiftModal(defaultDay = '', defaultHour = '') {
-    if (defaultDay) {
-        document.getElementById('shiftDay').value = defaultDay;
-    }
-    if (defaultHour !== '') {
-        document.getElementById('shiftStartHour').value = defaultHour;
-    }
-
-    document.getElementById('addShiftModal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
-function showAddEmployeeModal() {
-    document.getElementById('addEmployeeModal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
-async function addShift() {
-    const form = document.getElementById('addShiftForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const shiftData = {
-        employee_id: document.getElementById('shiftEmployee').value,
-        day: document.getElementById('shiftDay').value,
-        start_hour: parseInt(document.getElementById('shiftStartHour').value),
-        duration: parseInt(document.getElementById('shiftDuration').value),
-        notes: document.getElementById('shiftNotes').value
-    };
-
-    try {
-        const response = await fetch(`${API_BASE}/shifts`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(shiftData)
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            shifts.set(data.shift.id, data.shift);
-            generatePlanningGrid();
-            updateQuickStats();
-            closeModal('addShiftModal');
-            form.reset();
-            showNotification('✅ Créneau ajouté avec succès', 'success');
-        } else {
-            showNotification(`❌ ${data.error}`, 'error');
-        }
-    } catch (error) {
-        showNotification('❌ Erreur de connexion', 'error');
-    }
-}
-
-async function updateQuickStats() {
-    try {
-        const response = await fetch(`${API_BASE}/stats/weekly`);
-        const data = await response.json();
-
-        if (data.success) {
-            const stats = data.stats;
-            document.getElementById('totalHoursDisplay').textContent = stats.total_hours;
-            document.getElementById('activeEmployeesDisplay').textContent = stats.active_employees;
-            document.getElementById('averageHoursDisplay').textContent = `${stats.average_hours}h`;
-        }
-    } catch (error) {
-        console.error('Erreur lors de la mise à jour des stats:', error);
-    }
-}
-
-function previousWeek() {
-    currentWeekOffset--;
-    updateWeekDisplay();
-}
-
-function nextWeek() {
-    currentWeekOffset++;
-    updateWeekDisplay();
-}
-
-function updateWeekDisplay() {
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1 + (currentWeekOffset * 7));
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const options = { day: 'numeric', month: 'long' };
-    const mondayStr = monday.toLocaleDateString('fr-FR', options);
-    const sundayStr = sunday.toLocaleDateString('fr-FR', options);
-
-    document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
-}
 </script>
 
-<!-- Styles additionnels pour la grille de photos -->
-<style>
-.bulk-photo-manager {
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-.bulk-actions {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-}
-
-.employees-photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.employee-photo-item {
-    position: relative;
-}
-
-.employee-photo-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    padding: 1rem;
-    text-align: center;
-    transition: var(--transition);
-}
-
-.employee-photo-card:hover {
-    background: var(--gray-100);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-}
-
-.employee-photo-img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    border: 3px solid var(--gray-300);
-    object-fit: cover;
-    cursor: pointer;
-    margin-bottom: 0.75rem;
-    transition: var(--transition);
-}
-
-.employee-photo-img:hover {
-    border-color: var(--primary-color);
-    transform: scale(1.05);
-}
-
-.employee-photo-name {
-    font-weight: 600;
-    color: var(--gray-800);
-    margin-bottom: 0.25rem;
-}
-
-.employee-photo-role {
-    font-size: 0.9rem;
-    color: var(--gray-600);
-    margin-bottom: 0.75rem;
-}
-
-.employee-photo-actions {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-}
-
-.photo-select {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--primary-color);
-}
-
-@media (max-width: 768px) {
-    .employees-photo-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    }
-
-    .employee-photo-img {
-        width: 60px;
-        height: 60px;
-    }
-
-    .bulk-actions {
-        flex-direction: column;
-    }
-}
-</style>
 {% endblock %}

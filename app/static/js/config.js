@@ -10,6 +10,23 @@ const PlanningConfig = {
     MAX_SHIFT_DURATION: 12,
     HOURS_RANGE: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2],
     DAYS_OF_WEEK: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+
+        // AJOUT URGENT:
+    AVATAR_SIZE: {
+        small: 24,
+        normal: 32,
+        large: 48,
+        xlarge: 64
+    },
+
+    EMPLOYEE_TYPES: {
+        'cuisinier': { color: '#74b9ff', name: 'Cuisinier' },
+        'serveur': { color: '#00b894', name: 'Serveur/se' },
+        'barman': { color: '#fdcb6e', name: 'Barman' },
+        'manager': { color: '#a29bfe', name: 'Manager' },
+        'aide': { color: '#6c5ce7', name: 'Aide de cuisine' },
+        'commis': { color: '#fd79a8', name: 'Commis' }
+    }
 };
 
 // État global de l'application
@@ -56,5 +73,23 @@ const EventBus = {
         }
     }
 };
+// Protection contre les boucles DOM
+let isDOMConfiguring = false;
+let lastDOMConfigTime = 0;
 
+window.configureEvents = function() {
+    const now = Date.now();
+    if (isDOMConfiguring || (now - lastDOMConfigTime) < 2000) {
+        return; // Ignorer si trop récent
+    }
+
+    isDOMConfiguring = true;
+    lastDOMConfigTime = now;
+
+    // Votre code de configuration existant...
+
+    setTimeout(() => {
+        isDOMConfiguring = false;
+    }, 1000);
+};
 console.log('📋 Configuration Planning Restaurant chargée');

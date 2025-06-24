@@ -2728,3 +2728,1100 @@ input[type="file"]:hover {
     padding: 0.5rem !important;
     display: block !important;
 }
+
+/* ===== CSS POUR LE SYSTÈME DE COLONNES D'EMPLOYÉS ===== */
+/* À ajouter dans app/static/css/style.css */
+
+/* Cellules avec colonnes */
+.schedule-cell-with-columns {
+    position: relative;
+    border: 1px solid #e9ecef;
+    background: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.schedule-cell-with-columns:hover {
+    background-color: rgba(0, 123, 255, 0.02);
+}
+
+/* Guides visuels des colonnes */
+.employee-column-guide {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+.schedule-cell-with-columns:hover .employee-column-guide {
+    border-right-color: rgba(0, 123, 255, 0.15);
+}
+
+/* Créneaux positionnés par colonnes */
+.shift-block.column-positioned {
+    position: absolute !important;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.shift-block.column-positioned:hover {
+    transform: scale(1.02);
+    z-index: 50 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Contenu des créneaux en colonnes */
+.shift-content-column {
+    padding: 4px 2px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Créneaux multi-heures en colonnes */
+.shift-block.column-positioned.multi-hour .shift-content-column {
+    font-size: 0.75rem;
+    padding: 6px 3px;
+}
+
+/* Légende des colonnes d'employés */
+.employee-column-legend {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 3px 0;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.employee-column-legend:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation d'apparition des guides */
+.employee-column-guide {
+    opacity: 0;
+    animation: fadeInColumn 0.3s ease forwards;
+}
+
+@keyframes fadeInColumn {
+    from {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    to {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+/* Responsive pour les colonnes */
+@media (max-width: 768px) {
+    .shift-content-column {
+        font-size: 0.6rem;
+        padding: 2px 1px;
+    }
+
+    .employee-column-legend {
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+}
+
+/* États spéciaux */
+.schedule-cell-with-columns.drag-over {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: #28a745;
+}
+
+.schedule-cell-with-columns.drag-over .employee-column-guide {
+    border-right-color: rgba(40, 167, 69, 0.3);
+}
+
+/* Amélioration visuelle pour cellules vides */
+.schedule-cell-with-columns:empty:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.schedule-cell-with-columns:empty:hover:after {
+    opacity: 1;
+}
+
+/* ===== CSS POUR LE SYSTÈME DE COLONNES D'EMPLOYÉS ===== */
+
+/* Cellules avec colonnes */
+.schedule-cell-with-columns {
+    position: relative;
+    border: 1px solid #e9ecef;
+    background: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.schedule-cell-with-columns:hover {
+    background-color: rgba(0, 123, 255, 0.02);
+}
+
+/* Guides visuels des colonnes */
+.employee-column-guide {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+.schedule-cell-with-columns:hover .employee-column-guide {
+    border-right-color: rgba(0, 123, 255, 0.15);
+}
+
+/* Créneaux positionnés par colonnes */
+.shift-block.column-positioned {
+    position: absolute !important;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.shift-block.column-positioned:hover {
+    transform: scale(1.02);
+    z-index: 50 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Contenu des créneaux en colonnes */
+.shift-content-column {
+    padding: 4px 2px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Créneaux multi-heures en colonnes */
+.shift-block.column-positioned.multi-hour .shift-content-column {
+    font-size: 0.75rem;
+    padding: 6px 3px;
+}
+
+/* Légende des colonnes d'employés */
+.employee-column-legend {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 3px 0;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.employee-column-legend:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation d'apparition des guides */
+.employee-column-guide {
+    opacity: 0;
+    animation: fadeInColumn 0.3s ease forwards;
+}
+
+@keyframes fadeInColumn {
+    from {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    to {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+/* Responsive pour les colonnes */
+@media (max-width: 768px) {
+    .shift-content-column {
+        font-size: 0.6rem;
+        padding: 2px 1px;
+    }
+
+    .employee-column-legend {
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+}
+
+/* États spéciaux */
+.schedule-cell-with-columns.drag-over {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: #28a745;
+}
+
+.schedule-cell-with-columns.drag-over .employee-column-guide {
+    border-right-color: rgba(40, 167, 69, 0.3);
+}
+
+/* Highlights pour drag & drop avec colonnes */
+.drag-over-valid {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+    border: 2px solid #28a745 !important;
+}
+
+.drag-over-invalid {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border: 2px solid #dc3545 !important;
+    cursor: not-allowed !important;
+}
+
+.column-drop-highlight {
+    animation: pulseGreen 0.8s infinite;
+}
+
+@keyframes pulseGreen {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.4; }
+    100% { opacity: 0.2; }
+}
+
+/* ===== CSS DRAG & DROP AVEC COLONNES ===== */
+/* À ajouter dans app/static/css/style.css */
+
+/* Créneaux draggables */
+.shift-block.column-positioned[draggable="true"] {
+    cursor: move !important;
+}
+
+.shift-block.column-positioned[draggable="true"]:hover {
+    cursor: move !important;
+}
+
+/* État pendant le drag */
+.shift-block.dragging {
+    opacity: 0.5 !important;
+    transform: scale(1.05) !important;
+    z-index: 100 !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Zones de drop */
+.drop-zone.drag-over {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+    border: 2px dashed #28a745 !important;
+    animation: pulseDrop 0.8s infinite;
+}
+
+@keyframes pulseDrop {
+    0%, 100% {
+        background-color: rgba(40, 167, 69, 0.1);
+        border-color: #28a745;
+    }
+    50% {
+        background-color: rgba(40, 167, 69, 0.2);
+        border-color: #1e7e34;
+    }
+}
+
+/* Guides de colonnes en surbrillance */
+.employee-column-guide[style*="rgba(40, 167, 69"] {
+    animation: pulseColumn 1s infinite;
+    box-shadow: inset 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+@keyframes pulseColumn {
+    0%, 100% {
+        background-color: rgba(40, 167, 69, 0.2);
+        border-right-color: #28a745;
+    }
+    50% {
+        background-color: rgba(40, 167, 69, 0.3);
+        border-right-color: #1e7e34;
+    }
+}
+
+/* Amélioration visuelle pour le drag */
+.shift-block.column-positioned {
+    transition: all 0.2s ease;
+}
+
+.shift-block.column-positioned:not(.dragging):hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Curseur spécialisé */
+.shift-block.column-positioned[draggable="true"]:active {
+    cursor: grabbing !important;
+}
+
+/* Indicateur visuel quand le drag est en cours */
+body.dragging-active {
+    cursor: grabbing !important;
+}
+
+body.dragging-active * {
+    pointer-events: none;
+}
+
+body.dragging-active .drop-zone {
+    pointer-events: all;
+}
+
+/* ===== CSS POUR CRÉNEAUX VERTICAUX AVEC AVATAR =====*/
+/* À ajouter dans app/static/css/style.css */
+
+/* Contenu vertical des créneaux */
+.shift-content-vertical {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Section avatar horizontale */
+.shift-avatar-section {
+    width: 100%;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    padding: 2px;
+    transition: all 0.2s ease;
+}
+
+/* Avatar horizontal */
+.shift-avatar-horizontal {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.5);
+    object-fit: cover;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.shift-avatar-horizontal:hover {
+    transform: scale(1.1);
+    border-color: rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Section texte verticale */
+.shift-text-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Nom en vertical */
+.shift-name-vertical {
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    transform: rotate(0deg);
+    transition: all 0.2s ease;
+}
+
+/* Durée horizontale */
+.shift-duration-horizontal {
+    font-weight: 600;
+    opacity: 0.9;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    background: rgba(255,255,255,0.15);
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-top: 2px;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.2s ease;
+}
+
+/* Effets hover pour les créneaux verticaux */
+.shift-block.column-positioned:hover .shift-avatar-section {
+    background: rgba(255,255,255,0.2);
+    height: 26px;
+}
+
+.shift-block.column-positioned:hover .shift-avatar-horizontal {
+    width: 22px;
+    height: 22px;
+}
+
+.shift-block.column-positioned:hover .shift-name-vertical {
+    font-size: 1.05em;
+    letter-spacing: 1.2px;
+}
+
+.shift-block.column-positioned:hover .shift-duration-horizontal {
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.05);
+}
+
+/* Adaptations pour créneaux multi-heures */
+.shift-block.multi-hour .shift-avatar-section {
+    height: 28px;
+}
+
+.shift-block.multi-hour .shift-avatar-horizontal {
+    width: 24px;
+    height: 24px;
+}
+
+.shift-block.multi-hour .shift-name-vertical {
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+}
+
+.shift-block.multi-hour .shift-duration-horizontal {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+}
+
+/* Adaptations responsive */
+@media (max-width: 768px) {
+    .shift-avatar-section {
+        height: 20px;
+    }
+
+    .shift-avatar-horizontal {
+        width: 16px;
+        height: 16px;
+    }
+
+    .shift-name-vertical {
+        font-size: 0.65rem;
+        letter-spacing: 0.8px;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.55rem;
+        padding: 1px 3px;
+    }
+}
+
+/* Animation pour le texte vertical */
+@keyframes slideInVertical {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.shift-name-vertical {
+    animation: slideInVertical 0.3s ease-out;
+}
+
+/* Amélioration pour créneaux étroits */
+.shift-block.column-positioned[style*="width: 19%"] .shift-name-vertical,
+.shift-block.column-positioned[style*="width: 18%"] .shift-name-vertical {
+    font-size: 0.65rem;
+    letter-spacing: 0.8px;
+}
+
+.shift-block.column-positioned[style*="width: 19%"] .shift-duration-horizontal,
+.shift-block.column-positioned[style*="width: 18%"] .shift-duration-horizontal {
+    font-size: 0.55rem;
+    padding: 1px 2px;
+}
+
+/* Style spécial pour le drag */
+.shift-block.dragging .shift-avatar-section {
+    background: rgba(255,255,255,0.3);
+}
+
+.shift-block.dragging .shift-name-vertical {
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.shift-block.dragging .shift-duration-horizontal {
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* ===== CSS POUR REDIMENSIONNEMENT DES CRÉNEAUX ===== */
+/* À ajouter dans app/static/css/style.css */
+
+/* Poignées de redimensionnement */
+.resize-handle {
+    position: absolute;
+    background: rgba(255,255,255,0.2);
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 20;
+    cursor: ns-resize;
+}
+
+.resize-handle-top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-top: 2px solid rgba(255,255,255,0.5);
+    border-radius: 6px 6px 0 0;
+}
+
+.resize-handle-bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-bottom: 2px solid rgba(255,255,255,0.5);
+    border-radius: 0 0 6px 6px;
+}
+
+/* Affichage au hover */
+.resizable-shift:hover .resize-handle {
+    opacity: 1;
+    background: rgba(255,255,255,0.3);
+}
+
+.resize-handle:hover {
+    opacity: 1 !important;
+    background: rgba(255,255,255,0.5) !important;
+    transform: scaleY(1.2);
+}
+
+.resize-handle-top:hover {
+    border-top-color: rgba(255,255,255,0.8);
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.2);
+}
+
+.resize-handle-bottom:hover {
+    border-bottom-color: rgba(255,255,255,0.8);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* État pendant le redimensionnement */
+.resizable-shift.resizing {
+    outline: 2px solid #007bff !important;
+    outline-offset: 2px !important;
+    z-index: 100 !important;
+}
+
+.resizable-shift.resizing .resize-handle {
+    opacity: 1 !important;
+    background: rgba(0,123,255,0.4) !important;
+}
+
+/* Curseur pendant redimensionnement */
+body.resizing {
+    cursor: ns-resize !important;
+    user-select: none !important;
+}
+
+body.resizing * {
+    cursor: ns-resize !important;
+}
+
+/* Feedback de redimensionnement */
+#resize-feedback {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: fadeInFeedback 0.2s ease;
+}
+
+@keyframes fadeInFeedback {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Amélioration visuelle pour créneaux redimensionnables */
+.resizable-shift {
+    position: relative;
+}
+
+.resizable-shift::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 4px solid rgba(255,255,255,0.3);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 15;
+}
+
+.resizable-shift::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid rgba(255,255,255,0.3);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 15;
+}
+
+.resizable-shift:hover::before,
+.resizable-shift:hover::after {
+    opacity: 1;
+}
+
+/* Animation pour les poignées */
+@keyframes pulseHandle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+}
+
+.resize-handle.active {
+    animation: pulseHandle 1s infinite;
+}
+
+/* ===== STYLES POUR LA GRANULARITÉ TEMPORELLE ===== */
+
+/* Sélecteur de granularité */
+.granularity-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.granularity-selector-container label {
+    font-weight: 500;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.granularity-select {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    background: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.granularity-select:hover {
+    border-color: var(--primary-color);
+}
+
+.granularity-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Sous-créneaux temporels */
+.sub-time-slot {
+    font-size: 0.75rem !important;
+    color: var(--gray-500) !important;
+    background: var(--gray-25) !important;
+    border-right: 1px solid var(--gray-200) !important;
+}
+
+.sub-time-slot::before {
+    content: '├';
+    margin-right: 0.25rem;
+    color: var(--gray-400);
+}
+
+/* Cellules adaptées pour granularité fine */
+.schedule-cell[data-minutes="0"] {
+    border-top: 2px solid var(--gray-300) !important;
+}
+
+.schedule-cell[data-minutes="15"],
+.schedule-cell[data-minutes="30"],
+.schedule-cell[data-minutes="45"] {
+    border-top: 1px dashed var(--gray-200) !important;
+}
+
+/* Grille adaptative selon la granularité */
+.planning-grid.granularity-15 {
+    grid-template-rows: repeat(calc(var(--total-hours) * 4), 15px) !important;
+}
+
+.planning-grid.granularity-30 {
+    grid-template-rows: repeat(calc(var(--total-hours) * 2), 30px) !important;
+}
+
+.planning-grid.granularity-60 {
+    grid-template-rows: repeat(var(--total-hours), 60px) !important;
+}
+
+/* Blocs de créneaux adaptés */
+.adapted-shift-block {
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: linear-gradient(135deg, var(--shift-color) 0%, var(--shift-color-dark) 100%);
+}
+
+.adapted-shift-block.granularity-15 {
+    min-height: 15px;
+    font-size: 0.7rem;
+    padding: 0.125rem;
+}
+
+.adapted-shift-block.granularity-30 {
+    min-height: 30px;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+}
+
+.adapted-shift-block.granularity-60 {
+    min-height: 60px;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+}
+
+/* Indicateurs visuels pour les différentes granularités */
+.time-slot.granularity-indicator::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+
+.sub-time-slot.granularity-indicator::after {
+    background: var(--gray-400);
+    width: 2px;
+    height: 2px;
+}
+
+/* Responsive pour granularité fine */
+@media (max-width: 768px) {
+    .granularity-selector-container {
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .granularity-selector-container label {
+        font-size: 0.75rem;
+    }
+
+    .granularity-select {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Cellules plus petites sur mobile pour granularité fine */
+    .schedule-cell[data-minutes]:not([data-minutes="0"]) {
+        height: 10px !important;
+        min-height: 10px !important;
+    }
+
+    .adapted-shift-block.granularity-15 {
+        font-size: 0.6rem;
+        padding: 0.1rem;
+    }
+
+    .adapted-shift-block.granularity-30 {
+        font-size: 0.65rem;
+        padding: 0.15rem;
+    }
+}
+
+/* Animation lors du changement de granularité */
+.planning-grid.transitioning {
+    transition: grid-template-rows 0.3s ease-in-out;
+}
+
+.schedule-cell.transitioning {
+    transition: height 0.3s ease-in-out, border 0.3s ease-in-out;
+}
+
+.adapted-shift-block.transitioning {
+    transition: all 0.3s ease-in-out;
+}
+
+/* États de chargement pendant la transition */
+.planning-grid.rebuilding {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.planning-grid.rebuilding::after {
+    content: 'Adaptation de la grille...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1rem 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    font-weight: 500;
+    color: var(--gray-600);
+    z-index: 1000;
+}
+
+/* Légende pour les différentes granularités */
+.granularity-legend {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+}
+
+.granularity-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.granularity-legend-item::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.granularity-legend-item.hours::before {
+    background: var(--primary-color);
+}
+
+.granularity-legend-item.sub-hours::before {
+    background: var(--gray-400);
+}
+
+/* Amélioration de la lisibilité pour les créneaux fins */
+.planning-grid.granularity-15 .time-slot,
+.planning-grid.granularity-30 .time-slot {
+    writing-mode: horizontal-tb;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.25rem;
+}
+
+.planning-grid.granularity-15 .schedule-cell,
+.planning-grid.granularity-30 .schedule-cell {
+    min-height: 15px;
+}
+
+/* Survol amélioré pour granularité fine */
+.schedule-cell[data-minutes]:hover {
+    background: linear-gradient(135deg, var(--primary-color-light), var(--primary-color-lighter));
+    transform: none; /* Pas de scale pour éviter les décalages */
+    border-color: var(--primary-color);
+    z-index: 5;
+}
+
+/* ===== AJOUT DANS LA SECTION <style> de index.html ===== */
+
+/* Grille adaptative selon la granularité */
+.planning-grid.granularity-15 {
+    grid-template-rows: repeat(auto, 15px) !important;
+}
+
+.planning-grid.granularity-30 {
+    grid-template-rows: repeat(auto, 30px) !important;
+}
+
+.planning-grid.granularity-60 {
+    grid-template-rows: repeat(auto, 60px) !important;
+}
+
+/* Amélioration des sous-créneaux temporels */
+.sub-time-slot {
+    font-size: 0.7rem !important;
+    color: #6c757d !important;
+    background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-left: 3px solid #007bff !important;
+    border-right: 1px solid #dee2e6 !important;
+    position: relative;
+}
+
+.sub-time-slot::before {
+    content: '├';
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Cellules pour granularité fine */
+.schedule-cell[data-minutes="0"] {
+    border-top: 2px solid #6f42c1 !important;
+    background: linear-gradient(180deg, #fff 0%, #f8f9fa 100%);
+}
+
+.schedule-cell[data-minutes="15"],
+.schedule-cell[data-minutes="30"],
+.schedule-cell[data-minutes="45"] {
+    border-top: 1px dashed #ced4da !important;
+    background: #fdfdfe;
+}
+
+.schedule-cell[data-minutes="15"]:hover,
+.schedule-cell[data-minutes="30"]:hover,
+.schedule-cell[data-minutes="45"]:hover {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb) !important;
+    border-top: 1px solid #2196f3 !important;
+}
+
+/* Indicateurs visuels pour les heures */
+.time-slot {
+    position: relative;
+}
+
+.time-slot:not(.sub-time-slot)::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6f42c1;
+}
+
+.sub-time-slot::after {
+    background: #007bff;
+    width: 4px;
+    height: 4px;
+}
+
+/* Animation de transition lors du changement */
+.planning-grid {
+    transition: all 0.3s ease-in-out;
+}
+
+.schedule-cell {
+    transition: all 0.2s ease-in-out;
+}
+
+.time-slot {
+    transition: all 0.2s ease-in-out;
+}
+
+/* États de chargement */
+.planning-grid.updating {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.planning-grid.updating::after {
+    content: '⏳ Mise à jour de la granularité...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+    color: #495057;
+    z-index: 1000;
+}
+
+/* Responsive pour granularité fine */
+@media (max-width: 768px) {
+    .sub-time-slot {
+        font-size: 0.6rem !important;
+        padding: 0.1rem !important;
+    }
+
+    .schedule-cell[data-minutes]:not([data-minutes="0"]) {
+        min-height: 12px !important;
+        height: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .sub-time-slot {
+        font-size: 0.55rem !important;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+    }
+
+    .schedule-cell[data-minutes]:not([data-minutes="0"]) {
+        min-height: 8px !important;
+        height: 8px !important;
+    }
+}

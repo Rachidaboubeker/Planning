@@ -201,7 +201,7 @@ async function loadDataFromAPI() {
 /**
  * Initialise l'interface utilisateur
  */
-async function initializeInterface() {
+async function initializeInterfaceLegacy() {
     console.log('🎨 Initialisation de l\'interface...');
 
     // Générer la grille de planning
@@ -224,6 +224,32 @@ async function initializeInterface() {
         updateWeekDisplay();
     }
 }
+async function initializeInterface() {
+        console.log('🎨 Initialisation de l\'interface...');
+
+        // Générer la grille de planning
+        if (typeof PlanningRenderer !== 'undefined') {
+            // Attendre que le DOM soit prêt
+            await waitForElement('#planningGrid');
+            PlanningRenderer.generatePlanningGrid(); // Utilise maintenant le système de colonnes
+            console.log('✅ Grille de planning créée');
+        }
+
+        // 🆕 INITIALISER LE SYSTÈME DE COLONNES
+        if (typeof employeeColumnManager !== 'undefined') {
+            employeeColumnManager.initializeEmployeeColumns();
+            console.log('✅ Système de colonnes initialisé');
+        }
+
+        // Mettre à jour la légende (utilise maintenant le système de colonnes)
+        if (typeof PlanningUI !== 'undefined') {
+            PlanningUI.updateLegend();
+            PlanningUI.updateQuickStats();
+            console.log('✅ Interface mise à jour');
+        }
+
+        console.log('🎉 Interface initialisée avec succès');
+    }
 
 /**
  * Attend qu'un élément existe dans le DOM
@@ -278,6 +304,25 @@ function finalizeInitialization() {
 
     console.log('🎯 Initialisation finalisée');
 }
+
+// 🆕 AJOUTER CETTE FONCTION POUR RÉINITIALISER LES COLONNES LORS D'AJOUT/SUPPRESSION D'EMPLOYÉS :
+function refreshEmployeeColumns() {
+        if (typeof employeeColumnManager !== 'undefined') {
+            employeeColumnManager.reset();
+            employeeColumnManager.initializeEmployeeColumns();
+
+            // Régénérer la grille et la légende
+            if (typeof PlanningRenderer !== 'undefined') {
+                PlanningRenderer.generatePlanningGrid();
+            }
+
+            if (typeof PlanningUI !== 'undefined') {
+                PlanningUI.updateLegend();
+            }
+
+            console.log('🔄 Colonnes d\'employés actualisées');
+        }
+    }
 
 /**
  * Affiche une erreur de fallback

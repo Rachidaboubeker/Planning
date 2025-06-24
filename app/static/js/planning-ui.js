@@ -378,7 +378,7 @@ class PlanningUI {
     /**
      * Met à jour la légende des équipiers avec avatars
      */
-    static updateLegend() {
+    static updateLegendLegacy() {
         const legendContainer = document.getElementById('legendContainer');
         if (!legendContainer) return;
 
@@ -447,6 +447,16 @@ class PlanningUI {
         `;
 
         legendContainer.innerHTML = legendHTML;
+    }
+    static updateLegend() {
+        // Si le système de colonnes est disponible, l'utiliser
+        if (typeof EmployeeLegendWithColumns !== 'undefined') {
+            EmployeeLegendWithColumns.updateLegendWithColumns();
+            return;
+        }
+
+        // Sinon, utiliser l'ancienne méthode (fallback)
+        this.updateLegendLegacy();
     }
 
     /**

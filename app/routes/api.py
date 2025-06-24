@@ -1,6 +1,5 @@
 """
-API REST complète pour le planning restaurant avec gestion des photos
-Version corrigée sans dépendance PIL
+API REST complète pour le planning restaurant avec gestion de la granularité
 """
 
 from flask import Blueprint, request, jsonify, send_file
@@ -19,6 +18,69 @@ api_bp = Blueprint('api', __name__)
 # Instances globales des gestionnaires
 employee_manager = EmployeeManager()
 shift_manager = ShiftManager()
+
+
+# ==================== CONFIGURATION GRANULARITÉ ====================
+
+@api_bp.route('/config/granularity', methods=['POST'])
+def set_granularity():
+    """Change la granularité temporelle"""
+    try:
+        data = request.get_json()
+        new_granularity = int(data.get('granularity'))
+
+        if new_granularity not in Config.AVAILABLE_GRANULARITIES:
+            return jsonify({
+                'success': False,
+                'error': f'Granularité {new_granularity} non supportée'
+            }), 400
+
+        # Mettre à jour la configuration
+        Config.set_granularity(new_granularity)
+
+        # Générer les nouveaux créneaux
+        all_time_slots = Config.get_all_time_slots()
+        granularity_info = Config.get_granularity_info()
+
+        return jsonify({
+            'success': True,
+            'granularity': new_granularity,
+            'all_time_slots': all_time_slots,
+            'granularity_info': granularity_info,
+            'message': f'Granularité changée à {granularity_info["granularity_label"]}'
+        })
+
+    except (ValueError, TypeError) as e:
+        return jsonify({
+            'success': False,
+            'error': 'Granularité invalide'
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@api_bp.route('/config/granularity', methods=['GET'])
+def get_granularity():
+    """Retourne la configuration de granularité actuelle"""
+    try:
+        granularity_info = Config.get_granularity_info()
+        all_time_slots = Config.get_all_time_slots()
+
+        return jsonify({
+            'success': True,
+            'granularity': Config.TIME_SLOT_GRANULARITY,
+            'granularity_info': granularity_info,
+            'all_time_slots': all_time_slots,
+            'available_granularities': Config.AVAILABLE_GRANULARITIES
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 # ==================== EMPLOYÉS ====================
@@ -80,12 +142,12 @@ def create_employee():
             return jsonify({
                 'success': True,
                 'employee': employee.to_dict(),
-                'message': 'Employé créé avec succès'
+                'message': f'Employé {employee.prenom} {employee.nom} créé avec succès'
             }), 201
         else:
             return jsonify({
                 'success': False,
-                'error': 'Erreur lors de la création'
+                'error': 'Erreur lors de la création de l\'employé'
             }), 500
 
     except Exception as e:
@@ -96,19 +158,16 @@ def create_employee():
 def get_employee(employee_id):
     """Récupère un employé par son ID"""
     try:
-        include_photo = request.args.get('include_photo', 'true').lower() == 'true'
-
-        employee = employee_manager.get_employee(employee_id)
+        employee = employee_manager.get_employee_by_id(employee_id)
         if employee:
-            employee_data = employee.to_dict() if include_photo else employee.to_dict_without_photo()
             return jsonify({
                 'success': True,
-                'employee': employee_data
+                'employee': employee.to_dict()
             })
         else:
             return jsonify({
                 'success': False,
-                'error': 'Employé introuvable'
+                'error': 'Employé non trouvé'
             }), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -120,38 +179,26 @@ def update_employee(employee_id):
     try:
         data = request.get_json()
 
-        # Validation si des champs critiques sont modifiés
-        if any(field in data for field in ['nom', 'prenom', 'poste', 'taux_horaire', 'email', 'telephone']):
-            errors = employee_manager.validate_employee_data(data)
-            if errors:
-                return jsonify({
-                    'success': False,
-                    'errors': errors
-                }), 400
+        # Validation
+        errors = employee_manager.validate_employee_data(data, employee_id)
+        if errors:
+            return jsonify({
+                'success': False,
+                'errors': errors
+            }), 400
 
-        # Gérer la photo séparément
-        photo_updated = False
-        if 'photo_data' in data:
-            photo_data = data.pop('photo_data')
-            if photo_data:
-                photo_updated = employee_manager.update_employee_photo(employee_id, photo_data)
-            else:
-                photo_updated = employee_manager.remove_employee_photo(employee_id)
-
-        # Mettre à jour les autres champs
         if employee_manager.update_employee(employee_id, data):
-            updated_employee = employee_manager.get_employee(employee_id)
+            employee = employee_manager.get_employee_by_id(employee_id)
             return jsonify({
                 'success': True,
-                'employee': updated_employee.to_dict(),
-                'photo_updated': photo_updated,
+                'employee': employee.to_dict() if employee else None,
                 'message': 'Employé mis à jour avec succès'
             })
         else:
             return jsonify({
                 'success': False,
-                'error': 'Erreur lors de la mise à jour'
-            }), 500
+                'error': 'Employé non trouvé ou erreur lors de la mise à jour'
+            }), 404
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -159,7 +206,7 @@ def update_employee(employee_id):
 
 @api_bp.route('/employees/<employee_id>', methods=['DELETE'])
 def delete_employee(employee_id):
-    """Supprime (désactive) un employé"""
+    """Supprime un employé (désactivation)"""
     try:
         if employee_manager.delete_employee(employee_id):
             return jsonify({
@@ -169,32 +216,8 @@ def delete_employee(employee_id):
         else:
             return jsonify({
                 'success': False,
-                'error': 'Erreur lors de la suppression'
-            }), 500
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-# ==================== GESTION DES PHOTOS ====================
-
-@api_bp.route('/employees/<employee_id>/photo', methods=['GET'])
-def get_employee_photo(employee_id):
-    """Récupère la photo d'un employé"""
-    try:
-        employee = employee_manager.get_employee(employee_id)
-        if not employee:
-            return jsonify({'success': False, 'error': 'Employé introuvable'}), 404
-
-        if not employee.has_photo:
-            return jsonify({'success': False, 'error': 'Aucune photo disponible'}), 404
-
-        # Retourner l'URL data
-        return jsonify({
-            'success': True,
-            'photo_url': employee.get_photo_data_url(),
-            'has_photo': True
-        })
-
+                'error': 'Employé non trouvé'
+            }), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -203,49 +226,39 @@ def get_employee_photo(employee_id):
 def upload_employee_photo(employee_id):
     """Upload une photo pour un employé"""
     try:
-        employee = employee_manager.get_employee(employee_id)
-        if not employee:
-            return jsonify({'success': False, 'error': 'Employé introuvable'}), 404
+        data = request.get_json()
+        photo_data = data.get('photo_data')
 
-        # Vérifier si c'est un upload de fichier ou des données base64
-        if 'file' in request.files:
-            file = request.files['file']
-            if file.filename == '':
-                return jsonify({'success': False, 'error': 'Aucun fichier sélectionné'}), 400
-
-            # Vérifier le type de fichier
-            if not file.content_type.startswith('image/'):
-                return jsonify({'success': False, 'error': 'Type de fichier invalide'}), 400
-
-            # Lire le fichier
-            file_data = file.read()
-            if len(file_data) > 5 * 1024 * 1024:  # 5MB max
-                return jsonify({'success': False, 'error': 'Fichier trop volumineux'}), 400
-
-            # Valider que c'est une image valide
-            if not validate_image_data(file_data):
-                return jsonify({'success': False, 'error': 'Format d\'image invalide'}), 400
-
-            # Encoder en base64
-            photo_data = base64.b64encode(file_data).decode('utf-8')
-
-        elif request.is_json:
-            data = request.get_json()
-            photo_data = data.get('photo_data')
-            if not photo_data:
-                return jsonify({'success': False, 'error': 'Données photo manquantes'}), 400
-        else:
-            return jsonify({'success': False, 'error': 'Format de requête invalide'}), 400
-
-        # Sauvegarder la photo
-        if employee_manager.update_employee_photo(employee_id, photo_data):
+        if not photo_data:
             return jsonify({
-                'success': True,
-                'message': 'Photo mise à jour avec succès',
-                'photo_url': employee.get_photo_data_url()
-            })
+                'success': False,
+                'error': 'Données photo manquantes'
+            }), 400
+
+        employee = employee_manager.get_employee_by_id(employee_id)
+        if not employee:
+            return jsonify({
+                'success': False,
+                'error': 'Employé non trouvé'
+            }), 404
+
+        if employee.set_photo_from_base64(photo_data):
+            if employee_manager.save_employees():
+                return jsonify({
+                    'success': True,
+                    'message': 'Photo mise à jour avec succès',
+                    'photo_url': employee.photo
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Erreur lors de la sauvegarde'
+                }), 500
         else:
-            return jsonify({'success': False, 'error': 'Erreur lors de la sauvegarde'}), 500
+            return jsonify({
+                'success': False,
+                'error': 'Format photo invalide'
+            }), 400
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -255,101 +268,29 @@ def upload_employee_photo(employee_id):
 def delete_employee_photo(employee_id):
     """Supprime la photo d'un employé"""
     try:
-        employee = employee_manager.get_employee(employee_id)
+        employee = employee_manager.get_employee_by_id(employee_id)
         if not employee:
-            return jsonify({'success': False, 'error': 'Employé introuvable'}), 404
-
-        if employee_manager.remove_employee_photo(employee_id):
             return jsonify({
-                'success': True,
-                'message': 'Photo supprimée avec succès'
-            })
+                'success': False,
+                'error': 'Employé non trouvé'
+            }), 404
+
+        if employee.delete_photo():
+            if employee_manager.save_employees():
+                return jsonify({
+                    'success': True,
+                    'message': 'Photo supprimée avec succès'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Erreur lors de la sauvegarde'
+                }), 500
         else:
-            return jsonify({'success': False, 'error': 'Erreur lors de la suppression'}), 500
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@api_bp.route('/photos/stats', methods=['GET'])
-def get_photo_stats():
-    """Récupère les statistiques des photos"""
-    try:
-        stats = employee_manager.get_photo_statistics()
-        return jsonify({
-            'success': True,
-            'stats': stats
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@api_bp.route('/photos/bulk-upload', methods=['POST'])
-def bulk_upload_photos():
-    """Upload en lot de photos"""
-    try:
-        if 'files' not in request.files:
-            return jsonify({'success': False, 'error': 'Aucun fichier fourni'}), 400
-
-        files = request.files.getlist('files')
-        results = {
-            'success': 0,
-            'errors': 0,
-            'messages': []
-        }
-
-        for file in files:
-            if file.filename == '':
-                continue
-
-            try:
-                # Essayer de matcher le nom de fichier avec un employé
-                filename = file.filename.lower()
-                base_name = os.path.splitext(filename)[0]
-
-                # Chercher l'employé correspondant
-                matched_employee = None
-                for employee in employee_manager.get_all_employees():
-                    full_name = f"{employee.prenom}_{employee.nom}".lower()
-                    if full_name in base_name or base_name in full_name:
-                        matched_employee = employee
-                        break
-
-                if matched_employee:
-                    # Traiter le fichier
-                    file_data = file.read()
-                    if len(file_data) > 5 * 1024 * 1024:
-                        results['errors'] += 1
-                        results['messages'].append(f"{file.filename}: Fichier trop volumineux")
-                        continue
-
-                    # Valider l'image
-                    if not validate_image_data(file_data):
-                        results['errors'] += 1
-                        results['messages'].append(f"{file.filename}: Format d'image invalide")
-                        continue
-
-                    # Encoder en base64
-                    photo_data = base64.b64encode(file_data).decode('utf-8')
-
-                    if employee_manager.update_employee_photo(matched_employee.id, photo_data):
-                        results['success'] += 1
-                        results['messages'].append(f"Photo mise à jour pour {matched_employee.nom_complet}")
-                    else:
-                        results['errors'] += 1
-                        results['messages'].append(f"Erreur lors de la sauvegarde pour {matched_employee.nom_complet}")
-                else:
-                    results['errors'] += 1
-                    results['messages'].append(f"{file.filename}: Aucun employé correspondant trouvé")
-
-            except Exception as e:
-                results['errors'] += 1
-                results['messages'].append(f"{file.filename}: Erreur de traitement - {str(e)}")
-
-        return jsonify({
-            'success': True,
-            'results': results
-        })
+            return jsonify({
+                'success': False,
+                'error': 'Aucune photo à supprimer'
+            }), 400
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -361,20 +302,18 @@ def bulk_upload_photos():
 def get_shifts():
     """Récupère tous les créneaux"""
     try:
-        day = request.args.get('day')
+        week = request.args.get('week')  # Format: YYYY-WW
         employee_id = request.args.get('employee_id')
 
-        if day:
-            shifts = shift_manager.get_shifts_by_day(day)
-        elif employee_id:
-            shifts = shift_manager.get_shifts_by_employee(employee_id)
-        else:
-            shifts = shift_manager.get_all_shifts()
+        shifts_data = shift_manager.get_all_shifts_dict(
+            week=week,
+            employee_id=employee_id
+        )
 
         return jsonify({
             'success': True,
-            'shifts': [shift.to_dict() for shift in shifts],
-            'count': len(shifts)
+            'shifts': shifts_data,
+            'count': len(shifts_data)
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -382,66 +321,38 @@ def get_shifts():
 
 @api_bp.route('/shifts', methods=['POST'])
 def create_shift():
-    """Crée un nouveau créneau"""
+    """Crée un nouveau créneau avec support granularité"""
     try:
         data = request.get_json()
 
-        # Validation des champs requis
-        required_fields = ['employee_id', 'day', 'start_hour', 'duration']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({
-                    'success': False,
-                    'error': f'Le champ {field} est requis'
-                }), 400
-
-        # Validation des valeurs
-        if data['day'] not in Config.DAYS_OF_WEEK:
+        # Validation des données avec granularité
+        errors = shift_manager.validate_shift_data(data)
+        if errors:
             return jsonify({
                 'success': False,
-                'error': 'Jour invalide'
-            }), 400
-
-        if data['start_hour'] not in Config.HOURS_RANGE:
-            return jsonify({
-                'success': False,
-                'error': 'Heure de début invalide'
-            }), 400
-
-        if not (1 <= data['duration'] <= 12):
-            return jsonify({
-                'success': False,
-                'error': 'Durée invalide (1-12 heures)'
-            }), 400
-
-        # Vérifier que l'employé existe
-        if not employee_manager.get_employee(data['employee_id']):
-            return jsonify({
-                'success': False,
-                'error': 'Employé introuvable'
+                'errors': errors
             }), 400
 
         shift = Shift(
             employee_id=data['employee_id'],
             day=data['day'],
             start_hour=int(data['start_hour']),
-            duration=int(data['duration']),
-            poste_specifique=data.get('poste_specifique', ''),
+            start_minutes=int(data.get('start_minutes', 0)),
+            duration=float(data.get('duration', 1)),
             notes=data.get('notes', '')
         )
 
-        success, message = shift_manager.add_shift(shift)
-        if success:
+        if shift_manager.add_shift(shift):
             return jsonify({
                 'success': True,
                 'shift': shift.to_dict(),
-                'message': message
+                'message': 'Créneau créé avec succès'
             }), 201
         else:
             return jsonify({
                 'success': False,
-                'error': message
-            }), 400
+                'error': 'Erreur lors de la création du créneau'
+            }), 500
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -451,7 +362,7 @@ def create_shift():
 def get_shift(shift_id):
     """Récupère un créneau par son ID"""
     try:
-        shift = shift_manager.get_shift(shift_id)
+        shift = shift_manager.get_shift_by_id(shift_id)
         if shift:
             return jsonify({
                 'success': True,
@@ -460,7 +371,7 @@ def get_shift(shift_id):
         else:
             return jsonify({
                 'success': False,
-                'error': 'Créneau introuvable'
+                'error': 'Créneau non trouvé'
             }), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -468,42 +379,30 @@ def get_shift(shift_id):
 
 @api_bp.route('/shifts/<shift_id>', methods=['PUT'])
 def update_shift(shift_id):
-    """Met à jour un créneau"""
+    """Met à jour un créneau avec support granularité"""
     try:
         data = request.get_json()
 
-        # Validation des valeurs si fournies
-        if 'day' in data and data['day'] not in Config.DAYS_OF_WEEK:
+        # Validation avec granularité
+        errors = shift_manager.validate_shift_data(data, shift_id)
+        if errors:
             return jsonify({
                 'success': False,
-                'error': 'Jour invalide'
+                'errors': errors
             }), 400
 
-        if 'start_hour' in data and data['start_hour'] not in Config.HOURS_RANGE:
-            return jsonify({
-                'success': False,
-                'error': 'Heure de début invalide'
-            }), 400
-
-        if 'duration' in data and not (1 <= data['duration'] <= 12):
-            return jsonify({
-                'success': False,
-                'error': 'Durée invalide (1-12 heures)'
-            }), 400
-
-        success, message = shift_manager.update_shift(shift_id, data)
-        if success:
-            updated_shift = shift_manager.get_shift(shift_id)
+        if shift_manager.update_shift(shift_id, data):
+            shift = shift_manager.get_shift_by_id(shift_id)
             return jsonify({
                 'success': True,
-                'shift': updated_shift.to_dict(),
-                'message': message
+                'shift': shift.to_dict() if shift else None,
+                'message': 'Créneau mis à jour avec succès'
             })
         else:
             return jsonify({
                 'success': False,
-                'error': message
-            }), 400
+                'error': 'Créneau non trouvé ou erreur lors de la mise à jour'
+            }), 404
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -521,8 +420,32 @@ def delete_shift(shift_id):
         else:
             return jsonify({
                 'success': False,
-                'error': 'Erreur lors de la suppression'
-            }), 500
+                'error': 'Créneau non trouvé'
+            }), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/shifts/conflicts/<employee_id>', methods=['GET'])
+def check_shift_conflicts(employee_id):
+    """Vérifie les conflits pour un employé avec granularité"""
+    try:
+        day = request.args.get('day')
+        start_hour = int(request.args.get('start_hour', 0))
+        start_minutes = int(request.args.get('start_minutes', 0))
+        duration = float(request.args.get('duration', 1))
+        exclude_shift_id = request.args.get('exclude_shift_id')
+
+        conflicts = shift_manager.check_conflicts_with_granularity(
+            employee_id, day, start_hour, start_minutes, duration, exclude_shift_id
+        )
+
+        return jsonify({
+            'success': True,
+            'has_conflicts': len(conflicts) > 0,
+            'conflicts': conflicts
+        })
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -531,96 +454,99 @@ def delete_shift(shift_id):
 
 @api_bp.route('/stats/weekly', methods=['GET'])
 def get_weekly_stats():
-    """Récupère les statistiques hebdomadaires"""
+    """Statistiques hebdomadaires"""
     try:
-        stats = shift_manager.get_weekly_stats(Config.DAYS_OF_WEEK)
-
-        # Enrichir avec les informations des employés
-        employee_details = {}
-        for emp_id, hours in stats['employee_hours'].items():
-            employee = employee_manager.get_employee(emp_id)
-            if employee:
-                employee_details[emp_id] = {
-                    'name': employee.nom_complet,
-                    'type': employee.poste,
-                    'hours': hours,
-                    'cost': hours * employee.taux_horaire,
-                    'has_photo': employee.has_photo
-                }
-
-        total_cost = sum(detail['cost'] for detail in employee_details.values())
+        week = request.args.get('week')  # Format: YYYY-WW
+        stats = shift_manager.get_weekly_stats(Config.DAYS_OF_WEEK, week)
 
         return jsonify({
             'success': True,
-            'stats': {
-                'total_hours': stats['total_hours'],
-                'active_employees': stats['active_employees'],
-                'average_hours': round(stats['average_hours'], 1),
-                'total_cost': round(total_cost, 2),
-                'employee_details': employee_details
-            }
+            'stats': stats
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_bp.route('/stats/employees', methods=['GET'])
-def get_employee_stats():
-    """Récupère les statistiques détaillées des employés"""
+@api_bp.route('/stats/employee/<employee_id>', methods=['GET'])
+def get_employee_stats(employee_id):
+    """Statistiques pour un employé"""
     try:
-        report = employee_manager.generate_employee_report(include_photos=False)
-        photo_stats = employee_manager.get_photo_statistics()
+        week = request.args.get('week')
+        stats = shift_manager.get_employee_stats(employee_id, week)
 
         return jsonify({
             'success': True,
-            'stats': {
-                'summary': report['summary'],
-                'stats_by_type': report['stats_by_type'],
-                'photo_stats': photo_stats,
-                'generation_date': report['generation_date']
-            }
+            'stats': stats
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_bp.route('/conflicts/<shift_id>', methods=['GET'])
-def check_conflicts(shift_id):
-    """Vérifie les conflits pour un créneau"""
+@api_bp.route('/stats/granularity', methods=['GET'])
+def get_granularity_stats():
+    """Statistiques sur l'utilisation de la granularité"""
     try:
-        shift = shift_manager.get_shift(shift_id)
-        if not shift:
-            return jsonify({
-                'success': False,
-                'error': 'Créneau introuvable'
-            }), 404
+        granularity_info = Config.get_granularity_info()
+        all_time_slots = Config.get_all_time_slots()
 
-        conflicts = shift_manager.get_conflicts(shift)
+        # Calculer l'utilisation des créneaux
+        shifts = shift_manager.get_all_shifts()
+        slots_usage = {}
+
+        for shift in shifts:
+            start_minutes = getattr(shift, 'start_minutes', 0)
+            slot_key = f"{shift.start_hour}_{start_minutes}"
+            slots_usage[slot_key] = slots_usage.get(slot_key, 0) + 1
+
+        # Statistiques d'utilisation par granularité
+        granularity_usage = {}
+        total_shifts = len(shifts)
+
+        for slot in all_time_slots:
+            usage_count = slots_usage.get(slot['key'], 0)
+            if slot['minutes'] not in granularity_usage:
+                granularity_usage[slot['minutes']] = 0
+            granularity_usage[slot['minutes']] += usage_count
 
         return jsonify({
             'success': True,
-            'has_conflicts': len(conflicts) > 0,
-            'conflicts': [conflict.to_dict() for conflict in conflicts]
+            'granularity_info': granularity_info,
+            'total_slots': len(all_time_slots),
+            'used_slots': len(slots_usage),
+            'total_shifts': total_shifts,
+            'slots_usage': slots_usage,
+            'granularity_usage': granularity_usage
         })
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ==================== IMPORT/EXPORT ====================
+# ==================== EXPORT/IMPORT ====================
 
-@api_bp.route('/export/employees', methods=['GET'])
-def export_employees():
-    """Exporte les données des employés"""
+@api_bp.route('/export/planning', methods=['GET'])
+def export_planning():
+    """Exporte le planning en JSON"""
     try:
-        include_photos = request.args.get('include_photos', 'false').lower() == 'true'
-        format_type = request.args.get('format', 'json')
+        week = request.args.get('week')
+        format_type = request.args.get('format', 'json')  # json, csv
+
+        employees = employee_manager.get_all_employees()
+        shifts = shift_manager.get_all_shifts()
+
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'week': week,
+            'granularity': Config.TIME_SLOT_GRANULARITY,
+            'config': Config.get_config_data_for_template(),
+            'employees': [emp.to_dict() for emp in employees],
+            'shifts': [shift.to_dict() for shift in shifts]
+        }
 
         if format_type == 'json':
-            report = employee_manager.generate_employee_report(include_photos=include_photos)
             return jsonify({
                 'success': True,
-                'data': report,
-                'format': 'json'
+                'data': export_data
             })
         else:
             return jsonify({
@@ -632,55 +558,119 @@ def export_employees():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_bp.route('/export/planning', methods=['GET'])
-def export_planning():
-    """Exporte le planning de la semaine"""
+@api_bp.route('/import/planning', methods=['POST'])
+def import_planning():
+    """Importe un planning depuis JSON"""
     try:
-        format_type = request.args.get('format', 'json')
-        include_photos = request.args.get('include_photos', 'false').lower() == 'true'
+        data = request.get_json()
+        import_data = data.get('data')
 
-        # Récupérer tous les créneaux
-        shifts = shift_manager.get_all_shifts()
-        shifts_data = []
+        if not import_data:
+            return jsonify({
+                'success': False,
+                'error': 'Données d\'import manquantes'
+            }), 400
 
-        for shift in shifts:
-            shift_dict = shift.to_dict()
-            employee = employee_manager.get_employee(shift.employee_id)
-            if employee:
-                shift_dict['employee'] = employee.to_dict() if include_photos else employee.to_dict_without_photo()
-            shifts_data.append(shift_dict)
+        # Validation de base
+        required_fields = ['employees', 'shifts']
+        for field in required_fields:
+            if field not in import_data:
+                return jsonify({
+                    'success': False,
+                    'error': f'Champ requis manquant: {field}'
+                }), 400
 
-        # Statistiques
-        stats = shift_manager.get_weekly_stats(Config.DAYS_OF_WEEK)
-        employee_details = {}
-        for emp_id, hours in stats['employee_hours'].items():
-            employee = employee_manager.get_employee(emp_id)
-            if employee:
-                employee_details[emp_id] = {
-                    'name': employee.nom_complet,
-                    'type': employee.poste,
-                    'hours': hours,
-                    'cost': hours * employee.taux_horaire
-                }
+        # Import des employés
+        imported_employees = 0
+        for emp_data in import_data['employees']:
+            try:
+                employee = Employee(
+                    nom=emp_data['nom'],
+                    prenom=emp_data['prenom'],
+                    poste=emp_data['poste'],
+                    email=emp_data.get('email', ''),
+                    telephone=emp_data.get('telephone', ''),
+                    taux_horaire=float(emp_data.get('taux_horaire', 15.0))
+                )
+                if employee_manager.add_employee(employee):
+                    imported_employees += 1
+            except Exception as e:
+                continue  # Ignorer les erreurs d'employés individuels
 
-        export_data = {
-            'export_date': datetime.now().isoformat(),
-            'week_days': Config.DAYS_OF_WEEK,
-            'shifts': shifts_data,
-            'statistics': {
-                'total_hours': stats['total_hours'],
-                'active_employees': stats['active_employees'],
-                'employee_details': employee_details
-            },
-            'metadata': {
-                'photos_included': include_photos,
-                'format': format_type
-            }
-        }
+        # Import des créneaux
+        imported_shifts = 0
+        for shift_data in import_data['shifts']:
+            try:
+                shift = Shift(
+                    employee_id=shift_data['employee_id'],
+                    day=shift_data['day'],
+                    start_hour=int(shift_data['start_hour']),
+                    start_minutes=int(shift_data.get('start_minutes', 0)),
+                    duration=float(shift_data.get('duration', 1)),
+                    notes=shift_data.get('notes', '')
+                )
+                if shift_manager.add_shift(shift):
+                    imported_shifts += 1
+            except Exception as e:
+                continue  # Ignorer les erreurs de créneaux individuels
 
         return jsonify({
             'success': True,
-            'data': export_data
+            'message': f'Import terminé: {imported_employees} employés, {imported_shifts} créneaux',
+            'imported_employees': imported_employees,
+            'imported_shifts': imported_shifts
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== VALIDATION GRANULARITÉ ====================
+
+@api_bp.route('/validate/time-slot', methods=['POST'])
+def validate_time_slot():
+    """Valide un créneau temporel selon la granularité"""
+    try:
+        data = request.get_json()
+        hour = int(data.get('hour', 0))
+        minutes = int(data.get('minutes', 0))
+
+        # Vérifier que l'heure est dans la plage
+        if hour not in Config.get_hours_range():
+            return jsonify({
+                'success': False,
+                'valid': False,
+                'error': f'Heure {hour} en dehors des heures d\'ouverture'
+            })
+
+        # Vérifier que les minutes correspondent à la granularité
+        granularity = Config.TIME_SLOT_GRANULARITY
+        if minutes % granularity != 0:
+            return jsonify({
+                'success': False,
+                'valid': False,
+                'error': f'Minutes {minutes} invalides pour granularité {granularity}min'
+            })
+
+        if minutes < 0 or minutes >= 60:
+            return jsonify({
+                'success': False,
+                'valid': False,
+                'error': 'Minutes doivent être entre 0 et 59'
+            })
+
+        # Vérifier que le créneau existe
+        all_slots = Config.get_all_time_slots()
+        slot_key = f"{hour}_{minutes}"
+
+        valid_slot = any(slot['key'] == slot_key for slot in all_slots)
+
+        return jsonify({
+            'success': True,
+            'valid': valid_slot,
+            'slot_key': slot_key,
+            'display': Config.format_time_slot(hour, minutes),
+            'granularity': granularity
         })
 
     except Exception as e:
@@ -689,137 +679,109 @@ def export_planning():
 
 # ==================== UTILITAIRES ====================
 
-@api_bp.route('/health', methods=['GET'])
-def health_check():
-    """Vérification de l'état de l'API"""
+@api_bp.route('/utils/generate-time-slots', methods=['GET'])
+def generate_time_slots():
+    """Génère tous les créneaux temporels selon la granularité actuelle"""
     try:
-        # Vérifier les managers
-        employees_count = len(employee_manager.get_all_employees())
-        shifts_count = len(shift_manager.get_all_shifts())
-        photo_stats = employee_manager.get_photo_statistics()
+        all_slots = Config.get_all_time_slots()
+        granularity_info = Config.get_granularity_info()
 
         return jsonify({
             'success': True,
-            'status': 'healthy',
-            'data': {
-                'employees_count': employees_count,
-                'shifts_count': shifts_count,
-                'photos_stats': photo_stats,
-                'config': {
-                    'days_of_week': Config.DAYS_OF_WEEK,
-                    'hours_range': len(Config.HOURS_RANGE),
-                    'employee_types': list(Config.EMPLOYEE_TYPES.keys())
-                }
-            },
-            'timestamp': datetime.now().isoformat()
+            'granularity': Config.TIME_SLOT_GRANULARITY,
+            'granularity_info': granularity_info,
+            'time_slots': all_slots,
+            'total_slots': len(all_slots)
         })
+
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_bp.route('/utils/reset-granularity', methods=['POST'])
+def reset_granularity():
+    """Remet la granularité à la valeur par défaut"""
+    try:
+        default_granularity = 60  # 1 heure par défaut
+        Config.set_granularity(default_granularity)
+
         return jsonify({
-            'success': False,
-            'status': 'unhealthy',
-            'error': str(e)
-        }), 500
+            'success': True,
+            'granularity': default_granularity,
+            'message': 'Granularité remise à 1 heure'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_bp.route('/config', methods=['GET'])
-def get_config():
-    """Récupère la configuration de l'application"""
-    return jsonify({
-        'success': True,
-        'config': {
-            'days_of_week': Config.DAYS_OF_WEEK,
-            'hours_range': Config.HOURS_RANGE,
-            'employee_types': Config.EMPLOYEE_TYPES
-        }
-    })
-
-
-# ==================== FONCTIONS UTILITAIRES ====================
-
-def validate_image_data(file_data):
-    """Valide qu'un fichier est une image valide sans PIL"""
-    try:
-        # Utiliser imghdr qui est inclus dans Python
-        image_type = imghdr.what(None, h=file_data)
-        return image_type in ['jpeg', 'jpg', 'png', 'gif', 'bmp', 'webp']
-    except:
-        return False
-
-
-def get_image_format(file_data):
-    """Détecte le format d'une image"""
-    try:
-        return imghdr.what(None, h=file_data)
-    except:
-        return None
-
-
-def validate_image_size(file_data, max_size_mb=5):
-    """Valide la taille d'une image"""
-    return len(file_data) <= max_size_mb * 1024 * 1024
-
-
-# ==================== GESTION DES ERREURS ====================
-
-@api_bp.errorhandler(400)
-def bad_request(error):
-    return jsonify({
-        'success': False,
-        'error': 'Requête invalide',
-        'status_code': 400
-    }), 400
-
+# ==================== GESTION D'ERREURS ====================
 
 @api_bp.errorhandler(404)
 def not_found(error):
     return jsonify({
         'success': False,
-        'error': 'Ressource introuvable',
-        'status_code': 404
+        'error': 'Endpoint non trouvé'
     }), 404
 
 
-@api_bp.errorhandler(413)
-def payload_too_large(error):
+@api_bp.errorhandler(400)
+def bad_request(error):
     return jsonify({
         'success': False,
-        'error': 'Fichier trop volumineux (max 5MB)',
-        'status_code': 413
-    }), 413
-
-
-@api_bp.errorhandler(415)
-def unsupported_media_type(error):
-    return jsonify({
-        'success': False,
-        'error': 'Type de média non supporté',
-        'status_code': 415
-    }), 415
+        'error': 'Requête invalide'
+    }), 400
 
 
 @api_bp.errorhandler(500)
 def internal_error(error):
     return jsonify({
         'success': False,
-        'error': 'Erreur interne du serveur',
-        'status_code': 500
+        'error': 'Erreur serveur interne'
     }), 500
 
 
-# ==================== MIDDLEWARES ====================
+# ==================== ROUTES D'INFORMATION ====================
 
-@api_bp.before_request
-def before_request():
-    """Middleware exécuté avant chaque requête API"""
-    # Log des requêtes pour le debugging
-    if request.method != 'GET':
-        print(f"API Request: {request.method} {request.path}")
+@api_bp.route('/info', methods=['GET'])
+def api_info():
+    """Informations sur l'API"""
+    return jsonify({
+        'success': True,
+        'api_version': '1.0',
+        'granularity_support': True,
+        'current_granularity': Config.TIME_SLOT_GRANULARITY,
+        'available_granularities': Config.AVAILABLE_GRANULARITIES,
+        'endpoints': {
+            'config': '/api/config/granularity',
+            'employees': '/api/employees',
+            'shifts': '/api/shifts',
+            'stats': '/api/stats',
+            'utils': '/api/utils'
+        }
+    })
 
 
-@api_bp.after_request
-def after_request(response):
-    """Middleware exécuté après chaque requête API"""
-    # Ajouter des headers personnalisés
-    response.headers['X-API-Version'] = '1.1'
-    response.headers['X-Planning-App'] = 'Restaurant-Scheduler'
-    return response
+@api_bp.route('/health', methods=['GET'])
+def health_check():
+    """Vérification de santé de l'API"""
+    try:
+        # Vérifier que les managers fonctionnent
+        employees_count = len(employee_manager.get_all_employees())
+        shifts_count = len(shift_manager.get_all_shifts())
+
+        return jsonify({
+            'success': True,
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'employees_count': employees_count,
+            'shifts_count': shifts_count,
+            'granularity': Config.TIME_SLOT_GRANULARITY
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500

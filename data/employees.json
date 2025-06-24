@@ -1,22 +1,22 @@
 {
   "emp_1": {
     "id": "emp_1",
-    "nom": "Dupont",
-    "prenom": "Marie",
-    "poste": "serveur",
+    "nom": "Khelouf",
+    "prenom": "Assia",
+    "poste": "manager",
     "email": "marie.dupont@restaurant.com",
     "telephone": "06.12.34.56.78",
-    "taux_horaire": 16.0,
+    "taux_horaire": 15,
     "actif": true,
     "photo_data": null,
     "date_creation": "2024-01-15T10:30:00",
-    "nom_complet": "Marie Dupont",
+    "nom_complet": "Assia Khelouf",
     "type_info": {
-      "color": "#00b894",
-      "name": "Serveur/se"
+      "color": "#a29bfe",
+      "name": "Manager"
     },
     "has_photo": false,
-    "initials": "MD"
+    "initials": "AK"
   },
   "emp_2": {
     "id": "emp_2",
@@ -26,7 +26,7 @@
     "email": "pierre.martin@restaurant.com",
     "telephone": "06.23.45.67.89",
     "taux_horaire": 18.5,
-    "actif": true,
+    "actif": false,
     "photo_data": null,
     "date_creation": "2024-01-10T14:20:00",
     "nom_complet": "Pierre Martin",
@@ -197,7 +197,7 @@
     "email": "yassir.amaya@gmail.com",
     "telephone": "0667448000",
     "taux_horaire": 15.0,
-    "actif": true,
+    "actif": false,
     "photo_data": null,
     "date_creation": "2025-06-15T01:01:28.962408",
     "nom_complet": "Yassir Amaya",
@@ -231,17 +231,17 @@
     "id": "emp_1750025409984",
     "nom": "Bryselbout",
     "prenom": "Savié",
-    "poste": "cuisinier",
+    "poste": "commis",
     "email": "",
     "telephone": "",
-    "taux_horaire": 10.0,
+    "taux_horaire": 10,
     "actif": true,
     "photo_data": null,
     "date_creation": "2025-06-16T00:10:09.984419",
     "nom_complet": "Savié Bryselbout",
     "type_info": {
-      "color": "#74b9ff",
-      "name": "Cuisinier"
+      "color": "#fd79a8",
+      "name": "Commis"
     },
     "has_photo": false,
     "initials": "SB"
@@ -254,7 +254,7 @@
     "email": "",
     "telephone": "",
     "taux_horaire": 16.0,
-    "actif": true,
+    "actif": false,
     "photo_data": null,
     "date_creation": "2025-06-16T22:54:57.784795",
     "nom_complet": "Jean Dupont",
@@ -273,7 +273,7 @@
     "email": "",
     "telephone": "",
     "taux_horaire": 16.0,
-    "actif": true,
+    "actif": false,
     "photo_data": null,
     "date_creation": "2025-06-16T22:55:31.643193",
     "nom_complet": "Jean Dupont",
@@ -283,5 +283,43 @@
     },
     "has_photo": false,
     "initials": "JD"
+  },
+  "emp_1750109078019": {
+    "id": "emp_1750109078019",
+    "nom": "Pouce",
+    "prenom": "Tom",
+    "poste": "cuisinier",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 15.0,
+    "actif": false,
+    "photo_data": null,
+    "date_creation": "2025-06-16T23:24:38.019666",
+    "nom_complet": "Tom Pouce",
+    "type_info": {
+      "color": "#74b9ff",
+      "name": "Cuisinier"
+    },
+    "has_photo": false,
+    "initials": "TP"
+  },
+  "emp_1750110398359": {
+    "id": "emp_1750110398359",
+    "nom": "Amaya",
+    "prenom": "Yassir",
+    "poste": "manager",
+    "email": "",
+    "telephone": "",
+    "taux_horaire": 15,
+    "actif": true,
+    "photo_data": null,
+    "date_creation": "2025-06-16T23:46:38.359455",
+    "nom_complet": "Yassir Amaya",
+    "type_info": {
+      "color": "#a29bfe",
+      "name": "Manager"
+    },
+    "has_photo": false,
+    "initials": "YA"
   }
 }
