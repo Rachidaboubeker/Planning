@@ -1,0 +1,538 @@
+/* ===============================================
+   CSS CRÉNEAUX VERTICAUX AVEC AVATARS
+   Planning Restaurant - Styles complémentaires
+   =============================================== */
+
+/* ===== LAYOUT VERTICAL POUR CRÉNEAUX ===== */
+
+.shift-block.shift-vertical {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.shift-block.shift-vertical:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+    transform: scale(1.02) !important;
+    z-index: 20 !important;
+}
+
+/* ===== SECTION AVATAR (HORIZONTALE EN HAUT) ===== */
+
+.shift-avatar-section {
+    width: 100%;
+    height: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    padding: 2px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.shift-avatar-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.1) 50%,
+        transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.shift-block:hover .shift-avatar-section::before {
+    opacity: 1;
+}
+
+.shift-avatar-horizontal {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+}
+
+.shift-avatar-horizontal:hover {
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.shift-avatar-horizontal::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.shift-avatar-horizontal:hover::after {
+    opacity: 1;
+}
+
+/* ===== SECTION TEXTE (VERTICALE) ===== */
+
+.shift-text-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 2px;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.shift-name-vertical {
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1.2px;
+    line-height: 1;
+    white-space: nowrap;
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.shift-duration-horizontal {
+    font-weight: 600;
+    font-size: 0.7rem;
+    opacity: 0.95;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+    backdrop-filter: blur(2px);
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+/* ===== EFFETS HOVER POUR CRÉNEAUX VERTICAUX ===== */
+
+.shift-block.shift-vertical:hover .shift-avatar-section {
+    background: rgba(255, 255, 255, 0.25);
+    height: 30px;
+    border-bottom-color: rgba(255, 255, 255, 0.4);
+}
+
+.shift-block.shift-vertical:hover .shift-avatar-horizontal {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+}
+
+.shift-block.shift-vertical:hover .shift-name-vertical {
+    font-size: 0.85rem;
+    letter-spacing: 1.4px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.shift-block.shift-vertical:hover .shift-duration-horizontal {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== COULEURS PAR TYPE D'EMPLOYÉ ===== */
+
+.shift-block.cuisinier {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%) !important;
+}
+
+.shift-block.serveur {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%) !important;
+}
+
+.shift-block.barman {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%) !important;
+}
+
+.shift-block.manager {
+    background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%) !important;
+}
+
+.shift-block.commis {
+    background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%) !important;
+}
+
+/* ===== ÉTATS DE DRAG & DROP ===== */
+
+.shift-block.dragging {
+    opacity: 0.8 !important;
+    transform: rotate(5deg) scale(0.95) !important;
+    z-index: 1000 !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+    cursor: grabbing !important;
+    animation: floating 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes floating {
+    0% { transform: rotate(5deg) scale(0.95) translateY(0px); }
+    100% { transform: rotate(5deg) scale(0.95) translateY(-2px); }
+}
+
+.shift-block.dragging .shift-avatar-section {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.shift-block.dragging .shift-name-vertical {
+    font-weight: 800 !important;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+    letter-spacing: 1.5px !important;
+}
+
+.shift-block.dragging .shift-duration-horizontal {
+    background: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ===== ZONES DE DROP ===== */
+
+.schedule-cell {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.schedule-cell.drag-over {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+    border: 2px dashed #007bff !important;
+    border-radius: 6px !important;
+    transform: scale(1.02);
+}
+
+.schedule-cell.drag-over::before {
+    content: '📍';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    z-index: 5;
+    animation: dropIndicator 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes dropIndicator {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+/* ===== ADAPTATIONS POUR DIFFÉRENTES TAILLES ===== */
+
+/* Créneaux courts (1-2h) */
+.shift-block.shift-vertical[style*="height: 46px"],
+.shift-block.shift-vertical[style*="height: 96px"] {
+    .shift-avatar-section {
+        height: 24px;
+        min-height: 24px;
+    }
+
+    .shift-avatar-horizontal {
+        width: 18px;
+        height: 18px;
+    }
+
+    .shift-name-vertical {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.6rem;
+        padding: 2px 6px;
+    }
+}
+
+/* Créneaux longs (4h+) */
+.shift-block.shift-vertical[style*="height: 196px"],
+.shift-block.shift-vertical[style*="height: 246px"],
+.shift-block.shift-vertical[style*="height: 296px"] {
+    .shift-avatar-section {
+        height: 32px;
+        min-height: 32px;
+    }
+
+    .shift-avatar-horizontal {
+        width: 26px;
+        height: 26px;
+    }
+
+    .shift-name-vertical {
+        font-size: 0.9rem;
+        letter-spacing: 1.4px;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+    }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+@media (max-width: 1200px) {
+    .shift-name-vertical {
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+}
+
+@media (max-width: 768px) {
+    .shift-avatar-section {
+        height: 24px !important;
+        min-height: 24px !important;
+    }
+
+    .shift-avatar-horizontal {
+        width: 18px !important;
+        height: 18px !important;
+        border-width: 1px !important;
+    }
+
+    .shift-name-vertical {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.8px !important;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.6rem !important;
+        padding: 1px 4px !important;
+    }
+
+    .shift-block.shift-vertical:hover .shift-avatar-section {
+        height: 26px !important;
+    }
+
+    .shift-block.shift-vertical:hover .shift-avatar-horizontal {
+        width: 20px !important;
+        height: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .shift-avatar-section {
+        height: 20px !important;
+        min-height: 20px !important;
+        padding: 1px !important;
+    }
+
+    .shift-avatar-horizontal {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .shift-name-vertical {
+        font-size: 0.65rem !important;
+        letter-spacing: 0.6px !important;
+    }
+
+    .shift-duration-horizontal {
+        font-size: 0.55rem !important;
+        padding: 1px 3px !important;
+    }
+
+    .shift-text-section {
+        gap: 3px !important;
+        padding: 2px 1px !important;
+    }
+}
+
+/* ===== ANIMATIONS D'APPARITION ===== */
+
+.shift-block.shift-vertical {
+    animation: slideInVertical 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes slideInVertical {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.shift-name-vertical {
+    animation: fadeInText 0.6s ease-out 0.2s forwards;
+    opacity: 0;
+}
+
+@keyframes fadeInText {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== ACCESSIBILITÉ ===== */
+
+.shift-block.shift-vertical:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+.shift-avatar-horizontal:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.9);
+    outline-offset: 1px;
+}
+
+/* ===== INDICATEURS DE STATUT ===== */
+
+.shift-block.shift-vertical.conflict {
+    border: 2px solid #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+}
+
+.shift-block.shift-vertical.selected {
+    border: 2px solid #4ecdc4;
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.3);
+}
+
+.shift-block.shift-vertical.overtime {
+    border: 2px solid #ffa726;
+    box-shadow: 0 0 0 2px rgba(255, 167, 38, 0.3);
+}
+
+/* ===== AMÉLIORATION DU CONTRASTE ===== */
+
+.shift-name-vertical,
+.shift-duration-horizontal {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Assurer un contraste suffisant sur tous les backgrounds */
+.shift-block.cuisinier .shift-name-vertical,
+.shift-block.cuisinier .shift-duration-horizontal {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.shift-block.serveur .shift-name-vertical,
+.shift-block.serveur .shift-duration-horizontal {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.shift-block.barman .shift-name-vertical,
+.shift-block.barman .shift-duration-horizontal {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    color: #2c3e50;
+}
+
+.shift-block.manager .shift-name-vertical,
+.shift-block.manager .shift-duration-horizontal {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.shift-block.commis .shift-name-vertical,
+.shift-block.commis .shift-duration-horizontal {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== CORRECTIONS POUR GRILLES DENSES ===== */
+
+.planning-grid {
+    gap: 1px;
+}
+
+.schedule-cell {
+    min-height: 50px;
+    border: 1px solid #e1e5e9;
+}
+
+.schedule-cell:hover {
+    border-color: #6366f1;
+}
+
+/* ===== OPTIMISATIONS PERFORMANCE ===== */
+
+.shift-block.shift-vertical {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.shift-avatar-horizontal {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* ===== IMPRESSION ===== */
+
+@media print {
+    .shift-block.shift-vertical {
+        break-inside: avoid;
+        background: #f8f9fa !important;
+        color: #333 !important;
+        border: 1px solid #ccc !important;
+    }
+
+    .shift-avatar-horizontal {
+        display: none;
+    }
+
+    .shift-name-vertical {
+        writing-mode: horizontal-tb !important;
+        text-orientation: initial !important;
+        color: #333 !important;
+        text-shadow: none !important;
+    }
+
+    .shift-duration-horizontal {
+        background: none !important;
+        border: none !important;
+        color: #666 !important;
+        text-shadow: none !important;
+    }
+}

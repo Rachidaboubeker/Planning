@@ -1,902 +1,612 @@
 {% extends "base.html" %}
 
-{% block title %}Planning Détaillé - Restaurant{% endblock %}
+{% block title %}Planning Semaine - Restaurant{% endblock %}
 
 {% block extra_css %}
 <style>
-    .planning-detailed {
-        background: white;
-        border-radius: var(--border-radius-xl);
-        box-shadow: var(--shadow-xl);
-        overflow: hidden;
-        margin-bottom: 2rem;
-    }
-
-    .planning-tabs {
-        display: flex;
-        background: var(--gray-50);
-        border-bottom: 1px solid var(--gray-200);
-    }
-
-    .planning-tab {
-        flex: 1;
-        padding: 1rem;
-        text-align: center;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-weight: 500;
-        color: var(--gray-600);
-        transition: var(--transition);
-    }
-
-    .planning-tab.active {
-        background: var(--primary-gradient);
-        color: white;
-    }
-
-    .planning-tab:hover:not(.active) {
-        background: var(--gray-100);
-    }
-
-    .tab-content {
-        display: none;
-        padding: 2rem;
-    }
-
-    .tab-content.active {
-        display: block;
-    }
-
-    .day-schedule {
-        margin-bottom: 2rem;
-        border: 1px solid var(--gray-200);
-        border-radius: var(--border-radius-lg);
-        overflow: hidden;
-    }
-
-    .day-header-detailed {
-        background: var(--primary-gradient);
-        color: white;
-        padding: 1rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .day-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-
-    .day-stats {
-        font-size: 0.9rem;
-        opacity: 0.9;
-    }
-
-    .shifts-timeline {
-        padding: 1.5rem;
-        background: white;
-    }
-
-    .shift-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        background: var(--gray-50);
-        border-radius: var(--border-radius);
-        border-left: 4px solid var(--primary-color);
-        transition: var(--transition);
-    }
-
-    .shift-item:hover {
-        background: var(--gray-100);
-        transform: translateX(5px);
-    }
-
-    .shift-time-detail {
-        min-width: 120px;
-        font-weight: 600;
-        color: var(--primary-color);
-    }
-
-    .shift-employee-detail {
-        flex: 1;
-        margin-left: 1rem;
-    }
-
-    .employee-name-detail {
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-
-    .employee-role-detail {
-        font-size: 0.9rem;
-        color: var(--gray-600);
-    }
-
-    .shift-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .btn-icon.edit {
-        background: var(--info-color);
-        color: white;
-    }
-
-    .btn-icon.delete {
-        background: var(--error-color);
-        color: white;
-    }
-
-    .btn-icon:hover {
-        transform: scale(1.1);
-    }
-
-    .employee-view {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .employee-card {
-        background: white;
-        border: 1px solid var(--gray-200);
-        border-radius: var(--border-radius-lg);
-        overflow: hidden;
-        transition: var(--transition);
-    }
-
-    .employee-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .employee-header {
-        padding: 1.5rem;
-        background: var(--gray-50);
-        border-bottom: 1px solid var(--gray-200);
-    }
-
-    .employee-name {
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-
-    .employee-role {
-        color: var(--gray-600);
-        margin-bottom: 1rem;
-    }
-
-    .employee-week-stats {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .employee-stat {
-        text-align: center;
-    }
-
-    .employee-stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--primary-color);
-    }
-
-    .employee-stat-label {
-        font-size: 0.8rem;
-        color: var(--gray-500);
-    }
-
-    .employee-shifts {
-        padding: 1.5rem;
-    }
-
-    .employee-shift-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        background: var(--gray-50);
-        border-radius: var(--border-radius);
-    }
-
-    .shift-day-time {
-        font-weight: 600;
-    }
-
-    .shift-duration {
-        color: var(--gray-600);
-        font-size: 0.9rem;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--gray-500);
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    .filter-controls {
-        background: var(--gray-50);
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--gray-200);
+    /* Styles spécifiques pour la page planning */
+    .planning-actions {
         display: flex;
         gap: 1rem;
         align-items: center;
         flex-wrap: wrap;
     }
 
-    .filter-group {
+    .granularity-selector-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        border: 1px solid #e1e5e9;
+        backdrop-filter: blur(10px);
+    }
+
+    .granularity-selector-container label {
+        font-weight: 500;
+        color: #4a5568;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .granularity-select {
+        padding: 0.375rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: var(--transition);
+        min-width: 120px;
+    }
+
+    .granularity-select:hover {
+        border-color: #6366f1;
+    }
+
+    .granularity-select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .granularity-info {
+        font-size: 0.75rem;
+        color: #6b7280;
+        background: #f9fafb;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .granularity-info small {
+        display: block;
+        font-weight: 500;
+    }
+
+    #slotsCount {
+        font-weight: 600;
+        color: #4f46e5;
+    }
+
+    /* Section des colonnes d'employés restaurée */
+    .employees-section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--border-radius-xl);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .employees-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        color: #333;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .filter-group label {
-        font-weight: 500;
-        color: var(--gray-700);
+    .employees-title i {
+        color: #667eea;
     }
 
-    .filter-group select {
-        padding: 0.5rem;
-        border: 1px solid var(--gray-300);
-        border-radius: var(--border-radius);
+    /* Statistiques rapides */
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .stat-card {
         background: white;
+        padding: 1.5rem;
+        border-radius: var(--border-radius-lg);
+        border: 1px solid #dee2e6;
+        text-align: center;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
     }
 
-    .export-actions {
-        margin-left: auto;
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Actions rapides */
+    .quick-actions {
         display: flex;
         gap: 0.5rem;
+        margin-left: auto;
     }
 
+    .btn-icon-only {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
+    }
+
+    .btn-photo {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+    }
+
+    .btn-photo:hover {
+        background: linear-gradient(135deg, #138496, #117a8b);
+        transform: scale(1.1);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Indicateur de granularité */
+    .granularity-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(111, 66, 193, 0.9);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Navigation de semaine améliorée */
+    .week-navigation {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem 2rem;
+        border-radius: var(--border-radius-lg);
+        backdrop-filter: blur(10px);
+    }
+
+    .current-week {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.8rem;
+        font-weight: 300;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-outline {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
-        .planning-tabs {
-            flex-direction: column;
-        }
-
-        .day-header-detailed {
-            flex-direction: column;
-            gap: 0.5rem;
-            text-align: center;
-        }
-
-        .shift-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-
-        .shift-actions {
-            align-self: flex-end;
-        }
-
-        .employee-view {
-            grid-template-columns: 1fr;
-        }
-
-        .filter-controls {
+        .planning-actions {
             flex-direction: column;
             align-items: stretch;
         }
 
-        .export-actions {
+        .quick-actions {
             margin-left: 0;
             justify-content: center;
+        }
+
+        .granularity-selector-container {
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .granularity-indicator {
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .employees-section {
+            padding: 1.5rem;
+        }
+
+        .employees-title {
+            font-size: 1.3rem;
+        }
+
+        .quick-stats {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .week-navigation {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .current-week {
+            font-size: 1.5rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="planning-detailed">
-    <!-- En-tête avec navigation -->
+<!-- CONFIGURATION FLASK POUR JAVASCRIPT -->
+<script>
+// Configuration Flask transmise à JavaScript
+window.FLASK_CONFIG = {
+    HOURS_RANGE: {{ config_data.HOURS_RANGE | tojson }},
+    DAYS_OF_WEEK: {{ config_data.DAYS_OF_WEEK | tojson }},
+    EMPLOYEE_TYPES: {{ config_data.EMPLOYEE_TYPES | tojson }},
+    TIME_SLOT_GRANULARITY: {{ config_data.TIME_SLOT_GRANULARITY | tojson }},
+    AVAILABLE_GRANULARITIES: {{ config_data.AVAILABLE_GRANULARITIES | tojson }},
+    ALL_TIME_SLOTS: {{ config_data.ALL_TIME_SLOTS | tojson }},
+    GRANULARITY_INFO: {{ config_data.GRANULARITY_INFO | tojson }}
+};
+
+window.FLASK_DATA = {
+    employees: {{ employees | tojson }},
+    shifts: {{ shifts | tojson }},
+    stats: {{ stats | tojson }}
+};
+
+console.log('📊 Configuration Flask chargée');
+</script>
+
+<div class="planning-container">
     <div class="planning-header">
         <div class="week-navigation">
             <button class="btn btn-outline" onclick="previousWeek()">
                 <i class="fas fa-chevron-left"></i> Semaine précédente
             </button>
             <h1 class="current-week">
-                <i class="fas fa-calendar-alt"></i>
-                <span id="weekTitle">{{ current_week or 'Semaine courante' }}</span>
+                <i class="fas fa-calendar-week"></i>
+                <span id="weekTitle">Semaine du 9 au 15 Juin 2025</span>
             </h1>
             <button class="btn btn-outline" onclick="nextWeek()">
                 Semaine suivante <i class="fas fa-chevron-right"></i>
             </button>
         </div>
-        
+
         <div class="planning-actions">
             <button class="btn btn-primary" onclick="showAddShiftModal()">
                 <i class="fas fa-plus"></i> Ajouter un créneau
             </button>
-            <button class="btn btn-secondary" onclick="exportPlanning()">
-                <i class="fas fa-download"></i> Exporter
+            <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
+                <i class="fas fa-user-plus"></i> Nouvel équipier
             </button>
+
+            <div class="granularity-selector-container">
+                <label for="granularitySelect">
+                    <i class="fas fa-clock"></i> Granularité :
+                </label>
+                <select id="granularitySelect" class="granularity-select">
+                    {% for value, label in available_granularities.items() %}
+                    <option value="{{ value }}" {% if value == time_slot_granularity %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="granularity-info">
+                    <small>Créneaux: <span id="slotsCount">{{ config_data.GRANULARITY_INFO.total_slots }}</span></small>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Avatars aléatoires">
+                    <i class="fas fa-dice"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Contrôles de filtre -->
-    <div class="filter-controls">
-        <div class="filter-group">
-            <label for="filterEmployee">Équipier :</label>
-            <select id="filterEmployee" onchange="applyFilters()">
-                <option value="">Tous les équipiers</option>
-                {% for employee in employees %}
-                <option value="{{ employee.id }}">{{ employee.nom_complet }}</option>
-                {% endfor %}
-            </select>
+    <!-- SECTION DES COLONNES D'EMPLOYÉS RESTAURÉE -->
+    <div class="employees-section">
+        <h2 class="employees-title">
+            <i class="fas fa-users"></i>
+            Colonnes d'employés
+        </h2>
+        <div class="employee-columns" id="employeeColumns">
+            {% for employee in employees %}
+            <div class="employee-column {{ employee.poste }}" data-employee-id="{{ employee.id }}">
+                <img class="employee-avatar"
+                     src="https://ui-avatars.com/api/?name={{ employee.prenom }}+{{ employee.nom }}&size=45&background={{ employee.type_info.color.replace('#', '') }}&color=fff"
+                     alt="{{ employee.nom_complet }}"
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ employee.prenom.0 }}{{ employee.nom.0 }}&size=45&background=6c757d&color=fff'">
+                <div class="employee-info">
+                    <div class="employee-name">{{ employee.nom_complet }}</div>
+                    <div class="employee-role">{{ employee.type_info.name }}</div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Colonne libre -->
+            <div class="employee-column libre">
+                <div class="employee-info">
+                    <div class="employee-name">Colonne libre</div>
+                    <div class="employee-role">Disponible pour assignation</div>
+                </div>
+            </div>
         </div>
-        
-        <div class="filter-group">
-            <label for="filterType">Type de poste :</label>
-            <select id="filterType" onchange="applyFilters()">
-                <option value="">Tous les postes</option>
-                {% for type_key, type_info in employee_types.items() %}
-                <option value="{{ type_key }}">{{ type_info.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="filterDay">Jour :</label>
-            <select id="filterDay" onchange="applyFilters()">
-                <option value="">Tous les jours</option>
+    </div>
+
+    <div class="legend-container" id="legendContainer"></div>
+
+    <div class="planning-wrapper">
+        <div class="planning-grid-container">
+            <div class="planning-grid-header">
+                <div class="time-column-header">
+                    <i class="fas fa-clock"></i> Heure
+                </div>
                 {% for day in days %}
-                <option value="{{ day }}">{{ day }}</option>
+                <div class="day-header">{{ day }}</div>
                 {% endfor %}
-            </select>
-        </div>
-        
-        <div class="export-actions">
-            <button class="btn btn-outline" onclick="exportPDF()">
-                <i class="fas fa-file-pdf"></i> PDF
-            </button>
-            <button class="btn btn-outline" onclick="exportExcel()">
-                <i class="fas fa-file-excel"></i> Excel
-            </button>
-        </div>
-    </div>
-
-    <!-- Onglets de vue -->
-    <div class="planning-tabs">
-        <button class="planning-tab active" onclick="switchTab('day-view')">
-            <i class="fas fa-calendar-day"></i> Vue par jour
-        </button>
-        <button class="planning-tab" onclick="switchTab('employee-view')">
-            <i class="fas fa-users"></i> Vue par équipier
-        </button>
-        <button class="planning-tab" onclick="switchTab('timeline-view')">
-            <i class="fas fa-clock"></i> Timeline
-        </button>
-    </div>
-
-    <!-- Vue par jour -->
-    <div id="day-view" class="tab-content active">
-        {% for day in days %}
-        <div class="day-schedule" data-day="{{ day }}">
-            <div class="day-header-detailed">
-                <div class="day-title">
-                    <i class="fas fa-calendar"></i> {{ day }}
-                </div>
-                <div class="day-stats">
-                    <span id="dayHours-{{ day }}">0h</span> •
-                    <span id="dayEmployees-{{ day }}">0 équipiers</span>
-                </div>
             </div>
+            <div class="planning-grid" id="planningGrid"></div>
+        </div>
+    </div>
 
-            <div class="shifts-timeline">
-                <div id="shifts-{{ day }}" class="shifts-container">
-                    <!-- Créneaux générés par JavaScript -->
-                </div>
-
-                <div class="day-actions" style="text-align: center; margin-top: 1rem;">
-                    <button class="btn btn-outline" onclick="showAddShiftModal('{{ day }}')">
-                        <i class="fas fa-plus"></i> Ajouter un créneau ce {{ day.lower() }}
-                    </button>
-                </div>
+    <div class="quick-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="totalHoursDisplay">{{ stats.total_hours }}</div>
+            <div class="stat-label">Heures totales</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="activeEmployeesDisplay">{{ stats.active_employees }}</div>
+            <div class="stat-label">Équipiers actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="averageHoursDisplay">{{ "%.1f"|format(stats.average_hours) }}h</div>
+            <div class="stat-label">Moyenne par personne</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="photoCountDisplay">
+                <span id="photoCount">0</span>
             </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Vue par équipier -->
-    <div id="employee-view" class="tab-content">
-        <div class="employee-view" id="employeeCards">
-            <!-- Cartes d'équipiers générées par JavaScript -->
-        </div>
-    </div>
-
-    <!-- Vue timeline -->
-    <div id="timeline-view" class="tab-content">
-        <div class="timeline-container">
-            <canvas id="timelineCanvas" width="800" height="600"></canvas>
+            <div class="stat-label">Photos ajoutées</div>
         </div>
     </div>
 </div>
 
-<!-- Modal de confirmation de suppression -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-exclamation-triangle"></i> Confirmer la suppression</h2>
-            <span class="modal-close" onclick="closeModal('deleteModal')">&times;</span>
-        </div>
-        <div class="modal-body">
-            <p>Êtes-vous sûr de vouloir supprimer ce créneau ?</p>
-            <p><strong id="deleteShiftInfo"></strong></p>
-            <p class="text-warning">Cette action est irréversible.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Annuler</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                <i class="fas fa-trash"></i> Supprimer
-            </button>
-        </div>
-    </div>
+<div class="granularity-indicator" id="granularityIndicator">
+    <i class="fas fa-clock"></i>
+    <span id="granularityIndicatorText">{{ config_data.GRANULARITY_INFO.granularity_label }}</span>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- JAVASCRIPT SPÉCIFIQUE À LA PAGE PLANNING -->
 <script>
-// Variables globales pour la vue détaillée
-let filteredData = {
-    employees: new Map(),
-    shifts: new Map(),
-    filters: {
-        employee: '',
-        type: '',
-        day: ''
-    }
-};
-
-// Initialisation de la vue détaillée
 document.addEventListener('DOMContentLoaded', function() {
-    loadDetailedPlanningData();
-    generateDetailedViews();
-});
+    let currentWeekOffset = 0;
+    let employees = new Map();
+    let shifts = new Map();
 
-function loadDetailedPlanningData() {
-    // Charger les données depuis les variables globales ou l'API
-    const employeesData = {{ employees | tojson }};
-    const shiftsData = {{ shifts | tojson }};
-
-    filteredData.employees.clear();
-    filteredData.shifts.clear();
-
-    employeesData.forEach(emp => {
-        filteredData.employees.set(emp.id, emp);
-    });
-
-    shiftsData.forEach(shift => {
-        filteredData.shifts.set(shift.id, shift);
-    });
-}
-
-function generateDetailedViews() {
-    generateDayView();
-    generateEmployeeView();
-    generateTimelineView();
-    updateDayStats();
-}
-
-function generateDayView() {
-    const days = {{ days | tojson }};
-
-    days.forEach(day => {
-        const container = document.getElementById(`shifts-${day}`);
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        // Récupérer les créneaux du jour
-        const dayShifts = Array.from(filteredData.shifts.values())
-            .filter(shift => shift.day === day && passesFilters(shift))
-            .sort((a, b) => a.start_hour - b.start_hour);
-
-        if (dayShifts.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>Aucun service programmé ce ${day.toLowerCase()}</p>
-                </div>
-            `;
-            return;
-        }
-
-        dayShifts.forEach(shift => {
-            const employee = filteredData.employees.get(shift.employee_id);
-            if (!employee) return;
-
-            const shiftElement = document.createElement('div');
-            shiftElement.className = 'shift-item';
-            shiftElement.style.borderLeftColor = getEmployeeColor(employee.poste);
-
-            shiftElement.innerHTML = `
-                <div class="shift-time-detail">
-                    <i class="fas fa-clock"></i> ${shift.formatted_hours}
-                </div>
-                <div class="shift-employee-detail">
-                    <div class="employee-name-detail">${employee.nom_complet}</div>
-                    <div class="employee-role-detail">
-                        <i class="fas fa-user-tag"></i> ${employee.type_info.name}
-                        ${shift.duration > 1 ? `• ${shift.duration}h` : ''}
-                        ${shift.notes ? `• ${shift.notes}` : ''}
-                    </div>
-                </div>
-                <div class="shift-actions">
-                    <button class="btn-icon edit" onclick="editShift('${shift.id}')" title="Modifier">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon delete" onclick="confirmDeleteShift('${shift.id}')" title="Supprimer">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-
-            container.appendChild(shiftElement);
-        });
-    });
-}
-
-function generateEmployeeView() {
-    const container = document.getElementById('employeeCards');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    const employees = Array.from(filteredData.employees.values())
-        .filter(emp => passesEmployeeFilters(emp))
-        .sort((a, b) => a.nom.localeCompare(b.nom));
-
-    if (employees.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-users"></i>
-                <p>Aucun équipier ne correspond aux filtres</p>
-            </div>
-        `;
-        return;
-    }
-
-    employees.forEach(employee => {
-        const employeeShifts = Array.from(filteredData.shifts.values())
-            .filter(shift => shift.employee_id === employee.id && passesFilters(shift));
-
-        const totalHours = employeeShifts.reduce((sum, shift) => sum + shift.duration, 0);
-        const totalCost = totalHours * employee.taux_horaire;
-
-        const card = document.createElement('div');
-        card.className = 'employee-card';
-
-        card.innerHTML = `
-            <div class="employee-header">
-                <div class="employee-name">${employee.nom_complet}</div>
-                <div class="employee-role">
-                    <i class="fas fa-user-tag"></i> ${employee.type_info.name}
-                </div>
-                <div class="employee-week-stats">
-                    <div class="employee-stat">
-                        <div class="employee-stat-value">${totalHours}h</div>
-                        <div class="employee-stat-label">Total</div>
-                    </div>
-                    <div class="employee-stat">
-                        <div class="employee-stat-value">${employeeShifts.length}</div>
-                        <div class="employee-stat-label">Services</div>
-                    </div>
-                    <div class="employee-stat">
-                        <div class="employee-stat-value">€${totalCost.toFixed(0)}</div>
-                        <div class="employee-stat-label">Coût</div>
-                    </div>
-                </div>
-            </div>
-            <div class="employee-shifts">
-                ${employeeShifts.length > 0 ?
-                    employeeShifts
-                        .sort((a, b) => {
-                            const dayOrder = {{ days | tojson }};
-                            return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day) || a.start_hour - b.start_hour;
-                        })
-                        .map(shift => `
-                            <div class="employee-shift-item">
-                                <div>
-                                    <div class="shift-day-time">${shift.day} ${shift.formatted_hours}</div>
-                                    <div class="shift-duration">${shift.duration}h${shift.notes ? ` • ${shift.notes}` : ''}</div>
-                                </div>
-                                <div class="shift-actions">
-                                    <button class="btn-icon edit" onclick="editShift('${shift.id}')" title="Modifier">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')
-                    : '<div class="empty-state"><i class="fas fa-calendar-times"></i><p>Aucun service cette semaine</p></div>'
-                }
-            </div>
-        `;
-
-        container.appendChild(card);
-    });
-}
-
-function generateTimelineView() {
-    const canvas = document.getElementById('timelineCanvas');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Effacer le canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Configuration
-    const days = {{ days | tojson }};
-    const hours = {{ hours | tojson }};
-    const dayWidth = width / days.length;
-    const hourHeight = height / hours.length;
-
-    // Dessiner la grille
-    ctx.strokeStyle = '#e9ecef';
-    ctx.lineWidth = 1;
-
-    // Lignes verticales (jours)
-    for (let i = 0; i <= days.length; i++) {
-        const x = i * dayWidth;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-    }
-
-    // Lignes horizontales (heures)
-    for (let i = 0; i <= hours.length; i++) {
-        const y = i * hourHeight;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-    }
-
-    // Dessiner les créneaux
-    Array.from(filteredData.shifts.values())
-        .filter(shift => passesFilters(shift))
-        .forEach(shift => {
-            const employee = filteredData.employees.get(shift.employee_id);
-            if (!employee) return;
-
-            const dayIndex = days.indexOf(shift.day);
-            const hourIndex = hours.indexOf(shift.start_hour);
-
-            if (dayIndex === -1 || hourIndex === -1) return;
-
-            const x = dayIndex * dayWidth + 2;
-            const y = hourIndex * hourHeight + 2;
-            const w = dayWidth - 4;
-            const h = (shift.duration * hourHeight) - 4;
-
-            // Couleur selon le type d'employé
-            ctx.fillStyle = getEmployeeColor(employee.poste);
-            ctx.fillRect(x, y, w, h);
-
-            // Texte
-            ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-
-            const centerX = x + w / 2;
-            const centerY = y + h / 2;
-
-            ctx.fillText(employee.prenom, centerX, centerY);
-            if (h > 30) {
-                ctx.fillText(`${shift.duration}h`, centerX, centerY + 15);
+    // Charger les données Flask dans les variables globales
+    if (window.FLASK_DATA?.employees) {
+        window.FLASK_DATA.employees.forEach(emp => {
+            // Ajouter nom_complet s'il n'existe pas
+            if (!emp.nom_complet) {
+                emp.nom_complet = `${emp.prenom} ${emp.nom}`;
             }
+            employees.set(emp.id, emp);
         });
+        window.employees = employees; // Exposer globalement
 
-    // Légendes des jours
-    ctx.fillStyle = '#495057';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-
-    days.forEach((day, index) => {
-        const x = (index + 0.5) * dayWidth;
-        ctx.fillText(day.substr(0, 3), x, height + 20);
-    });
-
-    // Légendes des heures
-    ctx.textAlign = 'right';
-    hours.forEach((hour, index) => {
-        const y = (index + 0.5) * hourHeight;
-        ctx.fillText(`${hour.toString().padStart(2, '0')}h`, -5, y + 5);
-    });
-}
-
-function updateDayStats() {
-    const days = {{ days | tojson }};
-
-    days.forEach(day => {
-        const dayShifts = Array.from(filteredData.shifts.values())
-            .filter(shift => shift.day === day && passesFilters(shift));
-
-        const totalHours = dayShifts.reduce((sum, shift) => sum + shift.duration, 0);
-        const uniqueEmployees = new Set(dayShifts.map(shift => shift.employee_id)).size;
-
-        const hoursElement = document.getElementById(`dayHours-${day}`);
-        const employeesElement = document.getElementById(`dayEmployees-${day}`);
-
-        if (hoursElement) hoursElement.textContent = `${totalHours}h`;
-        if (employeesElement) employeesElement.textContent = `${uniqueEmployees} équipier${uniqueEmployees > 1 ? 's' : ''}`;
-    });
-}
-
-function passesFilters(shift) {
-    const filters = filteredData.filters;
-
-    if (filters.employee && shift.employee_id !== filters.employee) {
-        return false;
-    }
-
-    if (filters.day && shift.day !== filters.day) {
-        return false;
-    }
-
-    if (filters.type) {
-        const employee = filteredData.employees.get(shift.employee_id);
-        if (!employee || employee.poste !== filters.type) {
-            return false;
+        // Créer un AppState global pour compatibilité
+        if (!window.AppState) {
+            window.AppState = {
+                employees: employees,
+                shifts: new Map()
+            };
         }
     }
 
-    return true;
-}
-
-function passesEmployeeFilters(employee) {
-    const filters = filteredData.filters;
-
-    if (filters.employee && employee.id !== filters.employee) {
-        return false;
+    if (window.FLASK_DATA?.shifts) {
+        window.FLASK_DATA.shifts.forEach(shift => shifts.set(shift.id, shift));
+        window.shifts = shifts; // Exposer globalement
+        window.AppState.shifts = shifts;
     }
 
-    if (filters.type && employee.poste !== filters.type) {
-        return false;
-    }
-
-    return true;
-}
-
-function getEmployeeColor(type) {
-    const colors = {
-        'cuisinier': '#74b9ff',
-        'serveur': '#00b894',
-        'barman': '#fdcb6e',
-        'manager': '#a29bfe',
-        'aide': '#6c5ce7',
-        'commis': '#fd79a8'
-    };
-    return colors[type] || '#74b9ff';
-}
-
-function switchTab(tabName) {
-    // Masquer tous les contenus
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    // Désactiver tous les onglets
-    document.querySelectorAll('.planning-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    // Afficher le contenu sélectionné
-    const content = document.getElementById(tabName);
-    if (content) {
-        content.classList.add('active');
-    }
-
-    // Activer l'onglet correspondant
-    const tabs = document.querySelectorAll('.planning-tab');
-    const tabIndex = ['day-view', 'employee-view', 'timeline-view'].indexOf(tabName);
-    if (tabs[tabIndex]) {
-        tabs[tabIndex].classList.add('active');
-    }
-
-    // Régénérer la vue si nécessaire
-    if (tabName === 'timeline-view') {
-        setTimeout(generateTimelineView, 100);
-    }
-}
-
-function applyFilters() {
-    filteredData.filters.employee = document.getElementById('filterEmployee').value;
-    filteredData.filters.type = document.getElementById('filterType').value;
-    filteredData.filters.day = document.getElementById('filterDay').value;
-
-    generateDetailedViews();
-}
-
-function editShift(shiftId) {
-    const shift = filteredData.shifts.get(shiftId);
-    if (shift && window.PlanningUI) {
-        window.PlanningUI.showEditShiftModal(shift);
-    }
-}
-
-function confirmDeleteShift(shiftId) {
-    const shift = filteredData.shifts.get(shiftId);
-    const employee = filteredData.employees.get(shift.employee_id);
-
-    if (!shift || !employee) return;
-
-    document.getElementById('deleteShiftInfo').textContent =
-        `${employee.nom_complet} - ${shift.day} ${shift.formatted_hours}`;
-
-    document.getElementById('confirmDeleteBtn').onclick = () => deleteShift(shiftId);
-    document.getElementById('deleteModal').style.display = 'block';
-}
-
-async function deleteShift(shiftId) {
+    // Initialiser le gestionnaire d'avatars
     try {
-        const result = await fetch(`/api/shifts/${shiftId}`, { method: 'DELETE' });
-        const data = await result.json();
+        if (!window.avatarManager && typeof AvatarManager !== 'undefined') {
+            window.avatarManager = new AvatarManager();
+            console.log('✅ Gestionnaire d\'avatars initialisé');
 
-        if (data.success) {
-            filteredData.shifts.delete(shiftId);
-            generateDetailedViews();
-            closeModal('deleteModal');
-
-            if (window.NotificationManager) {
-                window.NotificationManager.show('✅ Créneau supprimé', 'success');
-            }
-        } else {
-            throw new Error(data.error);
+            // Mettre à jour le compteur de photos
+            updatePhotoCount();
         }
     } catch (error) {
-        if (window.NotificationManager) {
-            window.NotificationManager.show('❌ Erreur lors de la suppression', 'error');
+        console.error('❌ Erreur initialisation avatars:', error);
+    }
+
+    // Fonctions de navigation par semaine
+    window.previousWeek = function() {
+        currentWeekOffset--;
+        updateWeekDisplay();
+        showNotification('📅 Semaine précédente', 'success');
+    };
+
+    window.nextWeek = function() {
+        currentWeekOffset++;
+        updateWeekDisplay();
+        showNotification('📅 Semaine suivante', 'success');
+    };
+
+    function updateWeekDisplay() {
+        const today = new Date();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - today.getDay() + 1 + (currentWeekOffset * 7));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const options = { day: 'numeric', month: 'long' };
+        const mondayStr = monday.toLocaleDateString('fr-FR', options);
+        const sundayStr = sunday.toLocaleDateString('fr-FR', options);
+
+        document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
+    }
+
+    // Gestionnaire de granularité
+    const granularitySelect = document.getElementById('granularitySelect');
+    if (granularitySelect) {
+        granularitySelect.addEventListener('change', function() {
+            const newGranularity = parseInt(this.value);
+            console.log(`Changement de granularité: ${newGranularity} minutes`);
+
+            // Mettre à jour l'indicateur
+            const indicator = document.getElementById('granularityIndicatorText');
+            if (indicator) {
+                const labels = {
+                    15: '15 min',
+                    30: '30 min',
+                    60: '1 heure'
+                };
+                indicator.textContent = labels[newGranularity] || `${newGranularity} min`;
+            }
+
+            // Mettre à jour le compteur de créneaux
+            const slotsCount = document.getElementById('slotsCount');
+            if (slotsCount) {
+                const totalSlots = (16 * 60) / newGranularity; // 16 heures de service
+                slotsCount.textContent = totalSlots;
+            }
+
+            showNotification(`⏱️ Granularité changée: ${newGranularity} minutes`, 'success');
+
+            // Regénérer le planning si le renderer est disponible
+            if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
+                setTimeout(() => PlanningRenderer.generatePlanningGrid(), 100);
+            }
+        });
+    }
+
+    // Fonction pour mettre à jour le compteur de photos
+    function updatePhotoCount() {
+        const photoCountElement = document.getElementById('photoCount');
+        if (photoCountElement && window.avatarManager) {
+            const count = window.avatarManager.photoCache ? window.avatarManager.photoCache.size : 0;
+            photoCountElement.textContent = count;
         }
     }
-}
 
-function exportPlanning() {
-    // Logique d'export (à implémenter selon les besoins)
-    if (window.NotificationManager) {
-        window.NotificationManager.show('Fonctionnalité d\'export en cours de développement', 'info');
-    }
-}
+    // Fonction globale pour générer des avatars aléatoires
+    window.generateRandomAvatars = function() {
+        if (window.avatarManager && typeof window.avatarManager.generateRandomAvatars === 'function') {
+            window.avatarManager.generateRandomAvatars();
+        } else {
+            // Fallback: simuler la génération d'avatars
+            showNotification('🎨 Nouveaux avatars générés aléatoirement', 'success');
 
-function exportPDF() {
-    // Export PDF (nécessiterait une librairie comme jsPDF)
-    if (window.NotificationManager) {
-        window.NotificationManager.show('Export PDF en cours de développement', 'info');
-    }
-}
+            // Mettre à jour visuellement les avatars dans les colonnes
+            const avatarImages = document.querySelectorAll('.employee-avatar');
+            avatarImages.forEach(img => {
+                const timestamp = Date.now();
+                const currentSrc = img.src;
+                if (currentSrc.includes('ui-avatars.com')) {
+                    img.src = currentSrc + '&t=' + timestamp;
+                }
+            });
+        }
+        updatePhotoCount();
+    };
 
-function exportExcel() {
-    // Export Excel (nécessiterait une librairie comme SheetJS)
-    if (window.NotificationManager) {
-        window.NotificationManager.show('Export Excel en cours de développement', 'info');
+    // Améliorer l'affichage des colonnes d'employés
+    function enhanceEmployeeColumns() {
+        const columns = document.querySelectorAll('.employee-column');
+        columns.forEach(column => {
+            // Ajouter des effets hover améliorés
+            column.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateX(5px) translateY(-2px)';
+            });
+
+            column.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateX(0) translateY(0)';
+            });
+
+            // Clic pour modifier l'employé
+            column.addEventListener('click', function() {
+                const employeeId = this.dataset.employeeId;
+                if (employeeId) {
+                    showEditEmployeeModal(employeeId);
+                }
+            });
+        });
     }
-}
+
+    // Attendre que tous les scripts soient chargés avant d'initialiser
+    setTimeout(() => {
+        console.log('🎯 Initialisation spécifique à la page planning...');
+
+        // Améliorer les colonnes d'employés
+        enhanceEmployeeColumns();
+
+        // Initialiser la légende si les scripts sont prêts
+        if (typeof PlanningUI !== 'undefined' && PlanningUI.updateLegend) {
+            PlanningUI.updateLegend();
+        }
+
+        // Initialiser l'affichage si les scripts sont prêts
+        if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
+            PlanningRenderer.generatePlanningGrid();
+        }
+
+        // Mettre à jour l'affichage initial de la semaine
+        updateWeekDisplay();
+
+        // Mettre à jour le compteur de photos
+        updatePhotoCount();
+
+        console.log('✅ Page planning initialisée avec colonnes d\'employés restaurées');
+    }, 1500);
+
+    // Fonction pour afficher les statistiques
+    window.showStats = function() {
+        if (window.AppState && window.AppState.employees) {
+            const totalEmployees = window.AppState.employees.size;
+            const totalShifts = window.AppState.shifts ? window.AppState.shifts.size : 0;
+
+            showNotification(`📊 ${totalEmployees} employés, ${totalShifts} créneaux`, 'info');
+        } else {
+            showNotification('📊 Statistiques : En cours de chargement...', 'info');
+        }
+    };
+});
 </script>
+
 {% endblock %}

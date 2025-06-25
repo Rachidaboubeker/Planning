@@ -307,13 +307,11 @@
     <!-- 1. CORE & CONFIG -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/logger-fix.js') }}"></script>
-    <!--<script src="{{ url_for('static', filename='js/planning-core.js') }}"></script>-->
     <script src="{{ url_for('static', filename='js/quarter-hour-system.js') }}"></script>
 
     <!-- 2. UTILITAIRES -->
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/planning-utils.js') }}"></script>
-
 
     <!-- 3. GESTIONNAIRES DE BASE -->
     <script src="{{ url_for('static', filename='js/api-manager.js') }}"></script>
@@ -325,7 +323,7 @@
     <!-- 4. GESTIONNAIRES SPÉCIALISÉS -->
     <script src="{{ url_for('static', filename='js/color-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/avatar-manager.js') }}"></script>
-    <!--<script src="{{ url_for('static', filename='js/drag-drop-manager.js') }}"></script>-->
+    <script src="{{ url_for('static', filename='js/avatar-fix.js') }}"></script>
 
     <!-- 5. MODULES PLANNING -->
     <script src="{{ url_for('static', filename='js/shift-element.js') }}"></script>
@@ -341,7 +339,6 @@
     <script src="{{ url_for('static', filename='js/planning-renderer-granularity-fix.js') }}"></script>
     <script src="{{ url_for('static', filename='js/drag-drop-unified-fix.js') }}"></script>
     <script src="{{ url_for('static', filename='js/drag-drop-debug.js') }}"></script>
-    <!--<script src="{{ url_for('static', filename='js/legend-display-fix.js') }}"></script>-->
 
     <!-- 9. GESTIONNAIRE GRANULARITÉ -->
     <script src="{{ url_for('static', filename='js/granularity-manager.js') }}"></script>
@@ -682,17 +679,28 @@
         const employees = Array.from(window.AppState?.employees?.values() || [])
             .filter(emp => emp.actif !== false);
 
-        grid.innerHTML = employees.map(employee => `
-            <div class="employee-photo-item">
-                <div class="employee-photo-card">
-                    <div style="width: 60px; height: 60px; background: #74b9ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 10px;">
-                        ${(employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase()}
+        grid.innerHTML = employees.map(employee => {
+            const typeColors = {
+                'cuisinier': '#74b9ff',
+                'serveur': '#00b894',
+                'barman': '#fdcb6e',
+                'manager': '#a29bfe',
+                'commis': '#fd79a8'
+            };
+            const bgColor = typeColors[employee.poste] || '#6c757d';
+
+            return `
+                <div class="employee-photo-item">
+                    <div class="employee-photo-card">
+                        <div style="width: 60px; height: 60px; background: ${bgColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                            ${(employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase()}
+                        </div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">${employee.nom_complet}</div>
+                        <div style="font-size: 0.8em; color: #666; text-transform: capitalize;">${employee.poste}</div>
                     </div>
-                    <div>${employee.nom_complet}</div>
-                    <div style="font-size: 0.8em; color: #666;">${employee.poste}</div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function selectAllPhotos() { console.log('Fonction à implémenter'); }
@@ -731,16 +739,482 @@
     console.log('✅ Système unifié de modaux chargé');
     </script>
 
-    <!-- STYLES COMPLÉMENTAIRES -->
+    <!-- STYLES COMPLÉMENTAIRES POUR RESTAURER L'INTERFACE -->
     <style>
     template { display: none !important; }
 
+    /* ===== STYLES POUR AVATARS ET INTERFACE MODERNE ===== */
+
+    /* Variables CSS pour cohérence des couleurs */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-color: #00b894;
+        --warning-color: #fdcb6e;
+        --error-color: #e74c3c;
+        --cuisinier-color: #74b9ff;
+        --serveur-color: #00b894;
+        --barman-color: #fdcb6e;
+        --manager-color: #a29bfe;
+        --commis-color: #fd79a8;
+        --border-radius: 8px;
+        --border-radius-lg: 12px;
+        --border-radius-xl: 20px;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+        --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.2);
+        --transition: all 0.3s ease;
+    }
+
+    /* Styles pour les colonnes d'employés avec avatars */
+    .employee-columns {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .employee-column {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        border-radius: var(--border-radius-lg);
+        transition: var(--transition);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+    .employee-column:hover {
+        transform: translateX(5px) translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .employee-column.cuisinier {
+        background: linear-gradient(135deg, var(--cuisinier-color), #0984e3);
+        color: white;
+    }
+
+    .employee-column.serveur {
+        background: linear-gradient(135deg, var(--serveur-color), #00a085);
+        color: white;
+    }
+
+    .employee-column.barman {
+        background: linear-gradient(135deg, var(--barman-color), #e17055);
+        color: white;
+    }
+
+    .employee-column.manager {
+        background: linear-gradient(135deg, var(--manager-color), #6c5ce7);
+        color: white;
+    }
+
+    .employee-column.commis {
+        background: linear-gradient(135deg, var(--commis-color), #e84393);
+        color: white;
+    }
+
+    .employee-column.libre {
+        background: linear-gradient(135deg, #ddd, #bbb);
+        color: #666;
+        border: 2px dashed #999;
+    }
+
+    /* Avatars dans les colonnes */
+    .employee-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        object-fit: cover;
+        transition: var(--transition);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .employee-avatar:hover {
+        transform: scale(1.1);
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .employee-info {
+        flex: 1;
+    }
+
+    .employee-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .employee-role {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: capitalize;
+    }
+
+    /* Styles pour les créneaux avec avatars */
+    .shift-block {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--border-radius);
+        padding: 8px;
+        margin: 2px 0;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shift-block:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .shift-block:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    /* Avatars dans les créneaux */
+    .shift-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        object-fit: cover;
+        flex-shrink: 0;
+        transition: var(--transition);
+    }
+
+    .shift-avatar:hover {
+        transform: scale(1.1);
+        border-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .shift-initials {
+        font-weight: bold;
+        font-size: 0.8rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Styles de couleur par type d'employé pour les créneaux */
+    .shift-block.cuisinier {
+        background: linear-gradient(135deg, var(--cuisinier-color), #0984e3);
+    }
+
+    .shift-block.serveur {
+        background: linear-gradient(135deg, var(--serveur-color), #00a085);
+    }
+
+    .shift-block.barman {
+        background: linear-gradient(135deg, var(--barman-color), #e17055);
+    }
+
+    .shift-block.manager {
+        background: linear-gradient(135deg, var(--manager-color), #6c5ce7);
+    }
+
+    .shift-block.commis {
+        background: linear-gradient(135deg, var(--commis-color), #e84393);
+    }
+
+    /* Grille de planning moderne */
+    .planning-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: #dee2e6;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .planning-grid-header {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background: #dee2e6;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        overflow: hidden;
+        margin-bottom: 1px;
+    }
+
+    .time-column-header,
+    .day-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 1rem 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .time-slot {
+        background: #f8f9fa;
+        padding: 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-right: 1px solid #dee2e6;
+    }
+
+    /* Heures principales avec style distinctif */
+    .time-slot:not(.sub-time-slot) {
+        background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+        color: white;
+        font-weight: bold;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .schedule-cell {
+        background: white;
+        min-height: 50px;
+        position: relative;
+        border: 1px solid #e1e5e9;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .schedule-cell:hover {
+        background: rgba(102, 126, 234, 0.05);
+        border-color: #6366f1;
+    }
+
+    /* Notifications modernes */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: var(--border-radius-lg);
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        transform: translateX(100%);
+        transition: var(--transition);
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(10px);
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification.success {
+        background: linear-gradient(135deg, var(--success-color), #00a085);
+    }
+
+    .notification.warning {
+        background: linear-gradient(135deg, var(--warning-color), #e17055);
+    }
+
+    .notification.error {
+        background: linear-gradient(135deg, var(--error-color), #c0392b);
+    }
+
+    /* Modals avec design moderne */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: var(--border-radius-xl);
+        width: 90%;
+        max-width: 600px;
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .modal-close {
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: white;
+        opacity: 0.8;
+        transition: var(--transition);
+    }
+
+    .modal-close:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    /* Formulaires modernes */
+    .form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        transition: var(--transition);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Boutons modernes */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: var(--border-radius-lg);
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: var(--transition);
+        font-size: 0.95rem;
+        line-height: 1;
+        box-shadow: var(--shadow);
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--error-color), #c0392b);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+    }
+
+    .btn-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(23, 162, 184, 0.3);
+    }
+
+    /* Alertes */
     .alert {
         display: flex;
         align-items: flex-start;
         gap: 0.75rem;
         padding: 1rem;
-        border-radius: 8px;
+        border-radius: var(--border-radius);
         margin: 1rem 0;
         font-size: 0.9rem;
         line-height: 1.4;
@@ -755,12 +1229,13 @@
     .delete-item-info {
         background: #f8f9fa;
         padding: 1rem;
-        border-radius: 8px;
+        border-radius: var(--border-radius);
         border-left: 4px solid #dc3545;
         margin: 1rem 0;
         font-weight: 600;
     }
 
+    /* Gestion des photos */
     .bulk-photo-manager {
         max-height: 60vh;
         overflow-y: auto;
@@ -784,18 +1259,19 @@
     }
 
     .employee-photo-card {
-        background: #f8f9fa;
+        background: white;
         border: 1px solid #dee2e6;
-        border-radius: 12px;
+        border-radius: var(--border-radius-lg);
         padding: 1rem;
         text-align: center;
-        transition: all 0.2s ease;
+        transition: var(--transition);
+        box-shadow: var(--shadow);
     }
 
     .employee-photo-card:hover {
-        background: #e9ecef;
+        background: #f8f9fa;
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-lg);
     }
 
     .form-help {
@@ -805,8 +1281,37 @@
         color: #6c757d;
         font-style: italic;
     }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 0 1rem;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 2rem auto;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .bulk-actions {
+            flex-direction: column;
+        }
+
+        .employees-photo-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+    }
     </style>
 
     {% block extra_js %}{% endblock %}
+<script src="{{ url_for('static', filename='js/integration-fix.js') }}"></script>
 </body>
 </html>
