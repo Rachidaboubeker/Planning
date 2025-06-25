@@ -1,5 +1,6 @@
 /**
  * Configuration globale de l'application Planning Restaurant
+ * CORRECTION : Ne pas redéclarer AppState s'il existe déjà
  */
 
 // Configuration principale
@@ -9,9 +10,8 @@ const PlanningConfig = {
     MIN_SHIFT_DURATION: 1,
     MAX_SHIFT_DURATION: 12,
     HOURS_RANGE: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2],
-    DAYS_OF_WEEK: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+    DAYS_OF_WEEK: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'],
 
-        // AJOUT URGENT:
     AVATAR_SIZE: {
         small: 24,
         normal: 32,
@@ -29,18 +29,23 @@ const PlanningConfig = {
     }
 };
 
-// État global de l'application
-const AppState = {
-    employees: new Map(),
-    shifts: new Map(),
-    draggedElement: null,
-    dragOffset: { x: 0, y: 0 },
-    isResizing: false,
-    resizeDirection: null,
-    currentWeekOffset: 0,
-    isDirty: false,
-    isLoading: false
-};
+// CORRECTION : Ne créer AppState que s'il n'existe pas déjà
+if (typeof window.AppState === 'undefined') {
+    window.AppState = {
+        employees: new Map(),
+        shifts: new Map(),
+        draggedElement: null,
+        dragOffset: { x: 0, y: 0 },
+        isResizing: false,
+        resizeDirection: null,
+        currentWeekOffset: 0,
+        isDirty: false,
+        isLoading: false
+    };
+    console.log('📋 AppState créé par config.js');
+} else {
+    console.log('📋 AppState existe déjà, conservation des données');
+}
 
 // Événements personnalisés
 const PlanningEvents = {
@@ -73,6 +78,7 @@ const EventBus = {
         }
     }
 };
+
 // Protection contre les boucles DOM
 let isDOMConfiguring = false;
 let lastDOMConfigTime = 0;
@@ -92,4 +98,14 @@ window.configureEvents = function() {
         isDOMConfiguring = false;
     }, 1000);
 };
-console.log('📋 Configuration Planning Restaurant chargée');
+
+// Fonction de diagnostic AppState
+window.debugAppState = function() {
+    console.log('🔍 Debug AppState:');
+    console.log('  employees.size:', window.AppState?.employees?.size);
+    console.log('  shifts.size:', window.AppState?.shifts?.size);
+    console.log('  employees:', window.AppState?.employees);
+    console.log('  shifts:', window.AppState?.shifts);
+};
+
+console.log('📋 Configuration Planning Restaurant chargée (avec protection AppState)');

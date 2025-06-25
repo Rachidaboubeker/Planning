@@ -1,8 +1,6 @@
 /**
- * GESTIONNAIRE DRAG & DROP UNIFIÉ - VERSION COMPLÈTE
- * SEUL GESTIONNAIRE POUR TOUT LE DRAG & DROP
- * Remplace : employee-columns.js, drag-drop-manager.js, planning_backup.js
- * Support : Granularité + Colonnes + Sauvegarde + Gestion d'erreurs
+ * GESTIONNAIRE DRAG & DROP UNIFIÉ - VERSION COMPLÈTE FINALE
+ * Correction de la sauvegarde + gestion complète du drag & drop
  */
 
 class UnifiedDragDropManager {
@@ -57,7 +55,6 @@ class UnifiedDragDropManager {
             const original = window.PlanningRendererColumnExtensions.initializeAllDragDrop;
             window.PlanningRendererColumnExtensions.initializeAllDragDrop = () => {
                 console.log('🚫 employee-columns drag & drop désactivé - gestionnaire unifié actif');
-                // Ne pas exécuter l'original, on gère tout ici
                 setTimeout(() => this.configureAll(), 100);
             };
         }
@@ -124,7 +121,7 @@ class UnifiedDragDropManager {
             element.style.opacity = '0.5';
             element.style.transform = 'rotate(2deg)';
 
-            // Notification avec système de colonnes
+            // Notification si système de colonnes actif
             this.showDragNotification(shift);
 
             // Mettre en évidence les colonnes si système actif
@@ -292,8 +289,8 @@ class UnifiedDragDropManager {
             // Calculer les nouvelles valeurs avec granularité
             const newMinutes = this.calculateDropMinutes(e, cell);
 
-            // Sauvegarder le mouvement
-            const success = await this.saveShiftMove(shiftId, newDay, newHour, newMinutes);
+            // Sauvegarder le mouvement avec méthode corrigée
+            const success = await this.saveShiftMoveFixed(shiftId, newDay, newHour, newMinutes);
 
             if (success) {
                 console.log('✅ Shift déplacé avec succès');
@@ -449,41 +446,62 @@ class UnifiedDragDropManager {
     }
 
     /**
-     * Sauvegarde le déplacement d'un shift
+     * MÉTHODE CORRIGÉE - Sauvegarde le déplacement d'un shift
      */
-    async saveShiftMove(shiftId, newDay, newHour, newMinutes = 0) {
+    async saveShiftMoveFixed(shiftId, newDay, newHour, newMinutes = 0) {
         try {
-            console.log('💾 Sauvegarde du déplacement:', { shiftId, newDay, newHour, newMinutes });
+            console.log('💾 Sauvegarde CORRIGÉE:', { shiftId, newDay, newHour, newMinutes });
 
+            // Récupérer le shift pour avoir l'employee_id
+            const shift = window.AppState?.shifts?.get(shiftId);
+            if (!shift) {
+                console.error('❌ Shift non trouvé dans AppState:', shiftId);
+                return false;
+            }
+
+            // CORRECTION : Inclure TOUS les champs requis
             const data = {
+                employee_id: shift.employee_id,  // REQUIS par le serveur
                 day: newDay,
                 start_hour: newHour,
-                start_minutes: newMinutes
+                duration: shift.duration || 1,   // Garder la durée existante
+                notes: shift.notes || ''         // Garder les notes existantes
             };
 
-            // Utiliser l'API Manager si disponible
-            if (typeof APIManager !== 'undefined') {
-                const response = await APIManager.put(`/shifts/${shiftId}`, data);
-                if (response.success) {
+            // Ajouter start_minutes seulement si granularité fine
+            const granularity = window.FLASK_CONFIG?.TIME_SLOT_GRANULARITY || 60;
+            if (granularity < 60) {
+                data.start_minutes = newMinutes;
+            }
+
+            console.log('📡 Données complètes envoyées au serveur:', data);
+
+            const response = await fetch(`/api/shifts/${shiftId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            console.log('📡 Statut réponse:', response.status);
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Réponse serveur:', result);
+
+                if (result.success) {
                     // Mettre à jour l'état local
-                    this.updateLocalState(shiftId, newDay, newHour, newMinutes);
+                    shift.day = newDay;
+                    shift.start_hour = newHour;
+                    if (data.start_minutes !== undefined) {
+                        shift.start_minutes = newMinutes;
+                    }
                     return true;
                 }
             } else {
-                // Fallback avec fetch
-                const response = await fetch(`/api/shifts/${shiftId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        this.updateLocalState(shiftId, newDay, newHour, newMinutes);
-                        return true;
-                    }
-                }
+                const errorData = await response.json();
+                console.error('❌ Erreur serveur:', response.status, errorData);
             }
 
             return false;
@@ -671,7 +689,7 @@ document.addEventListener('granularityChanged', () => {
     setTimeout(() => unifiedDragDropManager.configureAll(), 200);
 });
 
-console.log('🚀 Gestionnaire Drag & Drop UNIFIÉ installé - Gestion complète centralisée !');
+console.log('🚀 Gestionnaire Drag & Drop UNIFIÉ installé avec sauvegarde CORRIGÉE - Version COMPLÈTE !');
 
 // Export pour utilisation dans d'autres modules
 if (typeof module !== 'undefined' && module.exports) {

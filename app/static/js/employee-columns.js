@@ -1,7 +1,6 @@
 /**
- * GESTION DES COLONNES D'EMPLOYÉS - SANS DRAG & DROP
- * Le drag & drop est maintenant géré par drag-drop-unified-fix.js
- * Ce fichier se contente de gérer les colonnes visuelles
+ * GESTION DES COLONNES D'EMPLOYÉS - CORRIGÉE
+ * Correction de l'initialisation + protection contre null
  */
 
 /**
@@ -11,32 +10,51 @@ class EmployeeColumnManager {
     constructor() {
         this.maxColumns = 5; // Maximum 5 employés par cellule
         this.employeeColumns = new Map(); // employeeId -> columnIndex
-        this.initializeEmployeeColumns();
-        console.log('📋 EmployeeColumnManager initialisé (sans drag & drop)');
+        this.isInitialized = false;
+        console.log('📋 EmployeeColumnManager créé');
     }
 
     /**
-     * Initialise les colonnes d'employés
+     * Initialise les colonnes d'employés avec protection
      */
     initializeEmployeeColumns() {
-        if (!window.AppState?.employees) {
-            console.warn('AppState.employees non disponible');
-            return;
+        try {
+            if (this.isInitialized) {
+                console.log('📋 Colonnes déjà initialisées');
+                return;
+            }
+
+            // Attendre que AppState soit disponible
+            if (!window.AppState?.employees) {
+                console.warn('📋 AppState.employees non disponible, retry dans 500ms');
+                setTimeout(() => this.initializeEmployeeColumns(), 500);
+                return;
+            }
+
+            this.employeeColumns.clear();
+            const employees = Array.from(window.AppState.employees.values());
+
+            employees.forEach((employee, index) => {
+                const columnIndex = index % this.maxColumns;
+                this.employeeColumns.set(employee.id, columnIndex);
+            });
+
+            this.isInitialized = true;
+            console.log(`📋 ${employees.length} employés répartis sur ${this.maxColumns} colonnes`);
+        } catch (error) {
+            console.error('❌ Erreur initialisation colonnes:', error);
+            // Retry dans 1 seconde
+            setTimeout(() => this.initializeEmployeeColumns(), 1000);
         }
-
-        const employees = Array.from(window.AppState.employees.values());
-        employees.forEach((employee, index) => {
-            const columnIndex = index % this.maxColumns;
-            this.employeeColumns.set(employee.id, columnIndex);
-        });
-
-        console.log(`📋 ${employees.length} employés répartis sur ${this.maxColumns} colonnes`);
     }
 
     /**
-     * Récupère l'index de colonne d'un employé
+     * Récupère l'index de colonne d'un employé (avec protection)
      */
     getEmployeeColumn(employeeId) {
+        if (!this.isInitialized) {
+            this.initializeEmployeeColumns();
+        }
         return this.employeeColumns.get(employeeId) || 0;
     }
 
@@ -58,7 +76,16 @@ class EmployeeColumnManager {
      * Met à jour les colonnes quand les employés changent
      */
     updateEmployeeColumns() {
+        this.isInitialized = false;
         this.employeeColumns.clear();
+        this.initializeEmployeeColumns();
+    }
+
+    /**
+     * Force la réinitialisation
+     */
+    forceReinit() {
+        this.isInitialized = false;
         this.initializeEmployeeColumns();
     }
 }
@@ -71,20 +98,20 @@ class PlanningRendererColumnExtensions {
      * Ajoute les guides visuels de colonnes à une cellule
      */
     static addColumnGuides(cell) {
-        if (!employeeColumnManager) return;
+        if (!window.employeeColumnManager) return;
 
         // Nettoyer les anciens guides
         cell.querySelectorAll('.employee-column-guide').forEach(guide => guide.remove());
 
         // Créer les guides de colonnes
-        for (let i = 0; i < employeeColumnManager.maxColumns; i++) {
+        for (let i = 0; i < window.employeeColumnManager.maxColumns; i++) {
             const guide = document.createElement('div');
             guide.className = 'employee-column-guide';
             guide.style.cssText = `
                 position: absolute;
-                left: ${i * (100 / employeeColumnManager.maxColumns)}%;
+                left: ${i * (100 / window.employeeColumnManager.maxColumns)}%;
                 top: 0;
-                width: ${100 / employeeColumnManager.maxColumns}%;
+                width: ${100 / window.employeeColumnManager.maxColumns}%;
                 height: 100%;
                 border-right: 1px solid rgba(0,0,0,0.05);
                 pointer-events: none;
@@ -174,30 +201,6 @@ class PlanningRendererColumnExtensions {
             setTimeout(() => window.UnifiedDragDropFix.configureAll(), 100);
         }
     }
-
-    /**
-     * DÉSACTIVÉ - setupColumnDragDrop
-     */
-    static setupColumnDragDrop(shiftElement, shift) {
-        console.log('🚫 setupColumnDragDrop désactivé - utiliser le gestionnaire unifié');
-        return false;
-    }
-
-    /**
-     * DÉSACTIVÉ - setupColumnDropZone
-     */
-    static setupColumnDropZone(cell) {
-        console.log('🚫 setupColumnDropZone désactivé - utiliser le gestionnaire unifié');
-        return false;
-    }
-
-    /**
-     * DÉSACTIVÉ - saveShiftMovement
-     */
-    static async saveShiftMovement(shiftId, newDay, newHour, newMinutes = 0) {
-        console.log('🚫 saveShiftMovement désactivé - utiliser le gestionnaire unifié');
-        return false;
-    }
 }
 
 /**
@@ -211,9 +214,9 @@ class EmployeeLegendWithColumns {
         const legend = document.getElementById('employeeLegend') || document.getElementById('legendContainer');
         if (!legend) return;
 
-        // Initialiser les colonnes si nécessaire
-        if (typeof employeeColumnManager !== 'undefined') {
-            employeeColumnManager.initializeEmployeeColumns();
+        // S'assurer que le gestionnaire est initialisé
+        if (window.employeeColumnManager && !window.employeeColumnManager.isInitialized) {
+            window.employeeColumnManager.initializeEmployeeColumns();
         }
 
         legend.innerHTML = '';
@@ -230,7 +233,8 @@ class EmployeeLegendWithColumns {
         legend.appendChild(title);
 
         // Créer un indicateur pour chaque colonne
-        for (let i = 0; i < (employeeColumnManager?.maxColumns || 5); i++) {
+        const maxColumns = window.employeeColumnManager?.maxColumns || 5;
+        for (let i = 0; i < maxColumns; i++) {
             const employee = this.getEmployeeByColumn(i);
             const columnDiv = document.createElement('div');
             columnDiv.className = 'employee-column-legend';
@@ -278,9 +282,9 @@ class EmployeeLegendWithColumns {
      * Récupère l'employé assigné à une colonne
      */
     static getEmployeeByColumn(columnIndex) {
-        if (!window.AppState?.employees || !employeeColumnManager) return null;
+        if (!window.AppState?.employees || !window.employeeColumnManager?.isInitialized) return null;
 
-        for (let [employeeId, colIndex] of employeeColumnManager.employeeColumns) {
+        for (let [employeeId, colIndex] of window.employeeColumnManager.employeeColumns) {
             if (colIndex === columnIndex) {
                 return window.AppState.employees.get(employeeId);
             }
@@ -297,47 +301,171 @@ class EmployeeLegendWithColumns {
     }
 }
 
-// ==================== INITIALISATION ====================
+// ==================== INITIALISATION FORCÉE ====================
 
 // Créer l'instance globale du gestionnaire de colonnes
-let employeeColumnManager = null;
+window.employeeColumnManager = new EmployeeColumnManager();
 
-// Initialiser quand les données sont prêtes
-function initializeColumnSystem() {
-    if (window.AppState?.employees && !employeeColumnManager) {
-        employeeColumnManager = new EmployeeColumnManager();
+// INITIALISATION IMMÉDIATE et FORCÉE
+function forceInitializeColumnSystem() {
+    console.log('🔧 Initialisation forcée du système de colonnes...');
+
+    if (window.employeeColumnManager) {
+        window.employeeColumnManager.forceReinit();
 
         // Mettre à jour la légende
         setTimeout(() => {
             EmployeeLegendWithColumns.updateLegendWithColumns();
-        }, 500);
+        }, 200);
 
-        console.log('✅ Système de colonnes initialisé');
+        console.log('✅ Système de colonnes forcé');
     }
 }
 
-// Auto-initialisation
+// Multiples tentatives d'initialisation
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initializeColumnSystem, 1000);
+        setTimeout(forceInitializeColumnSystem, 100);
+        setTimeout(forceInitializeColumnSystem, 500);
+        setTimeout(forceInitializeColumnSystem, 1000);
     });
 } else {
-    setTimeout(initializeColumnSystem, 1000);
+    setTimeout(forceInitializeColumnSystem, 100);
+    setTimeout(forceInitializeColumnSystem, 500);
+    setTimeout(forceInitializeColumnSystem, 1000);
 }
 
 // Réinitialisation quand les employés changent
 if (typeof EventBus !== 'undefined') {
     EventBus.on('EMPLOYEE_ADDED', () => {
-        if (employeeColumnManager) {
-            employeeColumnManager.updateEmployeeColumns();
+        if (window.employeeColumnManager) {
+            window.employeeColumnManager.updateEmployeeColumns();
             EmployeeLegendWithColumns.updateLegendWithColumns();
         }
     });
 }
 
-// Exposer globalement
-window.employeeColumnManager = employeeColumnManager;
+// Exposer globalement (compatibilité)
 window.PlanningRendererColumnExtensions = PlanningRendererColumnExtensions;
 window.EmployeeLegendWithColumns = EmployeeLegendWithColumns;
 
-console.log('📋 Système de colonnes chargé (SANS drag & drop - géré par le système unifié)');
+// Fonction de debug
+window.debugColumns = function() {
+    console.log('🔍 Debug colonnes:');
+    console.log('  employeeColumnManager:', window.employeeColumnManager);
+    console.log('  isInitialized:', window.employeeColumnManager?.isInitialized);
+    console.log('  AppState.employees:', window.AppState?.employees?.size);
+};
+
+console.log('📋 Système de colonnes chargé (CORRIGÉ avec initialisation forcée)');
+
+/**
+ * CORRECTION SIMPLE - FORCER LE CHARGEMENT DES EMPLOYÉS
+ * À ajouter à la fin de employee-columns.js (remplacer la section initialisation)
+ */
+
+// ==================== INITIALISATION FORCÉE IMMÉDIATE ====================
+
+// Fonction de forçage du chargement
+function forceLoadEmployeesIntoColumns() {
+    console.log('🔧 Forçage chargement employés dans colonnes...');
+
+    // Vérifier si AppState.employees existe et a des données
+    if (!window.AppState?.employees || window.AppState.employees.size === 0) {
+        console.warn('⚠️ AppState.employees vide, retry...');
+        return false;
+    }
+
+    // Forcer la création du gestionnaire si inexistant
+    if (!window.employeeColumnManager) {
+        window.employeeColumnManager = new EmployeeColumnManager();
+    }
+
+    // Vider et recharger les colonnes
+    window.employeeColumnManager.employeeColumns.clear();
+    window.employeeColumnManager.isInitialized = false;
+
+    const employees = Array.from(window.AppState.employees.values());
+    console.log(`📋 Chargement forcé de ${employees.length} employés...`);
+
+    employees.forEach((employee, index) => {
+        const columnIndex = index % window.employeeColumnManager.maxColumns;
+        window.employeeColumnManager.employeeColumns.set(employee.id, columnIndex);
+        console.log(`  • ${employee.prenom} → Colonne ${columnIndex + 1}`);
+    });
+
+    window.employeeColumnManager.isInitialized = true;
+    console.log(`✅ ${employees.length} employés forcés dans colonnes`);
+
+    return true;
+}
+
+// Tentatives multiples et persistantes
+function attemptForceLoad() {
+    if (forceLoadEmployeesIntoColumns()) {
+        // Succès - recharger le planning
+        console.log('🎯 Rechargement du planning après chargement employés...');
+
+        if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.renderShifts) {
+            setTimeout(() => {
+                PlanningRenderer.renderShifts();
+            }, 200);
+        }
+
+        return;
+    }
+
+    // Échec - retry
+    setTimeout(attemptForceLoad, 500);
+}
+
+// ==================== EXÉCUTION IMMÉDIATE ====================
+
+// Lancement immédiat
+setTimeout(attemptForceLoad, 100);
+setTimeout(attemptForceLoad, 500);
+setTimeout(attemptForceLoad, 1000);
+setTimeout(attemptForceLoad, 2000);
+
+// Override de la méthode getEmployeeColumn pour protection
+if (window.employeeColumnManager) {
+    const originalGetEmployeeColumn = window.employeeColumnManager.getEmployeeColumn;
+
+    window.employeeColumnManager.getEmployeeColumn = function(employeeId) {
+        // Si pas initialisé, forcer le chargement
+        if (!this.isInitialized) {
+            forceLoadEmployeesIntoColumns();
+        }
+
+        // Si toujours pas d'employé, essayer de l'ajouter dynamiquement
+        if (!this.employeeColumns.has(employeeId) && window.AppState?.employees?.has(employeeId)) {
+            const employees = Array.from(window.AppState.employees.values());
+            const employee = window.AppState.employees.get(employeeId);
+            const employeeIndex = employees.findIndex(emp => emp.id === employeeId);
+            const columnIndex = employeeIndex >= 0 ? employeeIndex % this.maxColumns : 0;
+
+            this.employeeColumns.set(employeeId, columnIndex);
+            console.log(`🔧 Employé ${employee?.prenom} ajouté dynamiquement à colonne ${columnIndex + 1}`);
+        }
+
+        return this.employeeColumns.get(employeeId) || 0;
+    };
+}
+
+// Fonction de diagnostic global
+window.debugEmployeeColumns = function() {
+    console.log('🔍 Debug colonnes employés:');
+    console.log('  AppState.employees:', window.AppState?.employees?.size);
+    console.log('  employeeColumnManager:', window.employeeColumnManager);
+    console.log('  isInitialized:', window.employeeColumnManager?.isInitialized);
+    console.log('  employeeColumns:', window.employeeColumnManager?.employeeColumns);
+
+    if (window.AppState?.employees) {
+        window.AppState.employees.forEach((emp, id) => {
+            const column = window.employeeColumnManager?.getEmployeeColumn(id);
+            console.log(`    ${emp.prenom} (${id}) → Colonne ${column + 1}`);
+        });
+    }
+};
+
+console.log('🚀 Correction employés/colonnes chargée - Commande: debugEmployeeColumns()');
