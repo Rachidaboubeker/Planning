@@ -44,37 +44,31 @@
     <!-- Notifications -->
     <div id="notifications" class="notifications-container"></div>
 
-    <!-- MODAL PRINCIPAL UNIFIÉ -->
+    <!-- MODAL PRINCIPAL -->
     <div id="globalModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Titre du modal</h2>
                 <span class="modal-close" onclick="closeModal('globalModal')">&times;</span>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Le contenu sera injecté ici -->
-            </div>
-            <div class="modal-footer" id="modalFooter">
-                <!-- Les boutons seront injectés ici -->
-            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
         </div>
     </div>
 
-    <!-- TEMPLATES CACHÉS POUR CHAQUE TYPE DE MODAL -->
-    <!-- Template 1: Ajout d'employé -->
+    <!-- TEMPLATES -->
     <template id="addEmployeeTemplate">
         <form id="addEmployeeForm" class="form">
             <div class="form-row">
                 <div class="form-group">
                     <label for="employeePrenom">Prénom *</label>
-                    <input type="text" id="employeePrenom" name="prenom" required autocomplete="given-name">
+                    <input type="text" id="employeePrenom" name="prenom" required>
                 </div>
                 <div class="form-group">
                     <label for="employeeNom">Nom *</label>
-                    <input type="text" id="employeeNom" name="nom" required autocomplete="family-name">
+                    <input type="text" id="employeeNom" name="nom" required>
                 </div>
             </div>
-
             <div class="form-row">
                 <div class="form-group">
                     <label for="employeePoste">Poste *</label>
@@ -87,83 +81,12 @@
                 </div>
                 <div class="form-group">
                     <label for="employeeTauxHoraire">Taux horaire (€) *</label>
-                    <input type="number" id="employeeTauxHoraire" name="taux_horaire"
-                           min="10" max="50" step="0.5" value="15" required>
+                    <input type="number" id="employeeTauxHoraire" name="taux_horaire" min="10" max="50" step="0.5" value="15" required>
                 </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="employeeEmail">Email</label>
-                    <input type="email" id="employeeEmail" name="email" autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="employeeTelephone">Téléphone</label>
-                    <input type="tel" id="employeeTelephone" name="telephone" autocomplete="tel">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="employeePhoto">Photo (optionnel)</label>
-                <input type="file" id="employeePhoto" name="photo" accept="image/*">
-                <small class="form-help">JPG, PNG - Max 5MB</small>
             </div>
         </form>
     </template>
 
-    <!-- Template 2: Modification d'employé -->
-    <template id="editEmployeeTemplate">
-        <form id="editEmployeeForm" class="form">
-            <input type="hidden" id="editEmployeeId" name="employee_id">
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeePrenom">Prénom *</label>
-                    <input type="text" id="editEmployeePrenom" name="prenom" required>
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeNom">Nom *</label>
-                    <input type="text" id="editEmployeeNom" name="nom" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeePoste">Poste *</label>
-                    <select id="editEmployeePoste" name="poste" required>
-                        {% for type_key, type_info in employee_types.items() %}
-                        <option value="{{ type_key }}">{{ type_info.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeTauxHoraire">Taux horaire (€) *</label>
-                    <input type="number" id="editEmployeeTauxHoraire" name="taux_horaire"
-                           min="10" max="50" step="0.5" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeeEmail">Email</label>
-                    <input type="email" id="editEmployeeEmail" name="email">
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeTelephone">Téléphone</label>
-                    <input type="tel" id="editEmployeeTelephone" name="telephone">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="editEmployeeActif" name="actif" checked>
-                    Employé actif
-                </label>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 3: Ajout de créneau -->
     <template id="addShiftTemplate">
         <form id="addShiftForm" class="form">
             <div class="form-group">
@@ -171,13 +94,10 @@
                 <select id="shiftEmployee" name="employee_id" required>
                     <option value="">Sélectionner un équipier</option>
                     {% for employee in employees %}
-                    <option value="{{ employee.id }}" data-type="{{ employee.poste }}">
-                        {{ employee.nom_complet }} ({{ employee.type_info.name }})
-                    </option>
+                    <option value="{{ employee.id }}">{{ employee.nom_complet }}</option>
                     {% endfor %}
                 </select>
             </div>
-
             <div class="form-row">
                 <div class="form-group">
                     <label for="shiftDay">Jour *</label>
@@ -187,7 +107,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label for="shiftStartHour">Heure de début *</label>
                     <select id="shiftStartHour" name="start_hour" required>
@@ -196,7 +115,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label for="shiftDuration">Durée (heures) *</label>
                     <select id="shiftDuration" name="duration" required>
@@ -206,305 +124,97 @@
                     </select>
                 </div>
             </div>
-
-            <div class="form-group">
-                <label for="shiftNotes">Notes (optionnel)</label>
-                <textarea id="shiftNotes" name="notes" rows="3" placeholder="Service spécial, remarques..."></textarea>
-            </div>
         </form>
     </template>
 
-    <!-- Template 4: Modification de créneau -->
-    <template id="editShiftTemplate">
-        <form id="editShiftForm" class="form">
-            <input type="hidden" id="editShiftId" name="shift_id">
-
-            <div class="form-group">
-                <label for="editShiftEmployee">Équipier *</label>
-                <select id="editShiftEmployee" name="employee_id" required>
-                    {% for employee in employees %}
-                    <option value="{{ employee.id }}">{{ employee.nom_complet }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editShiftDay">Jour *</label>
-                    <select id="editShiftDay" name="day" required>
-                        {% for day in days %}
-                        <option value="{{ day }}">{{ day }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editShiftStartHour">Heure de début *</label>
-                    <select id="editShiftStartHour" name="start_hour" required>
-                        {% for hour in hours %}
-                        <option value="{{ hour }}">{{ "%02d"|format(hour) }}:00</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editShiftDuration">Durée (heures) *</label>
-                    <select id="editShiftDuration" name="duration" required>
-                        {% for i in range(1, 13) %}
-                        <option value="{{ i }}">{{ i }}h</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="editShiftNotes">Notes</label>
-                <textarea id="editShiftNotes" name="notes" rows="3"></textarea>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 5: Confirmation de suppression -->
-    <template id="deleteConfirmTemplate">
-        <div class="delete-confirmation">
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div>
-                    <strong>Attention !</strong> Cette action est irréversible.
-                </div>
-            </div>
-
-            <p>Êtes-vous sûr de vouloir supprimer :</p>
-            <div class="delete-item-info" id="deleteItemInfo">
-                <!-- Informations sur l'élément à supprimer -->
-            </div>
-        </div>
-    </template>
-
-    <!-- Template 6: Gestion des photos en lot -->
-    <template id="bulkPhotoTemplate">
-        <div class="bulk-photo-manager">
-            <div class="bulk-actions">
-                <button type="button" class="btn btn-primary" onclick="selectAllPhotos()">
-                    <i class="fas fa-check-square"></i> Tout sélectionner
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="clearSelectedPhotos()">
-                    <i class="fas fa-trash"></i> Supprimer sélectionnés
-                </button>
-                <button type="button" class="btn btn-info" onclick="generateRandomAvatars()">
-                    <i class="fas fa-dice"></i> Avatars aléatoires
-                </button>
-            </div>
-
-            <div class="employees-photo-grid" id="employeesPhotoGrid">
-                <!-- Grille générée par JavaScript -->
-            </div>
-        </div>
-    </template>
-
-    <!-- ==================== TOUS LES SCRIPTS DANS BASE.HTML ==================== -->
-
-    <!-- 1. CORE & CONFIG -->
-    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/logger-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/quarter-hour-system.js') }}"></script>
-
-    <!-- 2. UTILITAIRES -->
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/planning-utils.js') }}"></script>
-
-    <!-- 3. GESTIONNAIRES DE BASE -->
-    <script src="{{ url_for('static', filename='js/api-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/notification-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui-manager-fix.js') }}"></script>
-
-    <!-- 4. GESTIONNAIRES SPÉCIALISÉS -->
-    <script src="{{ url_for('static', filename='js/color-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/avatar-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/avatar-fix.js') }}"></script>
-
-    <!-- 5. MODULES PLANNING -->
-    <script src="{{ url_for('static', filename='js/shift-element.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/planning-manager.js') }}"></script>
-
-    <!-- 6. SYSTÈME DE COLONNES -->
-    <script src="{{ url_for('static', filename='js/employee-columns.js') }}"></script>
-
-    <!-- 7. RENDU -->
-    <script src="{{ url_for('static', filename='js/planning-renderer.js') }}"></script>
-
-    <!-- 8. CORRECTIONS -->
-    <script src="{{ url_for('static', filename='js/planning-renderer-granularity-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/drag-drop-unified-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/drag-drop-debug.js') }}"></script>
-
-    <!-- 9. GESTIONNAIRE GRANULARITÉ -->
-    <script src="{{ url_for('static', filename='js/granularity-manager.js') }}"></script>
-
-    <!-- 10. INTERFACE UTILISATEUR -->
-    <script src="{{ url_for('static', filename='js/planning-ui.js') }}"></script>
-
-    <!-- 11. FONCTIONS GLOBALES -->
-    <script src="{{ url_for('static', filename='js/global-functions.js') }}"></script>
-
-    <!-- 12. INITIALISATION -->
-    <script src="{{ url_for('static', filename='js/app-init.js') }}"></script>
-
-    <!-- GESTIONNAIRE MODAL UNIFIÉ -->
+    <!-- ========== NOTIFICATION MANAGER ========== -->
     <script>
-    class UnifiedModalManager {
+    class SimpleNotificationManager {
+        static show(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed; top: 20px; right: 20px; padding: 15px 20px;
+                border-radius: 8px; color: white; font-weight: 500; z-index: 1000;
+                transform: translateX(100%); transition: all 0.3s ease;
+                ${type === 'success' ? 'background: #28a745;' : ''}
+                ${type === 'error' ? 'background: #dc3545;' : ''}
+                ${type === 'warning' ? 'background: #ffc107; color: #212529;' : ''}
+                ${type === 'info' ? 'background: #17a2b8;' : ''}
+            `;
+
+            document.body.appendChild(notification);
+            setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    }
+    window.NotificationManager = SimpleNotificationManager;
+    </script>
+
+    <!-- ========== MODAL MANAGER ========== -->
+    <script>
+    class SimpleModalManager {
         constructor() {
             this.modal = document.getElementById('globalModal');
             this.modalTitle = document.getElementById('modalTitle');
             this.modalBody = document.getElementById('modalBody');
             this.modalFooter = document.getElementById('modalFooter');
-            this.currentData = {};
         }
 
-        showModal(templateId, title, buttons = [], data = {}) {
-            this.currentData = data;
-            this.modalBody.innerHTML = '';
-
+        showModal(templateId, title, buttons) {
             const template = document.getElementById(templateId);
-            if (!template) {
-                console.error(`Template ${templateId} non trouvé`);
-                return;
-            }
+            if (!template) return;
 
+            this.modalBody.innerHTML = '';
             const content = template.content.cloneNode(true);
             this.modalBody.appendChild(content);
-            this.modalTitle.innerHTML = title;
 
+            this.modalTitle.textContent = title;
             this.modalFooter.innerHTML = buttons.map(btn =>
                 `<button type="button" class="btn ${btn.class}" onclick="${btn.onclick}">${btn.text}</button>`
             ).join('');
-
             this.modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-
-            setTimeout(() => this.populateForm(data), 50);
         }
 
-        populateForm(data) {
-            for (const [key, value] of Object.entries(data)) {
-                const field = document.getElementById(key);
-                if (field) {
-                    if (field.type === 'checkbox') {
-                        field.checked = value;
-                    } else {
-                        field.value = value;
-                    }
-                }
-            }
-        }
-
-        closeModal() {
-            this.modal.style.display = 'none';
-            document.body.style.overflow = '';
-            this.currentData = {};
-        }
-
-        showAddEmployee() {
-            this.showModal('addEmployeeTemplate', '<i class="fas fa-user-plus"></i> Nouvel équipier', [
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-user-plus"></i> Créer', class: 'btn-primary', onclick: 'handleAddEmployee()' }
-            ]);
-        }
-
-        showEditEmployee(employeeId) {
-            const employee = findEmployee(employeeId);
-            if (!employee) {
-                alert('Employé introuvable');
-                return;
-            }
-
-            this.showModal('editEmployeeTemplate', `✏️ Modifier - ${employee.prenom} ${employee.nom}`, [
-                { text: '<i class="fas fa-trash"></i> Supprimer', class: 'btn-danger', onclick: `confirmDeleteEmployee('${employeeId}')` },
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-save"></i> Sauvegarder', class: 'btn-primary', onclick: `handleUpdateEmployee('${employeeId}')` }
-            ], {
-                editEmployeeId: employee.id,
-                editEmployeePrenom: employee.prenom,
-                editEmployeeNom: employee.nom,
-                editEmployeePoste: employee.poste,
-                editEmployeeTauxHoraire: employee.taux_horaire,
-                editEmployeeEmail: employee.email || '',
-                editEmployeeTelephone: employee.telephone || '',
-                editEmployeeActif: employee.actif !== false
-            });
-        }
-
-        showAddShift(defaultDay = '', defaultHour = '') {
-            this.showModal('addShiftTemplate', '<i class="fas fa-clock"></i> Ajouter un créneau', [
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-plus"></i> Ajouter', class: 'btn-primary', onclick: 'handleAddShift()' }
-            ], {
-                shiftDay: defaultDay,
-                shiftStartHour: defaultHour
-            });
-        }
-
-        showEditShift(shiftId) {
-            const shift = findShift(shiftId);
-            if (!shift) {
-                alert('Créneau introuvable');
-                return;
-            }
-
-            this.showModal('editShiftTemplate', '✏️ Modifier le créneau', [
-                { text: '<i class="fas fa-trash"></i> Supprimer', class: 'btn-danger', onclick: `confirmDeleteShift('${shiftId}')` },
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-save"></i> Sauvegarder', class: 'btn-primary', onclick: `handleUpdateShift('${shiftId}')` }
-            ], {
-                editShiftId: shift.id,
-                editShiftEmployee: shift.employee_id,
-                editShiftDay: shift.day,
-                editShiftStartHour: shift.start_hour,
-                editShiftDuration: shift.duration,
-                editShiftNotes: shift.notes || ''
-            });
-        }
-
-        showBulkPhoto() {
-            this.showModal('bulkPhotoTemplate', '<i class="fas fa-images"></i> Gestion des photos d\'équipe', [
-                { text: 'Fermer', class: 'btn-secondary', onclick: 'modalManager.closeModal()' }
-            ]);
-            setTimeout(() => generateEmployeesPhotoGrid(), 100);
-        }
+        close() { this.modal.style.display = 'none'; }
     }
 
-    // Initialiser le gestionnaire unifié
-    const modalManager = new UnifiedModalManager();
+    const modalManager = new SimpleModalManager();
 
-    // Fonctions de recherche des données
-    function findEmployee(employeeId) {
-        if (window.employees && window.employees.get) return window.employees.get(employeeId);
-        if (window.AppState?.employees) return window.AppState.employees.get(employeeId);
-        if (typeof employeesData !== 'undefined') return employeesData.find(e => e.id === employeeId);
-        return null;
+    function showAddEmployeeModal() {
+        modalManager.showModal('addEmployeeTemplate', '👤 Nouvel équipier', [
+            { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.close()' },
+            { text: 'Créer', class: 'btn-primary', onclick: 'handleAddEmployee()' }
+        ]);
     }
 
-    function findShift(shiftId) {
-        if (window.shifts && window.shifts.get) return window.shifts.get(shiftId);
-        if (window.AppState?.shifts) return window.AppState.shifts.get(shiftId);
-        if (typeof shiftsData !== 'undefined') return shiftsData.find(s => s.id === shiftId);
-        return null;
+    function showAddShiftModal(day, hour) {
+        modalManager.showModal('addShiftTemplate', '📅 Nouveau créneau', [
+            { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.close()' },
+            { text: 'Ajouter', class: 'btn-primary', onclick: 'handleAddShift()' }
+        ]);
+        if (day) document.getElementById('shiftDay').value = day;
+        if (hour) document.getElementById('shiftStartHour').value = hour;
     }
 
-    // Fonctions globales
-    function showAddEmployeeModal() { modalManager.showAddEmployee(); }
-    function showEditEmployeeModal(employeeId) { modalManager.showEditEmployee(employeeId); }
-    function showAddShiftModal(defaultDay, defaultHour) { modalManager.showAddShift(defaultDay, defaultHour); }
-    function showEditShiftModal(shiftId) { modalManager.showEditShift(shiftId); }
-    function showBulkPhotoModal() { modalManager.showBulkPhoto(); }
-    function closeModal() { modalManager.closeModal(); }
+    function closeModal() { modalManager.close(); }
 
-    // Gestionnaires de formulaires
+    window.onclick = function(event) {
+        if (event.target === document.getElementById('globalModal')) {
+            modalManager.close();
+        }
+    };
+    </script>
+
+    <!-- ========== GESTIONNAIRES DE FORMULAIRES ========== -->
+    <script>
     async function handleAddEmployee() {
         const form = document.getElementById('addEmployeeForm');
-        if (!form || !form.checkValidity()) {
+        if (!form?.checkValidity()) {
             form?.reportValidity();
             return;
         }
@@ -522,52 +232,20 @@
 
             const result = await response.json();
             if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Employé créé avec succès', 'success');
+                modalManager.close();
+                NotificationManager.show('✅ Employé créé', 'success');
                 location.reload();
             } else {
-                showNotification('❌ ' + result.error, 'error');
+                NotificationManager.show('❌ ' + result.error, 'error');
             }
         } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    async function handleUpdateEmployee(employeeId) {
-        const form = document.getElementById('editEmployeeForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const employeeData = Object.fromEntries(formData.entries());
-        employeeData.taux_horaire = parseFloat(employeeData.taux_horaire);
-        employeeData.actif = employeeData.actif === 'on';
-
-        try {
-            const response = await fetch(`/api/employees/${employeeId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(employeeData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Employé modifié avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
+            NotificationManager.show('❌ Erreur de connexion', 'error');
         }
     }
 
     async function handleAddShift() {
         const form = document.getElementById('addShiftForm');
-        if (!form || !form.checkValidity()) {
+        if (!form?.checkValidity()) {
             form?.reportValidity();
             return;
         }
@@ -586,732 +264,75 @@
 
             const result = await response.json();
             if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Créneau ajouté avec succès', 'success');
+                modalManager.close();
+                NotificationManager.show('✅ Créneau ajouté', 'success');
                 location.reload();
             } else {
-                showNotification('❌ ' + result.error, 'error');
+                NotificationManager.show('❌ ' + result.error, 'error');
             }
         } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
+            NotificationManager.show('❌ Erreur de connexion', 'error');
         }
     }
 
-    async function handleUpdateShift(shiftId) {
-        const form = document.getElementById('editShiftForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const shiftData = Object.fromEntries(formData.entries());
-        shiftData.start_hour = parseInt(shiftData.start_hour);
-        shiftData.duration = parseInt(shiftData.duration);
-
-        try {
-            const response = await fetch(`/api/shifts/${shiftId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shiftData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Créneau modifié avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    // Fonctions de suppression
-    function confirmDeleteEmployee(employeeId) {
-        const employee = findEmployee(employeeId);
-        if (confirm(`Êtes-vous sûr de vouloir supprimer ${employee?.nom_complet || 'cet employé'} ?`)) {
-            deleteItem('employee', employeeId);
-        }
-    }
-
-    function confirmDeleteShift(shiftId) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?')) {
-            deleteItem('shift', shiftId);
-        }
-    }
-
-    async function deleteItem(type, itemId) {
-        const endpoint = type === 'employee' ? `/api/employees/${itemId}` : `/api/shifts/${itemId}`;
-
-        try {
-            const response = await fetch(endpoint, { method: 'DELETE' });
-            const result = await response.json();
-
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification(`✅ ${type === 'employee' ? 'Employé' : 'Créneau'} supprimé`, 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    // Fonction de notification
-    function showNotification(message, type) {
-        if (typeof NotificationManager !== 'undefined') {
-            NotificationManager.show(message, type);
-        } else {
-            alert(message);
-        }
-    }
-
-    // Gestion des photos
-    function generateEmployeesPhotoGrid() {
-        const grid = document.getElementById('employeesPhotoGrid');
-        if (!grid) return;
-
-        const employees = Array.from(window.AppState?.employees?.values() || [])
-            .filter(emp => emp.actif !== false);
-
-        grid.innerHTML = employees.map(employee => {
-            const typeColors = {
-                'cuisinier': '#74b9ff',
-                'serveur': '#00b894',
-                'barman': '#fdcb6e',
-                'manager': '#a29bfe',
-                'commis': '#fd79a8'
-            };
-            const bgColor = typeColors[employee.poste] || '#6c757d';
-
-            return `
-                <div class="employee-photo-item">
-                    <div class="employee-photo-card">
-                        <div style="width: 60px; height: 60px; background: ${bgColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                            ${(employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase()}
-                        </div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">${employee.nom_complet}</div>
-                        <div style="font-size: 0.8em; color: #666; text-transform: capitalize;">${employee.poste}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function selectAllPhotos() { console.log('Fonction à implémenter'); }
-    function clearSelectedPhotos() { console.log('Fonction à implémenter'); }
     function generateRandomAvatars() {
-        showNotification('🎨 Nouveaux avatars générés', 'success');
+        const colors = ['74b9ff', '00b894', 'fdcb6e', 'a29bfe', 'fd79a8', '6c5ce7'];
+        document.querySelectorAll('img[src*="ui-avatars.com"]').forEach(img => {
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            img.src = img.src.replace(/background=[^&]*/, `background=${randomColor}&t=${Date.now()}`);
+        });
+        NotificationManager.show('🎨 Nouveaux avatars générés', 'success');
     }
 
-    // Configuration globale
-    window.API_BASE = '/api';
-
-    // Fonction showStats
     function showStats() {
-        if (typeof window.showStats === 'function') {
-            window.showStats();
-        } else {
-            showNotification('Fonction de statistiques non disponible', 'error');
-        }
+        NotificationManager.show('📊 Statistiques en cours de développement', 'info');
     }
-
-    // Fermer modal en cliquant à l'extérieur
-    window.onclick = function(event) {
-        const modal = document.getElementById('globalModal');
-        if (event.target === modal) {
-            closeModal();
-        }
-    }
-
-    // Raccourcis clavier
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-        }
-    });
-
-    console.log('✅ Système unifié de modaux chargé');
     </script>
 
-    <!-- STYLES COMPLÉMENTAIRES POUR RESTAURER L'INTERFACE -->
+    <!-- ========== CSS MINIMAL ========== -->
     <style>
-    template { display: none !important; }
-
-    /* ===== STYLES POUR AVATARS ET INTERFACE MODERNE ===== */
-
-    /* Variables CSS pour cohérence des couleurs */
-    :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --success-color: #00b894;
-        --warning-color: #fdcb6e;
-        --error-color: #e74c3c;
-        --cuisinier-color: #74b9ff;
-        --serveur-color: #00b894;
-        --barman-color: #fdcb6e;
-        --manager-color: #a29bfe;
-        --commis-color: #fd79a8;
-        --border-radius: 8px;
-        --border-radius-lg: 12px;
-        --border-radius-xl: 20px;
-        --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
-        --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.2);
-        --transition: all 0.3s ease;
-    }
-
-    /* Styles pour les colonnes d'employés avec avatars */
-    .employee-columns {
-        display: grid;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .employee-column {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 15px 20px;
-        border-radius: var(--border-radius-lg);
-        transition: var(--transition);
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--shadow);
-    }
-
-    .employee-column:hover {
-        transform: translateX(5px) translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .employee-column.cuisinier {
-        background: linear-gradient(135deg, var(--cuisinier-color), #0984e3);
-        color: white;
-    }
-
-    .employee-column.serveur {
-        background: linear-gradient(135deg, var(--serveur-color), #00a085);
-        color: white;
-    }
-
-    .employee-column.barman {
-        background: linear-gradient(135deg, var(--barman-color), #e17055);
-        color: white;
-    }
-
-    .employee-column.manager {
-        background: linear-gradient(135deg, var(--manager-color), #6c5ce7);
-        color: white;
-    }
-
-    .employee-column.commis {
-        background: linear-gradient(135deg, var(--commis-color), #e84393);
-        color: white;
-    }
-
-    .employee-column.libre {
-        background: linear-gradient(135deg, #ddd, #bbb);
-        color: #666;
-        border: 2px dashed #999;
-    }
-
-    /* Avatars dans les colonnes */
-    .employee-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        border: 3px solid rgba(255, 255, 255, 0.4);
-        object-fit: cover;
-        transition: var(--transition);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .employee-avatar:hover {
-        transform: scale(1.1);
-        border-color: rgba(255, 255, 255, 0.8);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    .employee-info {
-        flex: 1;
-    }
-
-    .employee-name {
-        font-weight: bold;
-        font-size: 1.1rem;
-        margin-bottom: 2px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .employee-role {
-        font-size: 0.9rem;
-        opacity: 0.9;
-        text-transform: capitalize;
-    }
-
-    /* Styles pour les créneaux avec avatars */
-    .shift-block {
-        background: var(--primary-gradient);
-        color: white;
-        border-radius: var(--border-radius);
-        padding: 8px;
-        margin: 2px 0;
-        cursor: pointer;
-        transition: var(--transition);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: var(--shadow);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .shift-block:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .shift-block:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-        pointer-events: none;
-    }
-
-    /* Avatars dans les créneaux */
-    .shift-avatar {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        object-fit: cover;
-        flex-shrink: 0;
-        transition: var(--transition);
-    }
-
-    .shift-avatar:hover {
-        transform: scale(1.1);
-        border-color: rgba(255, 255, 255, 0.8);
-    }
-
-    .shift-initials {
-        font-weight: bold;
-        font-size: 0.8rem;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Styles de couleur par type d'employé pour les créneaux */
-    .shift-block.cuisinier {
-        background: linear-gradient(135deg, var(--cuisinier-color), #0984e3);
-    }
-
-    .shift-block.serveur {
-        background: linear-gradient(135deg, var(--serveur-color), #00a085);
-    }
-
-    .shift-block.barman {
-        background: linear-gradient(135deg, var(--barman-color), #e17055);
-    }
-
-    .shift-block.manager {
-        background: linear-gradient(135deg, var(--manager-color), #6c5ce7);
-    }
-
-    .shift-block.commis {
-        background: linear-gradient(135deg, var(--commis-color), #e84393);
-    }
-
-    /* Grille de planning moderne */
-    .planning-grid {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: #dee2e6;
-        border-radius: var(--border-radius);
-        overflow: hidden;
-        box-shadow: var(--shadow-lg);
-    }
-
-    .planning-grid-header {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: #dee2e6;
-        border-radius: var(--border-radius) var(--border-radius) 0 0;
-        overflow: hidden;
-        margin-bottom: 1px;
-    }
-
-    .time-column-header,
-    .day-header {
-        background: var(--primary-gradient);
-        color: white;
-        padding: 1rem 0.5rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .time-slot {
-        background: #f8f9fa;
-        padding: 0.5rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: #495057;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-right: 1px solid #dee2e6;
-    }
-
-    /* Heures principales avec style distinctif */
-    .time-slot:not(.sub-time-slot) {
-        background: linear-gradient(135deg, #6f42c1, #8b5cf6);
-        color: white;
-        font-weight: bold;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .schedule-cell {
-        background: white;
-        min-height: 50px;
-        position: relative;
-        border: 1px solid #e1e5e9;
-        transition: var(--transition);
-        cursor: pointer;
-    }
-
-    .schedule-cell:hover {
-        background: rgba(102, 126, 234, 0.05);
-        border-color: #6366f1;
-    }
-
-    /* Notifications modernes */
-    .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: var(--border-radius-lg);
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        transform: translateX(100%);
-        transition: var(--transition);
-        box-shadow: var(--shadow-lg);
-        backdrop-filter: blur(10px);
-    }
-
-    .notification.show {
-        transform: translateX(0);
-    }
-
-    .notification.success {
-        background: linear-gradient(135deg, var(--success-color), #00a085);
-    }
-
-    .notification.warning {
-        background: linear-gradient(135deg, var(--warning-color), #e17055);
-    }
-
-    .notification.error {
-        background: linear-gradient(135deg, var(--error-color), #c0392b);
-    }
-
-    /* Modals avec design moderne */
     .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
+        display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+        width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);
     }
-
     .modal-content {
-        background: white;
-        margin: 5% auto;
-        padding: 0;
-        border-radius: var(--border-radius-xl);
-        width: 90%;
-        max-width: 600px;
-        box-shadow: var(--shadow-xl);
-        overflow: hidden;
-        animation: modalSlideIn 0.3s ease-out;
+        background: white; margin: 5% auto; padding: 0; border-radius: 12px;
+        width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
-
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-50px) scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
     .modal-header {
-        background: var(--primary-gradient);
-        color: white;
-        padding: 1.5rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+        padding: 1.5rem 2rem; border-radius: 12px 12px 0 0;
+        display: flex; justify-content: space-between; align-items: center;
     }
-
-    .modal-header h2 {
-        margin: 0;
-        font-size: 1.3rem;
-        font-weight: 600;
-    }
-
-    .modal-close {
-        font-size: 2rem;
-        font-weight: bold;
-        cursor: pointer;
-        color: white;
-        opacity: 0.8;
-        transition: var(--transition);
-    }
-
-    .modal-close:hover {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-
-    .modal-body {
-        padding: 2rem;
-    }
-
+    .modal-close { font-size: 2rem; cursor: pointer; opacity: 0.8; }
+    .modal-close:hover { opacity: 1; }
+    .modal-body { padding: 2rem; }
     .modal-footer {
-        padding: 1.5rem 2rem;
-        background: #f8f9fa;
-        border-top: 1px solid #dee2e6;
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
+        padding: 1.5rem 2rem; background: #f8f9fa; border-radius: 0 0 12px 12px;
+        display: flex; justify-content: flex-end; gap: 1rem;
     }
-
-    /* Formulaires modernes */
-    .form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
+    .form { display: flex; flex-direction: column; gap: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-group label { font-weight: 500; color: #374151; }
+    .form-group input, .form-group select {
+        padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;
     }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+    .form-group input:focus, .form-group select:focus {
+        outline: none; border-color: #667eea;
     }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .form-group label {
-        font-weight: 500;
-        color: #374151;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-        padding: 0.75rem;
-        border: 2px solid #e5e7eb;
-        border-radius: var(--border-radius);
-        font-size: 1rem;
-        transition: var(--transition);
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    /* Boutons modernes */
     .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: var(--border-radius-lg);
-        font-weight: 500;
-        text-decoration: none;
-        cursor: pointer;
-        transition: var(--transition);
-        font-size: 0.95rem;
-        line-height: 1;
-        box-shadow: var(--shadow);
+        padding: 0.75rem 1.5rem; border: none; border-radius: 8px;
+        font-weight: 500; cursor: pointer; transition: all 0.3s ease;
     }
-
     .btn-primary {
-        background: var(--primary-gradient);
-        color: white;
+        background: linear-gradient(135deg, #667eea, #764ba2); color: white;
     }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .btn-secondary {
-        background: #6c757d;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background: #5a6268;
-        transform: translateY(-2px);
-    }
-
-    .btn-danger {
-        background: linear-gradient(135deg, var(--error-color), #c0392b);
-        color: white;
-    }
-
-    .btn-danger:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
-    }
-
-    .btn-info {
-        background: linear-gradient(135deg, #17a2b8, #138496);
-        color: white;
-    }
-
-    .btn-info:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(23, 162, 184, 0.3);
-    }
-
-    /* Alertes */
-    .alert {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.75rem;
-        padding: 1rem;
-        border-radius: var(--border-radius);
-        margin: 1rem 0;
-        font-size: 0.9rem;
-        line-height: 1.4;
-    }
-
-    .alert-danger {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-    }
-
-    .delete-item-info {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: var(--border-radius);
-        border-left: 4px solid #dc3545;
-        margin: 1rem 0;
-        font-weight: 600;
-    }
-
-    /* Gestion des photos */
-    .bulk-photo-manager {
-        max-height: 60vh;
-        overflow-y: auto;
-    }
-
-    .bulk-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        flex-wrap: wrap;
-    }
-
-    .employees-photo-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .employee-photo-item {
-        position: relative;
-    }
-
-    .employee-photo-card {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: var(--border-radius-lg);
-        padding: 1rem;
-        text-align: center;
-        transition: var(--transition);
-        box-shadow: var(--shadow);
-    }
-
-    .employee-photo-card:hover {
-        background: #f8f9fa;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .form-help {
-        display: block;
-        margin-top: 0.25rem;
-        font-size: 0.85rem;
-        color: #6c757d;
-        font-style: italic;
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
-        .main-content {
-            padding: 0 1rem;
-        }
-
-        .modal-content {
-            width: 95%;
-            margin: 2rem auto;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-
-        .bulk-actions {
-            flex-direction: column;
-        }
-
-        .employees-photo-grid {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        }
-    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3); }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-secondary:hover { background: #5a6268; }
     </style>
 
     {% block extra_js %}{% endblock %}
-<script src="{{ url_for('static', filename='js/integration-fix.js') }}"></script>
 </body>
 </html>

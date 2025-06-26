@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <style>
-    /* Styles spécifiques pour la page planning */
+    /* Interface moderne restaurée */
     .planning-actions {
         display: flex;
         gap: 1rem;
@@ -18,69 +18,20 @@
         gap: 0.5rem;
         background: rgba(255, 255, 255, 0.9);
         padding: 0.5rem 1rem;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         border: 1px solid #e1e5e9;
         backdrop-filter: blur(10px);
     }
 
-    .granularity-selector-container label {
-        font-weight: 500;
-        color: #4a5568;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    .granularity-select {
-        padding: 0.375rem 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        background: white;
-        font-size: 0.875rem;
-        cursor: pointer;
-        transition: var(--transition);
-        min-width: 120px;
-    }
-
-    .granularity-select:hover {
-        border-color: #6366f1;
-    }
-
-    .granularity-select:focus {
-        outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    .granularity-info {
-        font-size: 0.75rem;
-        color: #6b7280;
-        background: #f9fafb;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #e5e7eb;
-    }
-
-    .granularity-info small {
-        display: block;
-        font-weight: 500;
-    }
-
-    #slotsCount {
-        font-weight: 600;
-        color: #4f46e5;
-    }
-
-    /* Section des colonnes d'employés restaurée */
+    /* Section des colonnes d'employés */
     .employees-section {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border-radius: var(--border-radius-xl);
+        border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
-        box-shadow: var(--shadow-xl);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
 
     .employees-title {
@@ -93,11 +44,296 @@
         gap: 0.5rem;
     }
 
-    .employees-title i {
-        color: #667eea;
+    .employee-columns {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
     }
 
-    /* Statistiques rapides */
+    .employee-column {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .employee-column:hover {
+        transform: translateX(5px) translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .employee-column.cuisinier {
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        color: white;
+    }
+
+    .employee-column.serveur {
+        background: linear-gradient(135deg, #00b894, #00a085);
+        color: white;
+    }
+
+    .employee-column.barman {
+        background: linear-gradient(135deg, #fdcb6e, #e17055);
+        color: white;
+    }
+
+    .employee-column.manager {
+        background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+        color: white;
+    }
+
+    .employee-column.commis {
+        background: linear-gradient(135deg, #fd79a8, #e84393);
+        color: white;
+    }
+
+    .employee-column.libre {
+        background: linear-gradient(135deg, #ddd, #bbb);
+        color: #666;
+        border: 2px dashed #999;
+    }
+
+    .employee-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        object-fit: cover;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .employee-avatar:hover {
+        transform: scale(1.1);
+        border-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .employee-info {
+        flex: 1;
+    }
+
+    .employee-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .employee-role {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: capitalize;
+    }
+
+    /* Grille de planning */
+    .planning-grid-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+    }
+
+    .grid-container {
+        min-width: 1200px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .grid-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+    }
+
+    .grid-header-cell {
+        padding: 15px 10px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .grid-body {
+        background: white;
+    }
+
+    .grid-row {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        border-bottom: 1px solid #eee;
+    }
+
+    .grid-row:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    .time-cell {
+        padding: 12px 10px;
+        font-weight: 500;
+        background: rgba(102, 126, 234, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-right: 2px solid #eee;
+        font-size: 0.9rem;
+    }
+
+    .day-cell {
+        padding: 5px;
+        position: relative;
+        min-height: 50px;
+        border-right: 1px solid #eee;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .day-cell:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    /* Créneaux avec design vertical */
+    .shift-block {
+        position: absolute;
+        border-radius: 8px;
+        color: white;
+        font-size: 0.85rem;
+        overflow: hidden;
+        cursor: grab;
+        transition: all 0.3s ease;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        margin: 2px;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+    }
+
+    .shift-block:hover {
+        transform: translateY(-2px) scale(1.02);
+        z-index: 20;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .shift-block.dragging {
+        opacity: 0.8;
+        transform: rotate(5deg) scale(0.95);
+        z-index: 1000;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Section avatar en haut */
+    .shift-avatar-section {
+        width: 100%;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(4px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        flex-shrink: 0;
+        padding: 2px;
+    }
+
+    .shift-avatar-horizontal {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .shift-avatar-horizontal:hover {
+        transform: scale(1.1);
+        border-color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Section texte vertical */
+    .shift-text-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 4px 2px;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .shift-name-vertical {
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 1.2px;
+        line-height: 1;
+        white-space: nowrap;
+        writing-mode: vertical-lr !important;
+        text-orientation: mixed !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+    }
+
+    .shift-duration-horizontal {
+        font-weight: 600;
+        font-size: 0.7rem;
+        opacity: 0.95;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 3px 8px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        white-space: nowrap;
+    }
+
+    /* Couleurs par type d'employé */
+    .shift-block.cuisinier {
+        background: linear-gradient(135deg, #74b9ff, #0984e3) !important;
+    }
+
+    .shift-block.serveur {
+        background: linear-gradient(135deg, #00b894, #00a085) !important;
+    }
+
+    .shift-block.barman {
+        background: linear-gradient(135deg, #fdcb6e, #e17055) !important;
+    }
+
+    .shift-block.manager {
+        background: linear-gradient(135deg, #a29bfe, #6c5ce7) !important;
+    }
+
+    .shift-block.commis {
+        background: linear-gradient(135deg, #fd79a8, #e84393) !important;
+    }
+
+    /* Drop zones */
+    .day-cell.drag-over {
+        background: rgba(0, 123, 255, 0.15) !important;
+        border: 2px dashed #007bff !important;
+        border-radius: 6px;
+    }
+
+    /* Statistiques */
     .quick-stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -108,16 +344,16 @@
     .stat-card {
         background: white;
         padding: 1.5rem;
-        border-radius: var(--border-radius-lg);
+        border-radius: 12px;
         border: 1px solid #dee2e6;
         text-align: center;
-        transition: var(--transition);
-        box-shadow: var(--shadow);
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     }
 
     .stat-value {
@@ -149,8 +385,8 @@
         border-radius: 50%;
         border: none;
         cursor: pointer;
-        transition: var(--transition);
-        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .btn-photo {
@@ -159,58 +395,8 @@
     }
 
     .btn-photo:hover {
-        background: linear-gradient(135deg, #138496, #117a8b);
         transform: scale(1.1);
-        box-shadow: var(--shadow-lg);
-    }
-
-    /* Indicateur de granularité */
-    .granularity-indicator {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(111, 66, 193, 0.9);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        z-index: 1000;
-        backdrop-filter: blur(10px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    /* Navigation de semaine améliorée */
-    .week-navigation {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 1rem 2rem;
-        border-radius: var(--border-radius-lg);
-        backdrop-filter: blur(10px);
-    }
-
-    .current-week {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 1.8rem;
-        font-weight: 300;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .btn-outline {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        backdrop-filter: blur(10px);
-    }
-
-    .btn-outline:hover {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.5);
-        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
     }
 
     /* Responsive */
@@ -225,39 +411,12 @@
             justify-content: center;
         }
 
-        .granularity-selector-container {
-            flex-direction: column;
-            gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .granularity-indicator {
-            bottom: 10px;
-            right: 10px;
-            font-size: 0.7rem;
-            padding: 0.4rem 0.8rem;
-        }
-
         .employees-section {
             padding: 1.5rem;
         }
 
-        .employees-title {
-            font-size: 1.3rem;
-        }
-
         .quick-stats {
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        }
-
-        .week-navigation {
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1rem;
-        }
-
-        .current-week {
-            font-size: 1.5rem;
         }
     }
 </style>
@@ -272,9 +431,7 @@ window.FLASK_CONFIG = {
     DAYS_OF_WEEK: {{ config_data.DAYS_OF_WEEK | tojson }},
     EMPLOYEE_TYPES: {{ config_data.EMPLOYEE_TYPES | tojson }},
     TIME_SLOT_GRANULARITY: {{ config_data.TIME_SLOT_GRANULARITY | tojson }},
-    AVAILABLE_GRANULARITIES: {{ config_data.AVAILABLE_GRANULARITIES | tojson }},
-    ALL_TIME_SLOTS: {{ config_data.ALL_TIME_SLOTS | tojson }},
-    GRANULARITY_INFO: {{ config_data.GRANULARITY_INFO | tojson }}
+    AVAILABLE_GRANULARITIES: {{ config_data.AVAILABLE_GRANULARITIES | tojson }}
 };
 
 window.FLASK_DATA = {
@@ -294,7 +451,7 @@ console.log('📊 Configuration Flask chargée');
             </button>
             <h1 class="current-week">
                 <i class="fas fa-calendar-week"></i>
-                <span id="weekTitle">Semaine du 9 au 15 Juin 2025</span>
+                <span id="weekTitle">Semaine du 23 juin au 29 juin</span>
             </h1>
             <button class="btn btn-outline" onclick="nextWeek()">
                 Semaine suivante <i class="fas fa-chevron-right"></i>
@@ -320,17 +477,14 @@ console.log('📊 Configuration Flask chargée');
                     </option>
                     {% endfor %}
                 </select>
-                <div class="granularity-info">
-                    <small>Créneaux: <span id="slotsCount">{{ config_data.GRANULARITY_INFO.total_slots }}</span></small>
-                </div>
             </div>
 
             <div class="quick-actions">
-                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos">
-                    <i class="fas fa-camera"></i>
-                </button>
                 <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Avatars aléatoires">
                     <i class="fas fa-dice"></i>
+                </button>
+                <button class="btn-icon-only btn-photo" onclick="showStats()" title="Statistiques">
+                    <i class="fas fa-chart-bar"></i>
                 </button>
             </div>
         </div>
@@ -343,42 +497,25 @@ console.log('📊 Configuration Flask chargée');
             Colonnes d'employés
         </h2>
         <div class="employee-columns" id="employeeColumns">
-            {% for employee in employees %}
-            <div class="employee-column {{ employee.poste }}" data-employee-id="{{ employee.id }}">
-                <img class="employee-avatar"
-                     src="https://ui-avatars.com/api/?name={{ employee.prenom }}+{{ employee.nom }}&size=45&background={{ employee.type_info.color.replace('#', '') }}&color=fff"
-                     alt="{{ employee.nom_complet }}"
-                     onerror="this.src='https://ui-avatars.com/api/?name={{ employee.prenom.0 }}{{ employee.nom.0 }}&size=45&background=6c757d&color=fff'">
-                <div class="employee-info">
-                    <div class="employee-name">{{ employee.nom_complet }}</div>
-                    <div class="employee-role">{{ employee.type_info.name }}</div>
-                </div>
-            </div>
-            {% endfor %}
-
-            <!-- Colonne libre -->
-            <div class="employee-column libre">
-                <div class="employee-info">
-                    <div class="employee-name">Colonne libre</div>
-                    <div class="employee-role">Disponible pour assignation</div>
-                </div>
-            </div>
+            <!-- Les colonnes seront générées par JavaScript -->
         </div>
     </div>
 
-    <div class="legend-container" id="legendContainer"></div>
-
     <div class="planning-wrapper">
         <div class="planning-grid-container">
-            <div class="planning-grid-header">
-                <div class="time-column-header">
-                    <i class="fas fa-clock"></i> Heure
+            <div class="grid-container">
+                <div class="grid-header">
+                    <div class="grid-header-cell">
+                        <i class="fas fa-clock"></i> Heure
+                    </div>
+                    {% for day in days %}
+                    <div class="grid-header-cell">{{ day }}</div>
+                    {% endfor %}
                 </div>
-                {% for day in days %}
-                <div class="day-header">{{ day }}</div>
-                {% endfor %}
+                <div class="grid-body" id="planningGrid">
+                    <!-- La grille sera générée par JavaScript -->
+                </div>
             </div>
-            <div class="planning-grid" id="planningGrid"></div>
         </div>
     </div>
 
@@ -397,75 +534,274 @@ console.log('📊 Configuration Flask chargée');
         </div>
         <div class="stat-card">
             <div class="stat-value" id="photoCountDisplay">
-                <span id="photoCount">0</span>
+                <span id="photoCount">{{ employees|length }}</span>
             </div>
-            <div class="stat-label">Photos ajoutées</div>
+            <div class="stat-label">Employés</div>
         </div>
     </div>
 </div>
 
-<div class="granularity-indicator" id="granularityIndicator">
-    <i class="fas fa-clock"></i>
-    <span id="granularityIndicatorText">{{ config_data.GRANULARITY_INFO.granularity_label }}</span>
-</div>
-
-<!-- JAVASCRIPT SPÉCIFIQUE À LA PAGE PLANNING -->
+<!-- JAVASCRIPT COMPLET POUR INTERFACE RESTAURÉE -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let currentWeekOffset = 0;
-    let employees = new Map();
-    let shifts = new Map();
+    console.log('🚀 Initialisation interface complète...');
 
-    // Charger les données Flask dans les variables globales
+    // Variables globales
+    let currentWeekOffset = 0;
+
+    // AppState
+    window.AppState = {
+        employees: new Map(),
+        shifts: new Map()
+    };
+
+    // Charger les données Flask
     if (window.FLASK_DATA?.employees) {
         window.FLASK_DATA.employees.forEach(emp => {
-            // Ajouter nom_complet s'il n'existe pas
             if (!emp.nom_complet) {
                 emp.nom_complet = `${emp.prenom} ${emp.nom}`;
             }
-            employees.set(emp.id, emp);
+            window.AppState.employees.set(emp.id, emp);
         });
-        window.employees = employees; // Exposer globalement
-
-        // Créer un AppState global pour compatibilité
-        if (!window.AppState) {
-            window.AppState = {
-                employees: employees,
-                shifts: new Map()
-            };
-        }
     }
 
     if (window.FLASK_DATA?.shifts) {
-        window.FLASK_DATA.shifts.forEach(shift => shifts.set(shift.id, shift));
-        window.shifts = shifts; // Exposer globalement
-        window.AppState.shifts = shifts;
+        window.FLASK_DATA.shifts.forEach(shift => {
+            window.AppState.shifts.set(shift.id, shift);
+        });
     }
 
-    // Initialiser le gestionnaire d'avatars
-    try {
-        if (!window.avatarManager && typeof AvatarManager !== 'undefined') {
-            window.avatarManager = new AvatarManager();
-            console.log('✅ Gestionnaire d\'avatars initialisé');
+    console.log(`📊 Données chargées: ${window.AppState.employees.size} employés, ${window.AppState.shifts.size} créneaux`);
 
-            // Mettre à jour le compteur de photos
-            updatePhotoCount();
+    // ===== GÉNÉRATION DES COLONNES D'EMPLOYÉS =====
+    function generateEmployeeColumns() {
+        const container = document.getElementById('employeeColumns');
+        if (!container) return;
+
+        const employees = Array.from(window.AppState.employees.values());
+
+        let html = '';
+        employees.forEach(employee => {
+            const avatarColor = {
+                'cuisinier': '74b9ff',
+                'serveur': '00b894',
+                'barman': 'fdcb6e',
+                'manager': 'a29bfe',
+                'commis': 'fd79a8'
+            };
+
+            const color = avatarColor[employee.poste] || '6c757d';
+            const initials = (employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase();
+            const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&size=45&background=${color}&color=fff&font-size=0.5&bold=true`;
+
+            html += `
+                <div class="employee-column ${employee.poste}" data-employee-id="${employee.id}">
+                    <img class="employee-avatar" src="${avatarUrl}" alt="${employee.nom_complet}">
+                    <div class="employee-info">
+                        <div class="employee-name">${employee.nom_complet}</div>
+                        <div class="employee-role">${window.FLASK_CONFIG.EMPLOYEE_TYPES[employee.poste]?.name || employee.poste}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Ajouter colonne libre
+        html += `
+            <div class="employee-column libre">
+                <div class="employee-info">
+                    <div class="employee-name">Col. ${employees.length + 1} - Libre</div>
+                    <div class="employee-role">Disponible pour assignation</div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+        console.log(`✅ ${employees.length + 1} colonnes d'employés générées`);
+    }
+
+    // ===== GÉNÉRATION DE LA GRILLE DE PLANNING =====
+    function generatePlanningGrid() {
+        const grid = document.getElementById('planningGrid');
+        if (!grid) return;
+
+        const hours = window.FLASK_CONFIG?.HOURS_RANGE || [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+        const days = window.FLASK_CONFIG?.DAYS_OF_WEEK || ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+        let html = '';
+        hours.forEach(hour => {
+            html += '<div class="grid-row">';
+
+            // Cellule heure
+            html += `<div class="time-cell">${hour.toString().padStart(2, '0')}:00</div>`;
+
+            // Cellules jours
+            days.forEach(day => {
+                html += `
+                    <div class="day-cell"
+                         data-day="${day.toLowerCase()}"
+                         data-hour="${hour}"
+                         ondblclick="showAddShiftModal('${day.toLowerCase()}', ${hour})"
+                         ondragover="allowDrop(event)"
+                         ondrop="handleDrop(event)"
+                         ondragenter="dragEnter(event)"
+                         ondragleave="dragLeave(event)">
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+        });
+
+        grid.innerHTML = html;
+        console.log(`✅ Grille générée: ${hours.length} heures × ${days.length} jours`);
+
+        // Rendre les créneaux
+        setTimeout(renderShifts, 100);
+    }
+
+    // ===== RENDU DES CRÉNEAUX =====
+    function renderShifts() {
+        console.log('🎨 Rendu créneaux avec interface complète...');
+
+        // Nettoyer les anciens créneaux
+        document.querySelectorAll('.shift-block').forEach(el => el.remove());
+
+        if (window.AppState.shifts.size === 0) {
+            console.log('Aucun créneau à rendre');
+            return;
         }
-    } catch (error) {
-        console.error('❌ Erreur initialisation avatars:', error);
+
+        Array.from(window.AppState.shifts.values()).forEach(shift => {
+            renderSingleShift(shift);
+        });
+
+        console.log(`✅ ${window.AppState.shifts.size} créneaux rendus`);
     }
 
-    // Fonctions de navigation par semaine
+    function renderSingleShift(shift) {
+        const employee = window.AppState.employees.get(shift.employee_id);
+        if (!employee) return;
+
+        const cell = document.querySelector(`[data-day="${shift.day}"][data-hour="${shift.start_hour}"]`);
+        if (!cell) {
+            console.warn(`Cellule non trouvée: ${shift.day} ${shift.start_hour}h`);
+            return;
+        }
+
+        const block = document.createElement('div');
+        block.className = `shift-block ${employee.poste}`;
+        block.dataset.shiftId = shift.id;
+        block.dataset.employeeId = employee.id;
+        block.draggable = true;
+
+        const height = (shift.duration || 1) * 50;
+        block.style.height = `${height - 4}px`;
+
+        // Avatar
+        const avatarColor = {
+            'cuisinier': '74b9ff',
+            'serveur': '00b894',
+            'barman': 'fdcb6e',
+            'manager': 'a29bfe',
+            'commis': 'fd79a8'
+        };
+
+        const color = avatarColor[employee.poste] || '6c757d';
+        const initials = (employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase();
+        const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&size=32&background=${color}&color=fff&font-size=0.5&bold=true`;
+
+        block.innerHTML = `
+            <div class="shift-avatar-section">
+                <img class="shift-avatar-horizontal" src="${avatarUrl}" alt="${employee.prenom}">
+            </div>
+            <div class="shift-text-section">
+                <div class="shift-name-vertical">${employee.prenom}</div>
+                <div class="shift-duration-horizontal">${shift.duration || 1}h</div>
+            </div>
+        `;
+
+        // Événements
+        block.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', shift.id);
+            block.classList.add('dragging');
+        });
+
+        block.addEventListener('dragend', () => {
+            block.classList.remove('dragging');
+        });
+
+        block.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            alert(`Modifier le créneau de ${employee.nom_complet}`);
+        });
+
+        cell.appendChild(block);
+    }
+
+    // ===== FONCTIONS DRAG & DROP =====
+    window.allowDrop = function(event) {
+        event.preventDefault();
+    };
+
+    window.dragEnter = function(event) {
+        event.target.classList.add('drag-over');
+    };
+
+    window.dragLeave = function(event) {
+        if (!event.target.contains(event.relatedTarget)) {
+            event.target.classList.remove('drag-over');
+        }
+    };
+
+    window.handleDrop = async function(event) {
+        event.preventDefault();
+        event.target.classList.remove('drag-over');
+
+        const shiftId = event.dataTransfer.getData('text/plain');
+        const newDay = event.target.dataset.day;
+        const newHour = parseInt(event.target.dataset.hour);
+
+        const shift = window.AppState.shifts.get(shiftId);
+        if (!shift) return;
+
+        try {
+            const response = await fetch(`/api/shifts/${shiftId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    day: newDay,
+                    start_hour: newHour
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                shift.day = newDay;
+                shift.start_hour = newHour;
+                renderShifts();
+                NotificationManager.show('✅ Créneau déplacé', 'success');
+            } else {
+                renderShifts();
+                NotificationManager.show('❌ Erreur: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('❌ Erreur:', error);
+            renderShifts();
+            NotificationManager.show('❌ Erreur de connexion', 'error');
+        }
+    };
+
+    // ===== FONCTIONS NAVIGATION =====
     window.previousWeek = function() {
         currentWeekOffset--;
         updateWeekDisplay();
-        showNotification('📅 Semaine précédente', 'success');
+        NotificationManager.show('📅 Semaine précédente', 'info');
     };
 
     window.nextWeek = function() {
         currentWeekOffset++;
         updateWeekDisplay();
-        showNotification('📅 Semaine suivante', 'success');
+        NotificationManager.show('📅 Semaine suivante', 'info');
     };
 
     function updateWeekDisplay() {
@@ -482,130 +818,81 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
     }
 
-    // Gestionnaire de granularité
-    const granularitySelect = document.getElementById('granularitySelect');
-    if (granularitySelect) {
-        granularitySelect.addEventListener('change', function() {
-            const newGranularity = parseInt(this.value);
-            console.log(`Changement de granularité: ${newGranularity} minutes`);
+    // ===== FONCTIONS UTILITAIRES =====
+    window.generateRandomAvatars = function() {
+        const colors = ['74b9ff', '00b894', 'fdcb6e', 'a29bfe', 'fd79a8', '6c5ce7'];
 
-            // Mettre à jour l'indicateur
-            const indicator = document.getElementById('granularityIndicatorText');
-            if (indicator) {
-                const labels = {
-                    15: '15 min',
-                    30: '30 min',
-                    60: '1 heure'
-                };
-                indicator.textContent = labels[newGranularity] || `${newGranularity} min`;
-            }
-
-            // Mettre à jour le compteur de créneaux
-            const slotsCount = document.getElementById('slotsCount');
-            if (slotsCount) {
-                const totalSlots = (16 * 60) / newGranularity; // 16 heures de service
-                slotsCount.textContent = totalSlots;
-            }
-
-            showNotification(`⏱️ Granularité changée: ${newGranularity} minutes`, 'success');
-
-            // Regénérer le planning si le renderer est disponible
-            if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
-                setTimeout(() => PlanningRenderer.generatePlanningGrid(), 100);
+        // Avatars des colonnes
+        document.querySelectorAll('.employee-avatar').forEach(img => {
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const currentSrc = img.src;
+            if (currentSrc.includes('ui-avatars.com')) {
+                img.src = currentSrc.replace(/background=[^&]*/, `background=${randomColor}&t=${Date.now()}`);
             }
         });
-    }
 
-    // Fonction pour mettre à jour le compteur de photos
-    function updatePhotoCount() {
-        const photoCountElement = document.getElementById('photoCount');
-        if (photoCountElement && window.avatarManager) {
-            const count = window.avatarManager.photoCache ? window.avatarManager.photoCache.size : 0;
-            photoCountElement.textContent = count;
-        }
-    }
+        // Avatars des créneaux
+        document.querySelectorAll('.shift-avatar-horizontal').forEach(img => {
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const currentSrc = img.src;
+            if (currentSrc.includes('ui-avatars.com')) {
+                img.src = currentSrc.replace(/background=[^&]*/, `background=${randomColor}&t=${Date.now()}`);
+            }
+        });
 
-    // Fonction globale pour générer des avatars aléatoires
-    window.generateRandomAvatars = function() {
-        if (window.avatarManager && typeof window.avatarManager.generateRandomAvatars === 'function') {
-            window.avatarManager.generateRandomAvatars();
-        } else {
-            // Fallback: simuler la génération d'avatars
-            showNotification('🎨 Nouveaux avatars générés aléatoirement', 'success');
-
-            // Mettre à jour visuellement les avatars dans les colonnes
-            const avatarImages = document.querySelectorAll('.employee-avatar');
-            avatarImages.forEach(img => {
-                const timestamp = Date.now();
-                const currentSrc = img.src;
-                if (currentSrc.includes('ui-avatars.com')) {
-                    img.src = currentSrc + '&t=' + timestamp;
-                }
-            });
-        }
-        updatePhotoCount();
+        NotificationManager.show('🎨 Nouveaux avatars générés', 'success');
     };
 
-    // Améliorer l'affichage des colonnes d'employés
-    function enhanceEmployeeColumns() {
-        const columns = document.querySelectorAll('.employee-column');
-        columns.forEach(column => {
-            // Ajouter des effets hover améliorés
-            column.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateX(5px) translateY(-2px)';
-            });
+    window.showStats = function() {
+        const employeeCount = window.AppState.employees.size;
+        const shiftCount = window.AppState.shifts.size;
+        const totalHours = Array.from(window.AppState.shifts.values())
+            .reduce((sum, shift) => sum + (shift.duration || 1), 0);
 
-            column.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateX(0) translateY(0)';
-            });
+        NotificationManager.show(`📊 ${employeeCount} employés • ${shiftCount} créneaux • ${totalHours}h total`, 'info');
+    };
 
-            // Clic pour modifier l'employé
-            column.addEventListener('click', function() {
-                const employeeId = this.dataset.employeeId;
-                if (employeeId) {
-                    showEditEmployeeModal(employeeId);
-                }
-            });
-        });
-    }
-
-    // Attendre que tous les scripts soient chargés avant d'initialiser
+    // ===== INITIALISATION =====
     setTimeout(() => {
-        console.log('🎯 Initialisation spécifique à la page planning...');
-
-        // Améliorer les colonnes d'employés
-        enhanceEmployeeColumns();
-
-        // Initialiser la légende si les scripts sont prêts
-        if (typeof PlanningUI !== 'undefined' && PlanningUI.updateLegend) {
-            PlanningUI.updateLegend();
-        }
-
-        // Initialiser l'affichage si les scripts sont prêts
-        if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
-            PlanningRenderer.generatePlanningGrid();
-        }
-
-        // Mettre à jour l'affichage initial de la semaine
+        generateEmployeeColumns();
+        generatePlanningGrid();
         updateWeekDisplay();
 
-        // Mettre à jour le compteur de photos
-        updatePhotoCount();
+        console.log('✅ Interface complète initialisée');
 
-        console.log('✅ Page planning initialisée avec colonnes d\'employés restaurées');
-    }, 1500);
+        // Test final
+        setTimeout(() => {
+            const shiftsRendered = document.querySelectorAll('.shift-block').length;
+            console.log(`🎯 Test final: ${shiftsRendered} créneaux affichés sur ${window.AppState.shifts.size} attendus`);
 
-    // Fonction pour afficher les statistiques
-    window.showStats = function() {
-        if (window.AppState && window.AppState.employees) {
-            const totalEmployees = window.AppState.employees.size;
-            const totalShifts = window.AppState.shifts ? window.AppState.shifts.size : 0;
+            if (shiftsRendered === 0 && window.AppState.shifts.size > 0) {
+                console.warn('⚠️ Aucun créneau affiché - problème de compatibilité des données');
+                // Réessayer avec les noms de jours en anglais
+                setTimeout(() => {
+                    document.querySelectorAll('[data-day]').forEach(cell => {
+                        const dayFr = cell.dataset.day;
+                        const dayEn = {
+                            'lundi': 'monday',
+                            'mardi': 'tuesday',
+                            'mercredi': 'wednesday',
+                            'jeudi': 'thursday',
+                            'vendredi': 'friday',
+                            'samedi': 'saturday',
+                            'dimanche': 'sunday'
+                        }[dayFr];
 
-            showNotification(`📊 ${totalEmployees} employés, ${totalShifts} créneaux`, 'info');
-        } else {
-            showNotification('📊 Statistiques : En cours de chargement...', 'info');
-        }
-    };
+                        if (dayEn) {
+                            cell.dataset.dayEn = dayEn;
+                        }
+                    });
+
+                    // Re-render avec les deux formats
+                    renderShifts();
+                }, 500);
+            }
+        }, 1000);
+
+    }, 300);
 });
 </script>
 
