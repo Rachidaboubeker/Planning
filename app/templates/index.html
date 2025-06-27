@@ -1,529 +1,780 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Restaurant - Version Refactorisée</title>
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Application principale -->
+    <div id="app" class="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <i class="fas fa-calendar-alt"></i>
+                    <h1>Planning Restaurant</h1>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="btn btn-primary" data-action="add-employee">
+                        <i class="fas fa-user-plus"></i>
+                        Nouvel employé
+                    </button>
+                    <button class="btn btn-secondary" data-action="add-shift">
+                        <i class="fas fa-plus"></i>
+                        Nouveau créneau
+                    </button>
+                </div>
+            </div>
+        </header>
 
-{% block title %}Planning Semaine - Restaurant{% endblock %}
+        <!-- Navigation semaine -->
+        <nav class="week-navigation">
+            <div class="nav-content">
+                <button class="btn btn-outline" data-action="prev-week">
+                    <i class="fas fa-chevron-left"></i>
+                    Semaine précédente
+                </button>
+                
+                <div class="current-week">
+                    <h2 id="currentWeekDisplay">Semaine du 24 au 30 juin 2025</h2>
+                </div>
+                
+                <button class="btn btn-outline" data-action="next-week">
+                    <i class="fas fa-chevron-right"></i>
+                    Semaine suivante
+                </button>
+            </div>
+        </nav>
 
-{% block extra_css %}
-<style>
-    /* Styles pour la gestion de la granularité */
-    .planning-actions {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        flex-wrap: wrap;
-    }
+        <!-- Contrôles planning -->
+        <div class="planning-controls">
+            <div class="controls-content">
+                <div class="granularity-control">
+                    <label for="granularitySelect">Granularité :</label>
+                    <select id="granularitySelect" class="select">
+                        <option value="60">1 heure</option>
+                        <option value="30">30 minutes</option>
+                        <option value="15">15 minutes</option>
+                    </select>
+                </div>
+                
+                <div class="view-control">
+                    <label for="viewSelect">Vue :</label>
+                    <select id="viewSelect" class="select">
+                        <option value="week">Semaine</option>
+                        <option value="day">Jour</option>
+                        <option value="employee">Par employé</option>
+                    </select>
+                </div>
+                
+                <div class="stats-summary" id="statsSummary">
+                    <span class="stat-item">
+                        <i class="fas fa-users"></i>
+                        <span id="employeeCount">0</span> employés
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="totalHours">0</span>h programmées
+                    </span>
+                </div>
+            </div>
+        </div>
 
-    .granularity-selector-container {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: white;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #e1e5e9;
-    }
+        <!-- Contenu principal -->
+        <main class="main-content">
+            <!-- Légende employés -->
+            <aside class="employee-legend" id="employeeLegend">
+                <div class="legend-header">
+                    <h3>Équipe</h3>
+                    <button class="btn btn-sm btn-ghost" data-action="toggle-legend">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="legend-content" id="legendContent">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </aside>
 
-    .granularity-selector-container label {
-        font-weight: 500;
-        color: #4a5568;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
+            <!-- Planning principal -->
+            <section class="planning-section">
+                <div class="planning-container">
+                    <div class="planning-grid-container">
+                        <!-- En-têtes -->
+                        <div class="planning-header-grid" id="planningHeader">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                        
+                        <!-- Grille principale -->
+                        <div class="planning-grid" id="planningGrid">
+                            <!-- Généré dynamiquement -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Indicateur de chargement -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Chargement...</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
-    .granularity-select {
-        padding: 0.375rem 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        background: white;
-        font-size: 0.875rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        min-width: 120px;
-    }
+    <!-- Zone des modals -->
+    <div id="modalContainer"></div>
 
-    .granularity-select:hover {
-        border-color: #6366f1;
-    }
+    <!-- Zone des notifications -->
+    <div id="notificationContainer" class="notification-container"></div>
 
-    .granularity-select:focus {
-        outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
+    <!-- Configuration Flask (injectée par le serveur) -->
+    <script id="flask-config" type="application/json">
+        {
+            "API_BASE": "/api",
+            "TIME_SLOT_GRANULARITY": 60,
+            "HOURS_RANGE": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2],
+            "DAYS_OF_WEEK": ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+            "EMPLOYEE_TYPES": {
+                "cuisinier": {"color": "#74b9ff", "name": "Cuisinier"},
+                "serveur": {"color": "#00b894", "name": "Serveur/se"},
+                "barman": {"color": "#fdcb6e", "name": "Barman"},
+                "manager": {"color": "#a29bfe", "name": "Manager"},
+                "aide": {"color": "#6c5ce7", "name": "Aide de cuisine"},
+                "commis": {"color": "#fd79a8", "name": "Commis"}
+            }
+        }
+    </script>
 
-    .granularity-info {
-        font-size: 0.75rem;
-        color: #6b7280;
-        background: #f9fafb;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #e5e7eb;
-    }
+    <!-- Scripts JavaScript (ordre d'import critique) -->
+    
+    <!-- 1. Core (fondations) -->
+    <script src="/static/js/core/config.js"></script>
+    <script src="/static/js/core/state.js"></script>
+    <script src="/static/js/core/events.js"></script>
+    
+    <!-- 2. Utilitaires -->
+    <script src="/static/js/utils/time.js"></script>
+    <script src="/static/js/utils/avatar.js"></script>
+    <script src="/static/js/utils/validation.js"></script>
+    
+    <!-- 3. Managers -->
+    <script src="/static/js/managers/api.js"></script>
+    <script src="/static/js/managers/ui.js"></script>
+    <script src="/static/js/managers/planning.js"></script>
+    <script src="/static/js/managers/drag-drop.js"></script>
+    
+    <!-- 4. Composants -->
+    <script src="/static/js/components/modal.js"></script>
+    <script src="/static/js/components/notification.js"></script>
+    <script src="/static/js/components/legend.js"></script>
+    
+    <!-- 5. Application principale -->
+    <script src="/static/js/app.js"></script>
 
-    .granularity-info small {
-        display: block;
-        font-weight: 500;
-    }
-
-    #slotsCount {
-        font-weight: 600;
-        color: #4f46e5;
-    }
-
-    /* Styles pour la grille du planning avec granularité */
-    .planning-grid {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: var(--gray-200, #dee2e6);
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .time-slot {
-        background: var(--gray-100, #e9ecef);
-        padding: 0.5rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: var(--gray-700, #495057);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-    }
-
-    /* Heures principales */
-    .time-slot:not(.sub-time-slot) {
-        background: linear-gradient(135deg, #6f42c1, #8b5cf6);
-        color: white;
-        font-weight: bold;
-    }
-
-    /* Sous-créneaux pour granularité fine */
-    .time-slot.sub-time-slot {
-        background: #f8f9fa;
-        color: #6c757d;
-        font-style: italic;
-        font-size: 0.75rem;
-        position: relative;
-    }
-
-    .time-slot.sub-time-slot::before {
-        content: '├';
-        margin-right: 0.25rem;
-        color: #6c757d;
-    }
-
-    .schedule-cell {
-        background: white;
-        min-height: 50px;
-        position: relative;
-        border: 1px solid #e1e5e9;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .schedule-cell:hover {
-        background: rgba(99, 102, 241, 0.05);
-        border-color: #6366f1;
-    }
-
-    .schedule-cell.drag-over {
-        background: rgba(0, 123, 255, 0.1);
-        border-color: var(--primary-color, #007bff);
-    }
-
-    /* Bordures pour différencier les heures pleines */
-    .schedule-cell[data-minutes="0"] {
-        border-top: 2px solid #6f42c1;
-    }
-
-    .schedule-cell:not([data-minutes="0"]) {
-        border-top: 1px dashed #ced4da;
-    }
-
-    /* Créneaux de travail */
-    .shift-block {
-        position: absolute;
-        border-radius: 6px;
-        color: white;
-        font-size: 0.85rem;
-        overflow: hidden;
-        cursor: grab;
-        transition: all 0.2s ease;
-        z-index: 10;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        padding: 0.4rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        text-align: center;
-        line-height: 1.2;
-    }
-
-    .shift-block:hover {
-        transform: scale(1.02);
-        z-index: 20;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .shift-block.dragging {
-        opacity: 0.8;
-        transform: rotate(2deg);
-        cursor: grabbing;
-    }
-
-    /* En-têtes du planning */
-    .planning-grid-header {
-        display: grid;
-        grid-template-columns: 80px repeat(7, 1fr);
-        gap: 1px;
-        background: var(--gray-200, #dee2e6);
-        border-radius: 8px 8px 0 0;
-        overflow: hidden;
-        margin-bottom: 1px;
-    }
-
-    .time-column-header,
-    .day-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem 0.5rem;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .day-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Statistiques rapides */
-    .quick-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-
-    .stat-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid var(--gray-200, #dee2e6);
-        text-align: center;
-        transition: all 0.2s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color, #007bff);
-        margin-bottom: 0.5rem;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--gray-600, #6c757d);
-        font-weight: 500;
-    }
-
-    /* Actions rapides */
-    .quick-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-left: auto;
-    }
-
-    .btn-icon-only {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .btn-photo {
-        background: var(--info-color, #17a2b8);
-        color: white;
-    }
-
-    .btn-photo:hover {
-        background: var(--primary-color, #007bff);
-        transform: scale(1.1);
-    }
-
-    /* Indicateur de granularité */
-    .granularity-indicator {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(111, 66, 193, 0.9);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        z-index: 1000;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .planning-grid,
-        .planning-grid-header {
-            grid-template-columns: 60px repeat(7, 1fr);
+    <style>
+        /* CSS Variables */
+        :root {
+            --primary-color: #667eea;
+            --primary-light: #764ba2;
+            --secondary-color: #f093fb;
+            --accent-color: #4facfe;
+            --success-color: #00d2ff;
+            --warning-color: #ffa726;
+            --error-color: #ff5722;
+            
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            --border-radius: 0.5rem;
+            --border-radius-lg: 0.75rem;
+            --border-radius-xl: 1rem;
+            
+            --transition: all 0.2s ease-in-out;
+            --transition-fast: all 0.15s ease-in-out;
+            
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+            
+            --line-height-tight: 1.25;
+            --line-height-snug: 1.375;
+            --line-height-normal: 1.5;
+            --line-height-relaxed: 1.625;
+            
+            --letter-spacing-tight: -0.025em;
+            --letter-spacing-normal: 0em;
+            --letter-spacing-wide: 0.025em;
+            
+            --z-dropdown: 1000;
+            --z-sticky: 1020;
+            --z-fixed: 1030;
+            --z-modal-backdrop: 1040;
+            --z-modal: 1050;
+            --z-popover: 1060;
+            --z-tooltip: 1070;
+            --z-toast: 1080;
         }
 
-        .time-slot,
-        .time-column-header {
-            padding: 0.25rem;
-            font-size: 0.75rem;
+        /* Reset & Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        .day-header {
-            padding: 0.75rem 0.25rem;
-            font-size: 0.8rem;
+        html {
+            font-size: 16px;
+            line-height: var(--line-height-normal);
         }
 
-        .quick-stats {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        body {
+            font-family: var(--font-family);
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-normal);
+            color: var(--gray-700);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
 
-        .planning-actions {
+        /* Layout principal */
+        .app {
+            min-height: 100vh;
+            display: flex;
             flex-direction: column;
-            align-items: stretch;
         }
 
-        .quick-actions {
-            margin-left: 0;
+        /* Header */
+        .app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .header-brand i {
+            font-size: 1.5rem;
+        }
+
+        .header-brand h1 {
+            font-size: var(--font-size-xl);
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Navigation semaine */
+        .week-navigation {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .current-week h2 {
+            font-size: var(--font-size-lg);
+            font-weight: 500;
+            color: var(--gray-700);
+            margin: 0;
+        }
+
+        /* Contrôles planning */
+        .planning-controls {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .controls-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .granularity-control,
+        .view-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-summary {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+        }
+
+        /* Contenu principal */
+        .main-content {
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            gap: 2rem;
+        }
+
+        /* Légende employés */
+        .employee-legend {
+            width: 250px;
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            height: fit-content;
+            position: sticky;
+            top: 200px;
+        }
+
+        .legend-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .legend-header h3 {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .legend-content {
+            padding: 1rem;
+        }
+
+        /* Section planning */
+        .planning-section {
+            flex: 1;
+            position: relative;
+        }
+
+        .planning-container {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .planning-grid-container {
+            position: relative;
+            overflow: auto;
+            max-height: 70vh;
+        }
+
+        /* Grille planning */
+        .planning-header-grid {
+            display: grid;
+            grid-template-columns: 100px repeat(7, 1fr);
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-sticky);
+        }
+
+        .planning-grid {
+            display: grid;
+            grid-template-columns: 100px repeat(7, 1fr);
+            position: relative;
+        }
+
+        /* Cellules de base */
+        .time-cell,
+        .day-header,
+        .schedule-cell {
+            border-right: 1px solid var(--gray-200);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .time-cell {
+            background: var(--gray-100);
+            padding: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
             justify-content: center;
-        }
-
-        .granularity-selector-container {
-            flex-direction: column;
-            gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .granularity-indicator {
-            bottom: 10px;
-            right: 10px;
-            font-size: 0.7rem;
-            padding: 0.4rem 0.8rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .planning-grid,
-        .planning-grid-header {
-            grid-template-columns: 50px repeat(7, 1fr);
+            position: sticky;
+            left: 0;
+            z-index: 10;
         }
 
         .day-header {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            padding: 0.5rem 0.25rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: var(--font-size-lg);
         }
 
+        .schedule-cell {
+            background: white;
+            min-height: 60px;
+            position: relative;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .schedule-cell:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Boutons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            font-size: var(--font-size-sm);
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: var(--font-size-xs);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-500);
+            border: none;
+            padding: 0.5rem;
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        /* Select */
+        .select {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--border-radius);
+            background: white;
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-modal);
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            color: var(--primary-color);
+        }
+
+        .spinner i {
+            font-size: 2rem;
+        }
+
+        /* Notifications */
+        .notification-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: var(--z-toast);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            
+            .employee-legend {
+                width: 100%;
+                position: static;
+            }
+            
+            .controls-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .planning-grid-container {
+                max-height: 60vh;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: var(--font-size-xs);
+            }
+        }
+
+        /* Créneaux */
         .shift-block {
-            font-size: 0.7rem;
-            padding: 0.2rem;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<!-- CONFIGURATION FLASK POUR JAVASCRIPT -->
-<script>
-// Configuration Flask transmise à JavaScript
-window.FLASK_CONFIG = {
-    HOURS_RANGE: {{ config_data.HOURS_RANGE | tojson }},
-    DAYS_OF_WEEK: {{ config_data.DAYS_OF_WEEK | tojson }},
-    EMPLOYEE_TYPES: {{ config_data.EMPLOYEE_TYPES | tojson }},
-    TIME_SLOT_GRANULARITY: {{ config_data.TIME_SLOT_GRANULARITY | tojson }},
-    AVAILABLE_GRANULARITIES: {{ config_data.AVAILABLE_GRANULARITIES | tojson }},
-    ALL_TIME_SLOTS: {{ config_data.ALL_TIME_SLOTS | tojson }},
-    GRANULARITY_INFO: {{ config_data.GRANULARITY_INFO | tojson }}
-};
-
-window.FLASK_DATA = {
-    employees: {{ employees | tojson }},
-    shifts: {{ shifts | tojson }},
-    stats: {{ stats | tojson }}
-};
-
-console.log('📊 Configuration Flask chargée');
-</script>
-
-<div class="planning-container">
-    <div class="planning-header">
-        <div class="week-navigation">
-            <button class="btn btn-outline" onclick="previousWeek()">
-                <i class="fas fa-chevron-left"></i> Semaine précédente
-            </button>
-            <h1 class="current-week">
-                <i class="fas fa-calendar-week"></i>
-                <span id="weekTitle">Semaine du 9 au 15 Juin 2025</span>
-            </h1>
-            <button class="btn btn-outline" onclick="nextWeek()">
-                Semaine suivante <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-
-        <div class="planning-actions">
-            <button class="btn btn-primary" onclick="showAddShiftModal()">
-                <i class="fas fa-plus"></i> Ajouter un créneau
-            </button>
-            <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
-                <i class="fas fa-user-plus"></i> Nouvel équipier
-            </button>
-
-            <div class="granularity-selector-container">
-                <label for="granularitySelect">
-                    <i class="fas fa-clock"></i> Granularité :
-                </label>
-                <select id="granularitySelect" class="granularity-select">
-                    {% for value, label in available_granularities.items() %}
-                    <option value="{{ value }}" {% if value == time_slot_granularity %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <div class="granularity-info">
-                    <small>Créneaux: <span id="slotsCount">{{ config_data.GRANULARITY_INFO.total_slots }}</span></small>
-                </div>
-            </div>
-
-            <div class="quick-actions">
-                <button class="btn-icon-only btn-photo" onclick="showBulkPhotoModal()" title="Gérer les photos">
-                    <i class="fas fa-camera"></i>
-                </button>
-                <button class="btn-icon-only btn-photo" onclick="generateRandomAvatars()" title="Avatars aléatoires">
-                    <i class="fas fa-dice"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="legend-container" id="legendContainer"></div>
-
-    <div class="planning-wrapper">
-        <div class="planning-grid-container">
-            <div class="planning-grid-header">
-                <div class="time-column-header">
-                    <i class="fas fa-clock"></i> Heure
-                </div>
-                {% for day in days %}
-                <div class="day-header">{{ day }}</div>
-                {% endfor %}
-            </div>
-            <div class="planning-grid" id="planningGrid"></div>
-        </div>
-    </div>
-
-    <div class="quick-stats">
-        <div class="stat-card">
-            <div class="stat-value" id="totalHoursDisplay">{{ stats.total_hours }}</div>
-            <div class="stat-label">Heures totales</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="activeEmployeesDisplay">{{ stats.active_employees }}</div>
-            <div class="stat-label">Équipiers actifs</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="averageHoursDisplay">{{ "%.1f"|format(stats.average_hours) }}h</div>
-            <div class="stat-label">Moyenne par personne</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="photoCountDisplay">0</div>
-            <div class="stat-label">Photos ajoutées</div>
-        </div>
-    </div>
-</div>
-
-<div class="granularity-indicator" id="granularityIndicator">
-    <i class="fas fa-clock"></i>
-    <span id="granularityIndicatorText">{{ config_data.GRANULARITY_INFO.granularity_label }}</span>
-</div>
-
-<!-- JAVASCRIPT SPÉCIFIQUE À LA PAGE PLANNING -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    let currentWeekOffset = 0;
-    let employees = new Map();
-    let shifts = new Map();
-
-    // Charger les données Flask dans les variables globales
-    if (window.FLASK_DATA?.employees) {
-        window.FLASK_DATA.employees.forEach(emp => employees.set(emp.id, emp));
-        window.employees = employees; // Exposer globalement
-    }
-
-    if (window.FLASK_DATA?.shifts) {
-        window.FLASK_DATA.shifts.forEach(shift => shifts.set(shift.id, shift));
-        window.shifts = shifts; // Exposer globalement
-    }
-
-    // Fonctions de navigation par semaine
-    window.previousWeek = function() {
-        currentWeekOffset--;
-        updateWeekDisplay();
-    };
-
-    window.nextWeek = function() {
-        currentWeekOffset++;
-        updateWeekDisplay();
-    };
-
-    function updateWeekDisplay() {
-        const today = new Date();
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - today.getDay() + 1 + (currentWeekOffset * 7));
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-
-        const options = { day: 'numeric', month: 'long' };
-        const mondayStr = monday.toLocaleDateString('fr-FR', options);
-        const sundayStr = sunday.toLocaleDateString('fr-FR', options);
-
-        document.getElementById('weekTitle').textContent = `Semaine du ${mondayStr} au ${sundayStr}`;
-    }
-
-    // Attendre que tous les scripts soient chargés avant d'initialiser
-    setTimeout(() => {
-        console.log('🎯 Initialisation spécifique à la page planning...');
-
-        // Initialiser la légende si les scripts sont prêts
-        if (typeof PlanningUI !== 'undefined' && PlanningUI.updateLegend) {
-            PlanningUI.updateLegend();
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border-radius: var(--border-radius);
+            color: white;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: grab;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
         }
 
-        // Initialiser l'affichage si les scripts sont prêts
-        if (typeof PlanningRenderer !== 'undefined' && PlanningRenderer.generatePlanningGrid) {
-            PlanningRenderer.generatePlanningGrid();
+        .shift-block:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-lg);
+            z-index: 20;
         }
 
-        console.log('✅ Page planning initialisée');
-    }, 1500);
-});
-</script>
+        .shift-block:active {
+            cursor: grabbing;
+        }
 
-{% endblock %}
+        .shift-block.dragging {
+            opacity: 0.7;
+            transform: scale(1.05);
+            z-index: 100;
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Types d'employés */
+        .shift-block.cuisinier {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+        }
+
+        .shift-block.serveur {
+            background: linear-gradient(135deg, #00b894, #00a085);
+        }
+
+        .shift-block.barman {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+        }
+
+        .shift-block.manager {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+        }
+
+        .shift-block.aide {
+            background: linear-gradient(135deg, #6c5ce7, #5f3dc4);
+        }
+
+        .shift-block.commis {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+        }
+
+        /* Drag & Drop */
+        .drop-zone {
+            transition: var(--transition);
+        }
+
+        .drop-zone.drag-over {
+            background: rgba(0, 208, 255, 0.1) !important;
+            border: 2px dashed var(--success-color) !important;
+        }
+
+        .drop-zone.drag-invalid {
+            background: rgba(255, 87, 34, 0.1) !important;
+            border: 2px dashed var(--error-color) !important;
+        }
+
+        /* Granularité */
+        .planning-grid.granularity-15 .schedule-cell {
+            min-height: 15px;
+        }
+
+        .planning-grid.granularity-30 .schedule-cell {
+            min-height: 30px;
+        }
+
+        .planning-grid.granularity-60 .schedule-cell {
+            min-height: 60px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</body>
+</html>

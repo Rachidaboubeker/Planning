@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Planning Restaurant{% endblock %}</title>
 
-    <!-- CSS personnalisé -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- ✅ CSS unifié refactorisé -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
     <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,24 +14,24 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
+    <!-- Navigation modernisée -->
+    <nav class="app-header">
+        <div class="header-content">
+            <div class="header-brand">
                 <i class="fas fa-utensils"></i>
                 <span>Planning Restaurant</span>
             </div>
 
-            <div class="nav-menu">
-                <a href="{{ url_for('main.index') }}" class="nav-link {{ 'active' if request.endpoint == 'main.index' }}">
+            <div class="header-actions">
+                <a href="{{ url_for('main.index') }}" class="btn {{ 'btn-primary' if request.endpoint == 'main.index' else 'btn-outline' }}">
                     <i class="fas fa-calendar-week"></i> Planning
                 </a>
-                <a href="{{ url_for('main.employees') }}" class="nav-link {{ 'active' if request.endpoint == 'main.employees' }}">
+                <a href="{{ url_for('main.employees') }}" class="btn {{ 'btn-primary' if request.endpoint == 'main.employees' else 'btn-outline' }}">
                     <i class="fas fa-users"></i> Équipiers
                 </a>
-                <a href="#" class="nav-link" onclick="showStats()">
+                <button class="btn btn-outline" onclick="showStats()">
                     <i class="fas fa-chart-bar"></i> Statistiques
-                </a>
+                </button>
             </div>
         </div>
     </nav>
@@ -41,770 +41,115 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Notifications -->
-    <div id="notifications" class="notifications-container"></div>
-
-    <!-- MODAL PRINCIPAL UNIFIÉ -->
-    <div id="globalModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Titre du modal</h2>
-                <span class="modal-close" onclick="closeModal('globalModal')">&times;</span>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Le contenu sera injecté ici -->
-            </div>
-            <div class="modal-footer" id="modalFooter">
-                <!-- Les boutons seront injectés ici -->
-            </div>
-        </div>
-    </div>
-
-    <!-- TEMPLATES CACHÉS POUR CHAQUE TYPE DE MODAL -->
-    <!-- Template 1: Ajout d'employé -->
-    <template id="addEmployeeTemplate">
-        <form id="addEmployeeForm" class="form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="employeePrenom">Prénom *</label>
-                    <input type="text" id="employeePrenom" name="prenom" required autocomplete="given-name">
-                </div>
-                <div class="form-group">
-                    <label for="employeeNom">Nom *</label>
-                    <input type="text" id="employeeNom" name="nom" required autocomplete="family-name">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="employeePoste">Poste *</label>
-                    <select id="employeePoste" name="poste" required>
-                        <option value="">Sélectionner un poste</option>
-                        {% for type_key, type_info in employee_types.items() %}
-                        <option value="{{ type_key }}">{{ type_info.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="employeeTauxHoraire">Taux horaire (€) *</label>
-                    <input type="number" id="employeeTauxHoraire" name="taux_horaire"
-                           min="10" max="50" step="0.5" value="15" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="employeeEmail">Email</label>
-                    <input type="email" id="employeeEmail" name="email" autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="employeeTelephone">Téléphone</label>
-                    <input type="tel" id="employeeTelephone" name="telephone" autocomplete="tel">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="employeePhoto">Photo (optionnel)</label>
-                <input type="file" id="employeePhoto" name="photo" accept="image/*">
-                <small class="form-help">JPG, PNG - Max 5MB</small>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 2: Modification d'employé -->
-    <template id="editEmployeeTemplate">
-        <form id="editEmployeeForm" class="form">
-            <input type="hidden" id="editEmployeeId" name="employee_id">
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeePrenom">Prénom *</label>
-                    <input type="text" id="editEmployeePrenom" name="prenom" required>
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeNom">Nom *</label>
-                    <input type="text" id="editEmployeeNom" name="nom" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeePoste">Poste *</label>
-                    <select id="editEmployeePoste" name="poste" required>
-                        {% for type_key, type_info in employee_types.items() %}
-                        <option value="{{ type_key }}">{{ type_info.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeTauxHoraire">Taux horaire (€) *</label>
-                    <input type="number" id="editEmployeeTauxHoraire" name="taux_horaire"
-                           min="10" max="50" step="0.5" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editEmployeeEmail">Email</label>
-                    <input type="email" id="editEmployeeEmail" name="email">
-                </div>
-                <div class="form-group">
-                    <label for="editEmployeeTelephone">Téléphone</label>
-                    <input type="tel" id="editEmployeeTelephone" name="telephone">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="editEmployeeActif" name="actif" checked>
-                    Employé actif
-                </label>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 3: Ajout de créneau -->
-    <template id="addShiftTemplate">
-        <form id="addShiftForm" class="form">
-            <div class="form-group">
-                <label for="shiftEmployee">Équipier *</label>
-                <select id="shiftEmployee" name="employee_id" required>
-                    <option value="">Sélectionner un équipier</option>
-                    {% for employee in employees %}
-                    <option value="{{ employee.id }}" data-type="{{ employee.poste }}">
-                        {{ employee.nom_complet }} ({{ employee.type_info.name }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="shiftDay">Jour *</label>
-                    <select id="shiftDay" name="day" required>
-                        {% for day in days %}
-                        <option value="{{ day }}">{{ day }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="shiftStartHour">Heure de début *</label>
-                    <select id="shiftStartHour" name="start_hour" required>
-                        {% for hour in hours %}
-                        <option value="{{ hour }}">{{ "%02d"|format(hour) }}:00</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="shiftDuration">Durée (heures) *</label>
-                    <select id="shiftDuration" name="duration" required>
-                        {% for i in range(1, 13) %}
-                        <option value="{{ i }}" {% if i == 4 %}selected{% endif %}>{{ i }}h</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="shiftNotes">Notes (optionnel)</label>
-                <textarea id="shiftNotes" name="notes" rows="3" placeholder="Service spécial, remarques..."></textarea>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 4: Modification de créneau -->
-    <template id="editShiftTemplate">
-        <form id="editShiftForm" class="form">
-            <input type="hidden" id="editShiftId" name="shift_id">
-
-            <div class="form-group">
-                <label for="editShiftEmployee">Équipier *</label>
-                <select id="editShiftEmployee" name="employee_id" required>
-                    {% for employee in employees %}
-                    <option value="{{ employee.id }}">{{ employee.nom_complet }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="editShiftDay">Jour *</label>
-                    <select id="editShiftDay" name="day" required>
-                        {% for day in days %}
-                        <option value="{{ day }}">{{ day }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editShiftStartHour">Heure de début *</label>
-                    <select id="editShiftStartHour" name="start_hour" required>
-                        {% for hour in hours %}
-                        <option value="{{ hour }}">{{ "%02d"|format(hour) }}:00</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editShiftDuration">Durée (heures) *</label>
-                    <select id="editShiftDuration" name="duration" required>
-                        {% for i in range(1, 13) %}
-                        <option value="{{ i }}">{{ i }}h</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="editShiftNotes">Notes</label>
-                <textarea id="editShiftNotes" name="notes" rows="3"></textarea>
-            </div>
-        </form>
-    </template>
-
-    <!-- Template 5: Confirmation de suppression -->
-    <template id="deleteConfirmTemplate">
-        <div class="delete-confirmation">
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div>
-                    <strong>Attention !</strong> Cette action est irréversible.
-                </div>
-            </div>
-
-            <p>Êtes-vous sûr de vouloir supprimer :</p>
-            <div class="delete-item-info" id="deleteItemInfo">
-                <!-- Informations sur l'élément à supprimer -->
-            </div>
-        </div>
-    </template>
-
-    <!-- Template 6: Gestion des photos en lot -->
-    <template id="bulkPhotoTemplate">
-        <div class="bulk-photo-manager">
-            <div class="bulk-actions">
-                <button type="button" class="btn btn-primary" onclick="selectAllPhotos()">
-                    <i class="fas fa-check-square"></i> Tout sélectionner
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="clearSelectedPhotos()">
-                    <i class="fas fa-trash"></i> Supprimer sélectionnés
-                </button>
-                <button type="button" class="btn btn-info" onclick="generateRandomAvatars()">
-                    <i class="fas fa-dice"></i> Avatars aléatoires
-                </button>
-            </div>
-
-            <div class="employees-photo-grid" id="employeesPhotoGrid">
-                <!-- Grille générée par JavaScript -->
-            </div>
-        </div>
-    </template>
-
-    <!-- ==================== TOUS LES SCRIPTS DANS BASE.HTML ==================== -->
-
-    <!-- 1. CORE & CONFIG -->
-    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/logger-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/planning-core.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/quarter-hour-system.js') }}"></script>
-
-    <!-- 2. UTILITAIRES -->
-    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/planning-utils.js') }}"></script>
-
-    <!-- 3. GESTIONNAIRES DE BASE -->
-    <script src="{{ url_for('static', filename='js/api-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/notification-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui-manager-fix.js') }}"></script>
-
-    <!-- 4. GESTIONNAIRES SPÉCIALISÉS -->
-    <script src="{{ url_for('static', filename='js/color-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/avatar-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/drag-drop-manager.js') }}"></script>
-
-    <!-- 5. MODULES PLANNING -->
-    <script src="{{ url_for('static', filename='js/shift-element.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/planning-manager.js') }}"></script>
-
-    <!-- 6. SYSTÈME DE COLONNES -->
-    <script src="{{ url_for('static', filename='js/employee-columns.js') }}"></script>
-
-    <!-- 7. RENDU -->
-    <script src="{{ url_for('static', filename='js/planning-renderer.js') }}"></script>
-
-    <!-- 8. CORRECTIONS -->
-    <script src="{{ url_for('static', filename='js/planning-renderer-granularity-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/drag-drop-unified-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/legend-display-fix.js') }}"></script>
-
-    <!-- 9. GESTIONNAIRE GRANULARITÉ -->
-    <script src="{{ url_for('static', filename='js/granularity-manager.js') }}"></script>
-
-    <!-- 10. INTERFACE UTILISATEUR -->
-    <script src="{{ url_for('static', filename='js/planning-ui.js') }}"></script>
-
-    <!-- 11. FONCTIONS GLOBALES -->
-    <script src="{{ url_for('static', filename='js/global-functions.js') }}"></script>
-
-    <!-- 12. INITIALISATION -->
-    <script src="{{ url_for('static', filename='js/app-init.js') }}"></script>
-
-    <!-- GESTIONNAIRE MODAL UNIFIÉ -->
-    <script>
-    class UnifiedModalManager {
-        constructor() {
-            this.modal = document.getElementById('globalModal');
-            this.modalTitle = document.getElementById('modalTitle');
-            this.modalBody = document.getElementById('modalBody');
-            this.modalFooter = document.getElementById('modalFooter');
-            this.currentData = {};
+    <!-- ✅ Configuration Flask pour la nouvelle architecture -->
+    <script id="flask-config" type="application/json">
+        {
+            "API_BASE": "/api",
+            "TIME_SLOT_GRANULARITY": {{ config.get('TIME_SLOT_GRANULARITY', 60) }},
+            "HOURS_RANGE": {{ config.get('HOURS_RANGE', [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2]) | tojson }},
+            "DAYS_OF_WEEK": {{ config.get('DAYS_OF_WEEK', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']) | tojson }},
+            "EMPLOYEE_TYPES": {{ config.get('EMPLOYEE_TYPES', {
+                'cuisinier': {'color': '#74b9ff', 'name': 'Cuisinier'},
+                'serveur': {'color': '#00b894', 'name': 'Serveur/se'},
+                'barman': {'color': '#fdcb6e', 'name': 'Barman'},
+                'manager': {'color': '#a29bfe', 'name': 'Manager'},
+                'aide': {'color': '#6c5ce7', 'name': 'Aide de cuisine'},
+                'commis': {'color': '#fd79a8', 'name': 'Commis'}
+            }) | tojson }}
         }
-
-        showModal(templateId, title, buttons = [], data = {}) {
-            this.currentData = data;
-            this.modalBody.innerHTML = '';
-
-            const template = document.getElementById(templateId);
-            if (!template) {
-                console.error(`Template ${templateId} non trouvé`);
-                return;
-            }
-
-            const content = template.content.cloneNode(true);
-            this.modalBody.appendChild(content);
-            this.modalTitle.innerHTML = title;
-
-            this.modalFooter.innerHTML = buttons.map(btn =>
-                `<button type="button" class="btn ${btn.class}" onclick="${btn.onclick}">${btn.text}</button>`
-            ).join('');
-
-            this.modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-
-            setTimeout(() => this.populateForm(data), 50);
-        }
-
-        populateForm(data) {
-            for (const [key, value] of Object.entries(data)) {
-                const field = document.getElementById(key);
-                if (field) {
-                    if (field.type === 'checkbox') {
-                        field.checked = value;
-                    } else {
-                        field.value = value;
-                    }
-                }
-            }
-        }
-
-        closeModal() {
-            this.modal.style.display = 'none';
-            document.body.style.overflow = '';
-            this.currentData = {};
-        }
-
-        showAddEmployee() {
-            this.showModal('addEmployeeTemplate', '<i class="fas fa-user-plus"></i> Nouvel équipier', [
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-user-plus"></i> Créer', class: 'btn-primary', onclick: 'handleAddEmployee()' }
-            ]);
-        }
-
-        showEditEmployee(employeeId) {
-            const employee = findEmployee(employeeId);
-            if (!employee) {
-                alert('Employé introuvable');
-                return;
-            }
-
-            this.showModal('editEmployeeTemplate', `✏️ Modifier - ${employee.prenom} ${employee.nom}`, [
-                { text: '<i class="fas fa-trash"></i> Supprimer', class: 'btn-danger', onclick: `confirmDeleteEmployee('${employeeId}')` },
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-save"></i> Sauvegarder', class: 'btn-primary', onclick: `handleUpdateEmployee('${employeeId}')` }
-            ], {
-                editEmployeeId: employee.id,
-                editEmployeePrenom: employee.prenom,
-                editEmployeeNom: employee.nom,
-                editEmployeePoste: employee.poste,
-                editEmployeeTauxHoraire: employee.taux_horaire,
-                editEmployeeEmail: employee.email || '',
-                editEmployeeTelephone: employee.telephone || '',
-                editEmployeeActif: employee.actif !== false
-            });
-        }
-
-        showAddShift(defaultDay = '', defaultHour = '') {
-            this.showModal('addShiftTemplate', '<i class="fas fa-clock"></i> Ajouter un créneau', [
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-plus"></i> Ajouter', class: 'btn-primary', onclick: 'handleAddShift()' }
-            ], {
-                shiftDay: defaultDay,
-                shiftStartHour: defaultHour
-            });
-        }
-
-        showEditShift(shiftId) {
-            const shift = findShift(shiftId);
-            if (!shift) {
-                alert('Créneau introuvable');
-                return;
-            }
-
-            this.showModal('editShiftTemplate', '✏️ Modifier le créneau', [
-                { text: '<i class="fas fa-trash"></i> Supprimer', class: 'btn-danger', onclick: `confirmDeleteShift('${shiftId}')` },
-                { text: 'Annuler', class: 'btn-secondary', onclick: 'modalManager.closeModal()' },
-                { text: '<i class="fas fa-save"></i> Sauvegarder', class: 'btn-primary', onclick: `handleUpdateShift('${shiftId}')` }
-            ], {
-                editShiftId: shift.id,
-                editShiftEmployee: shift.employee_id,
-                editShiftDay: shift.day,
-                editShiftStartHour: shift.start_hour,
-                editShiftDuration: shift.duration,
-                editShiftNotes: shift.notes || ''
-            });
-        }
-
-        showBulkPhoto() {
-            this.showModal('bulkPhotoTemplate', '<i class="fas fa-images"></i> Gestion des photos d\'équipe', [
-                { text: 'Fermer', class: 'btn-secondary', onclick: 'modalManager.closeModal()' }
-            ]);
-            setTimeout(() => generateEmployeesPhotoGrid(), 100);
-        }
-    }
-
-    // Initialiser le gestionnaire unifié
-    const modalManager = new UnifiedModalManager();
-
-    // Fonctions de recherche des données
-    function findEmployee(employeeId) {
-        if (window.employees && window.employees.get) return window.employees.get(employeeId);
-        if (window.AppState?.employees) return window.AppState.employees.get(employeeId);
-        if (typeof employeesData !== 'undefined') return employeesData.find(e => e.id === employeeId);
-        return null;
-    }
-
-    function findShift(shiftId) {
-        if (window.shifts && window.shifts.get) return window.shifts.get(shiftId);
-        if (window.AppState?.shifts) return window.AppState.shifts.get(shiftId);
-        if (typeof shiftsData !== 'undefined') return shiftsData.find(s => s.id === shiftId);
-        return null;
-    }
-
-    // Fonctions globales
-    function showAddEmployeeModal() { modalManager.showAddEmployee(); }
-    function showEditEmployeeModal(employeeId) { modalManager.showEditEmployee(employeeId); }
-    function showAddShiftModal(defaultDay, defaultHour) { modalManager.showAddShift(defaultDay, defaultHour); }
-    function showEditShiftModal(shiftId) { modalManager.showEditShift(shiftId); }
-    function showBulkPhotoModal() { modalManager.showBulkPhoto(); }
-    function closeModal() { modalManager.closeModal(); }
-
-    // Gestionnaires de formulaires
-    async function handleAddEmployee() {
-        const form = document.getElementById('addEmployeeForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const employeeData = Object.fromEntries(formData.entries());
-        employeeData.taux_horaire = parseFloat(employeeData.taux_horaire);
-
-        try {
-            const response = await fetch('/api/employees', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(employeeData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Employé créé avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    async function handleUpdateEmployee(employeeId) {
-        const form = document.getElementById('editEmployeeForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const employeeData = Object.fromEntries(formData.entries());
-        employeeData.taux_horaire = parseFloat(employeeData.taux_horaire);
-        employeeData.actif = employeeData.actif === 'on';
-
-        try {
-            const response = await fetch(`/api/employees/${employeeId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(employeeData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Employé modifié avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    async function handleAddShift() {
-        const form = document.getElementById('addShiftForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const shiftData = Object.fromEntries(formData.entries());
-        shiftData.start_hour = parseInt(shiftData.start_hour);
-        shiftData.duration = parseInt(shiftData.duration);
-
-        try {
-            const response = await fetch('/api/shifts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shiftData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Créneau ajouté avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    async function handleUpdateShift(shiftId) {
-        const form = document.getElementById('editShiftForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const shiftData = Object.fromEntries(formData.entries());
-        shiftData.start_hour = parseInt(shiftData.start_hour);
-        shiftData.duration = parseInt(shiftData.duration);
-
-        try {
-            const response = await fetch(`/api/shifts/${shiftId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shiftData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification('✅ Créneau modifié avec succès', 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    // Fonctions de suppression
-    function confirmDeleteEmployee(employeeId) {
-        const employee = findEmployee(employeeId);
-        if (confirm(`Êtes-vous sûr de vouloir supprimer ${employee?.nom_complet || 'cet employé'} ?`)) {
-            deleteItem('employee', employeeId);
-        }
-    }
-
-    function confirmDeleteShift(shiftId) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?')) {
-            deleteItem('shift', shiftId);
-        }
-    }
-
-    async function deleteItem(type, itemId) {
-        const endpoint = type === 'employee' ? `/api/employees/${itemId}` : `/api/shifts/${itemId}`;
-
-        try {
-            const response = await fetch(endpoint, { method: 'DELETE' });
-            const result = await response.json();
-
-            if (result.success) {
-                modalManager.closeModal();
-                showNotification(`✅ ${type === 'employee' ? 'Employé' : 'Créneau'} supprimé`, 'success');
-                location.reload();
-            } else {
-                showNotification('❌ ' + result.error, 'error');
-            }
-        } catch (error) {
-            showNotification('❌ Erreur de connexion', 'error');
-        }
-    }
-
-    // Fonction de notification
-    function showNotification(message, type) {
-        if (typeof NotificationManager !== 'undefined') {
-            NotificationManager.show(message, type);
-        } else {
-            alert(message);
-        }
-    }
-
-    // Gestion des photos
-    function generateEmployeesPhotoGrid() {
-        const grid = document.getElementById('employeesPhotoGrid');
-        if (!grid) return;
-
-        const employees = Array.from(window.AppState?.employees?.values() || [])
-            .filter(emp => emp.actif !== false);
-
-        grid.innerHTML = employees.map(employee => `
-            <div class="employee-photo-item">
-                <div class="employee-photo-card">
-                    <div style="width: 60px; height: 60px; background: #74b9ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 10px;">
-                        ${(employee.prenom.charAt(0) + employee.nom.charAt(0)).toUpperCase()}
-                    </div>
-                    <div>${employee.nom_complet}</div>
-                    <div style="font-size: 0.8em; color: #666;">${employee.poste}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function selectAllPhotos() { console.log('Fonction à implémenter'); }
-    function clearSelectedPhotos() { console.log('Fonction à implémenter'); }
-    function generateRandomAvatars() {
-        showNotification('🎨 Nouveaux avatars générés', 'success');
-    }
-
-    // Configuration globale
-    window.API_BASE = '/api';
-
-    // Fonction showStats
-    function showStats() {
-        if (typeof window.showStats === 'function') {
-            window.showStats();
-        } else {
-            showNotification('Fonction de statistiques non disponible', 'error');
-        }
-    }
-
-    // Fermer modal en cliquant à l'extérieur
-    window.onclick = function(event) {
-        const modal = document.getElementById('globalModal');
-        if (event.target === modal) {
-            closeModal();
-        }
-    }
-
-    // Raccourcis clavier
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-        }
-    });
-
-    console.log('✅ Système unifié de modaux chargé');
     </script>
 
-    <!-- STYLES COMPLÉMENTAIRES -->
-    <style>
-    template { display: none !important; }
+    <!-- ✅ Zone des modals (pour la nouvelle architecture) -->
+    <div id="modalContainer"></div>
 
-    .alert {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.75rem;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1rem 0;
-        font-size: 0.9rem;
-        line-height: 1.4;
-    }
+    <!-- ✅ Zone des notifications (pour la nouvelle architecture) -->
+    <div id="notificationContainer" class="notification-container"></div>
 
-    .alert-danger {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-    }
+    <!-- ✅ JavaScript refactorisé - ORDRE CRITIQUE -->
+    {% block javascript %}
+    <!-- 1. Core (fondations) -->
+    <script src="{{ url_for('static', filename='js/core/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/state.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/events.js') }}"></script>
 
-    .delete-item-info {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #dc3545;
-        margin: 1rem 0;
-        font-weight: 600;
-    }
+    <!-- 2. Utilitaires -->
+    <script src="{{ url_for('static', filename='js/utils/time.js') }}"></script>
 
-    .bulk-photo-manager {
-        max-height: 60vh;
-        overflow-y: auto;
-    }
+    <!-- 3. Managers -->
+    <script src="{{ url_for('static', filename='js/managers/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/managers/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/managers/planning.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/managers/drag-drop.js') }}"></script>
 
-    .bulk-actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        flex-wrap: wrap;
-    }
+    <!-- 4. Composants -->
+    <script src="{{ url_for('static', filename='js/components/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/notification.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/legend.js') }}"></script>
 
-    .employees-photo-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .employee-photo-item {
-        position: relative;
-    }
-
-    .employee-photo-card {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 12px;
-        padding: 1rem;
-        text-align: center;
-        transition: all 0.2s ease;
-    }
-
-    .employee-photo-card:hover {
-        background: #e9ecef;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .form-help {
-        display: block;
-        margin-top: 0.25rem;
-        font-size: 0.85rem;
-        color: #6c757d;
-        font-style: italic;
-    }
-    </style>
+    <!-- 5. Application principale -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% endblock %}
 
     {% block extra_js %}{% endblock %}
+
+    <!-- ✅ Styles de transition pour éviter le FOUC -->
+    <style>
+        /* Styles de base pour éviter le flash de contenu non stylé */
+        body.loading .main-content {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.initialized .main-content {
+            opacity: 1;
+        }
+
+        /* Loader simple pendant l'initialisation */
+        .app-loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            text-align: center;
+        }
+
+        .app-loader i {
+            font-size: 2rem;
+            color: #667eea;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        body.initialized .app-loader {
+            display: none;
+        }
+    </style>
+
+    <!-- ✅ Loader pendant l'initialisation -->
+    <div class="app-loader">
+        <i class="fas fa-spinner"></i>
+        <p>Chargement de Planning Restaurant...</p>
+    </div>
+
+    <script>
+        // ✅ Marquer comme en cours de chargement
+        document.body.classList.add('loading');
+
+        // ✅ Fonction globale pour les statistiques (compatibilité)
+        function showStats() {
+            if (window.UIManager && typeof window.UIManager.showStatsModal === 'function') {
+                window.UIManager.showStatsModal();
+            } else if (window.NotificationManager) {
+                window.NotificationManager.info('Statistiques', 'Fonctionnalité en développement');
+            } else {
+                alert('Statistiques - Fonctionnalité en développement');
+            }
+        }
+    </script>
 </body>
 </html>
