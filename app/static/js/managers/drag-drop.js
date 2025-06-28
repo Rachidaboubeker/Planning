@@ -1,334 +1,411 @@
 /**
- * DRAG & DROP MANAGER UNIFIÉ - Planning Restaurant
- * Remplace drag-drop-manager.js, drag-drop-unified-fix.js et tous les gestionnaires dispersés
- * Système de drag & drop stable et performant
+ * DRAG & DROP MANAGER - Version corrigée et optimisée
+ * Gestion robuste du drag & drop avec validation JSON et gestion d'erreurs
  */
 
 class DragDropManager {
     constructor() {
-        this.draggedElement = null;
-        this.draggedShift = null;
-        this.dragOffset = { x: 0, y: 0 };
-        this.dropZones = new Set();
         this.isInitialized = false;
         this.isDragging = false;
+        this.draggedElement = null;
+        this.draggedShift = null;
+        this.dropZones = new Set();
+        this.dragOffset = { x: 0, y: 0 };
+        this.dragSensitivity = 5;
+        this.lastValidDrop = null;
 
-        this.bindGlobalEvents();
-        console.log('🔧 Drag & Drop Manager unifié initialisé');
+        // Configuration visuelle
+        this.styles = {
+            dragging: 'opacity: 0.5; transform: scale(0.95); z-index: 1000;',
+            validDrop: 'background-color: rgba(5, 150, 105, 0.1); border: 2px dashed #059669;',
+            invalidDrop: 'background-color: rgba(220, 38, 38, 0.1); border: 2px dashed #dc2626;',
+            dropZone: 'transition: all 0.2s ease-in-out;'
+        };
+
+        this.init();
     }
 
     /**
-     * Initialise le drag & drop manager
+     * Initialisation du drag & drop
      */
-    async initialize() {
+    init() {
         if (this.isInitialized) {
-            console.log('🔧 Drag & Drop Manager déjà initialisé');
+            console.warn('⚠️ DragDropManager déjà initialisé');
             return;
         }
 
         try {
-            // Configurer tous les éléments draggables
+            this.setupGlobalListeners();
             this.setupDraggableElements();
-
-            // Configurer toutes les zones de drop
             this.setupDropZones();
-
-            // Observer les changements d'état
-            this.setupStateObservers();
-
             this.isInitialized = true;
-            console.log('✅ Drag & Drop Manager initialisé avec succès');
 
+            console.log('🎯 DragDropManager initialisé');
         } catch (error) {
-            console.error('❌ Erreur initialisation Drag & Drop Manager:', error);
-            throw error;
+            console.error('❌ Erreur initialisation DragDrop:', error);
         }
     }
 
     /**
-     * Lie les événements globaux
+     * Configuration des listeners globaux
      */
-    bindGlobalEvents() {
-        // Observer les changements de créneaux
-        if (window.EventBus) {
-            window.EventBus.on(window.Config?.EVENTS.SHIFT_ADDED, () => {
-                this.refreshDraggableElements();
-            });
+    setupGlobalListeners() {
+        // Listeners pour gérer le drag global
+        document.addEventListener('dragover', this.handleGlobalDragOver.bind(this), { passive: false });
+        document.addEventListener('drop', this.handleGlobalDrop.bind(this), { passive: false });
 
-            window.EventBus.on(window.Config?.EVENTS.SHIFT_UPDATED, () => {
-                this.refreshDraggableElements();
-            });
-
-            window.EventBus.on(window.Config?.EVENTS.SHIFT_DELETED, () => {
-                this.refreshDraggableElements();
-            });
-        }
-
-        // Événements globaux de drag
-        document.addEventListener('dragstart', (e) => this.handleGlobalDragStart(e));
-        document.addEventListener('dragend', (e) => this.handleGlobalDragEnd(e));
-        document.addEventListener('dragover', (e) => this.handleGlobalDragOver(e));
-        document.addEventListener('drop', (e) => this.handleGlobalDrop(e));
-
-        // Gestion clavier pendant le drag
+        // Nettoyage sur échap
         document.addEventListener('keydown', (e) => {
-            if (this.isDragging && e.key === 'Escape') {
+            if (e.key === 'Escape' && this.isDragging) {
                 this.cancelDrag();
             }
         });
+
+        // Observer pour les changements du DOM
+        this.setupMutationObserver();
     }
 
     /**
-     * Configure les observateurs d'état
+     * Observer pour détecter les nouveaux éléments
      */
-    setupStateObservers() {
-        if (window.State) {
-            window.State.observe('shifts', () => {
-                setTimeout(() => this.refreshDraggableElements(), 100);
+    setupMutationObserver() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            this.setupNewElement(node);
+                        }
+                    });
+                }
             });
-        }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        this.mutationObserver = observer;
     }
 
-    // ==================== CONFIGURATION DES ÉLÉMENTS DRAGGABLES ====================
+    /**
+     * Configure un nouvel élément ajouté au DOM
+     */
+    setupNewElement(element) {
+        // Éléments draggables
+        const draggableElements = element.querySelectorAll?.('.shift-block') || [];
+        draggableElements.forEach(el => this.makeDraggable(el));
+
+        // Zones de drop
+        const dropElements = element.querySelectorAll?.('.time-slot') || [];
+        dropElements.forEach(el => this.makeDroppable(el));
+
+        // L'élément lui-même
+        if (element.classList?.contains('shift-block')) {
+            this.makeDraggable(element);
+        }
+        if (element.classList?.contains('time-slot')) {
+            this.makeDroppable(element);
+        }
+    }
 
     /**
      * Configure tous les éléments draggables
      */
     setupDraggableElements() {
         const shiftBlocks = document.querySelectorAll('.shift-block');
+        shiftBlocks.forEach(element => this.makeDraggable(element));
 
-        shiftBlocks.forEach(block => {
-            this.makeDraggable(block);
-        });
-
-        console.log(`🔧 ${shiftBlocks.length} créneaux configurés pour le drag & drop`);
-    }
-
-    /**
-     * Rafraîchit les éléments draggables
-     */
-    refreshDraggableElements() {
-        // Supprimer les anciens listeners
-        const oldBlocks = document.querySelectorAll('.shift-block[draggable="true"]');
-        oldBlocks.forEach(block => {
-            this.removeDraggable(block);
-        });
-
-        // Reconfigurer tous les blocs
-        setTimeout(() => {
-            this.setupDraggableElements();
-        }, 50);
+        console.log(`🎯 ${shiftBlocks.length} éléments draggables configurés`);
     }
 
     /**
      * Rend un élément draggable
      */
     makeDraggable(element) {
-        if (!element || element.draggable) {
-            return; // Déjà configuré
-        }
+        if (!element || element.draggable) return;
 
         element.draggable = true;
-        element.classList.add('draggable-element');
+        element.style.cursor = 'grab';
 
-        // Événements de drag spécifiques à l'élément
+        // Nettoyage des anciens listeners
+        this.removeDraggable(element);
+
+        // Nouveaux listeners avec validation
         element.addEventListener('dragstart', (e) => this.handleDragStart(e, element));
         element.addEventListener('dragend', (e) => this.handleDragEnd(e, element));
 
-        // Effet visuel au survol
-        element.addEventListener('mouseenter', () => {
-            if (!this.isDragging) {
-                element.style.cursor = 'grab';
-            }
-        });
-
-        element.addEventListener('mouseleave', () => {
-            if (!this.isDragging) {
-                element.style.cursor = '';
-            }
-        });
+        // Stockage pour nettoyage ultérieur
+        element._dragListeners = true;
     }
 
     /**
-     * Supprime le drag d'un élément
+     * Supprime les capacités drag d'un élément
      */
     removeDraggable(element) {
-        if (!element) return;
+        if (!element || !element._dragListeners) return;
 
         element.draggable = false;
-        element.classList.remove('draggable-element');
+        element.style.cursor = '';
+        element._dragListeners = false;
 
-        // Cloner l'élément pour supprimer tous les listeners
-        const newElement = element.cloneNode(true);
-        element.parentNode?.replaceChild(newElement, element);
+        // Note: removeEventListener nécessiterait de stocker les références
+        // Pour simplifier, on utilise un flag pour ignorer les anciens listeners
     }
-
-    // ==================== CONFIGURATION DES ZONES DE DROP ====================
 
     /**
      * Configure toutes les zones de drop
      */
     setupDropZones() {
-        const scheduleCells = document.querySelectorAll('.schedule-cell');
+        const timeSlots = document.querySelectorAll('.time-slot');
+        timeSlots.forEach(cell => this.makeDroppable(cell));
 
-        this.dropZones.clear();
-
-        scheduleCells.forEach(cell => {
-            this.makeDroppable(cell);
-            this.dropZones.add(cell);
-        });
-
-        console.log(`🎯 ${scheduleCells.length} zones de drop configurées`);
+        console.log(`🎯 ${timeSlots.length} zones de drop configurées`);
     }
 
     /**
      * Rend une cellule droppable
      */
     makeDroppable(cell) {
-        if (!cell) return;
+        if (!cell || this.dropZones.has(cell)) return;
 
-        cell.classList.add('drop-zone');
+        // Ajout du style de base
+        cell.style.cssText += this.styles.dropZone;
 
-        // Événements de drop
-        cell.addEventListener('dragenter', (e) => this.handleDragEnter(e, cell));
-        cell.addEventListener('dragleave', (e) => this.handleDragLeave(e, cell));
-        cell.addEventListener('dragover', (e) => this.handleDragOver(e, cell));
-        cell.addEventListener('drop', (e) => this.handleDrop(e, cell));
-    }
+        // Listeners avec gestion d'erreurs robuste
+        const dragEnterHandler = (e) => this.safeHandleDragEnter(e, cell);
+        const dragLeaveHandler = (e) => this.safeHandleDragLeave(e, cell);
+        const dragOverHandler = (e) => this.safeHandleDragOver(e, cell);
+        const dropHandler = (e) => this.safeHandleDrop(e, cell);
 
-    // ==================== GESTIONNAIRES D'ÉVÉNEMENTS DRAG ====================
+        cell.addEventListener('dragenter', dragEnterHandler);
+        cell.addEventListener('dragleave', dragLeaveHandler);
+        cell.addEventListener('dragover', dragOverHandler);
+        cell.addEventListener('drop', dropHandler);
 
-    /**
-     * Début de drag global
-     */
-    handleGlobalDragStart(e) {
-        this.isDragging = true;
-        document.body.classList.add('dragging-active');
-
-        // Désactiver la sélection de texte pendant le drag
-        document.body.style.userSelect = 'none';
-    }
-
-    /**
-     * Fin de drag global
-     */
-    handleGlobalDragEnd(e) {
-        this.isDragging = false;
-        document.body.classList.remove('dragging-active');
-
-        // Réactiver la sélection de texte
-        document.body.style.userSelect = '';
-
-        // Nettoyer les états visuels
-        this.clearAllDropStates();
-    }
-
-    /**
-     * Début de drag d'un créneau
-     */
-    handleDragStart(e, element) {
-        this.draggedElement = element;
-        this.draggedShift = this.getShiftFromElement(element);
-
-        if (!this.draggedShift) {
-            e.preventDefault();
-            return;
-        }
-
-        // Calculer l'offset de la souris par rapport à l'élément
-        const rect = element.getBoundingClientRect();
-        this.dragOffset = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
+        // Stockage pour nettoyage
+        cell._dropListeners = {
+            dragenter: dragEnterHandler,
+            dragleave: dragLeaveHandler,
+            dragover: dragOverHandler,
+            drop: dropHandler
         };
 
-        // Configurer les données de transfert
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', this.draggedShift.id);
+        this.dropZones.add(cell);
+    }
 
-        // Effet visuel
-        element.classList.add('dragging');
-        element.style.opacity = '0.7';
-        element.style.transform = 'scale(1.05)';
-        element.style.zIndex = '1000';
+    // ==================== GESTIONNAIRES DRAG SÉCURISÉS ====================
 
-        console.log(`🔧 Début drag créneau:`, this.draggedShift.id);
-
-        // Émettre l'événement
-        window.EventBus?.emit('dragdrop:start', {
-            shift: this.draggedShift,
-            element: element
-        });
+    /**
+     * Gestionnaire dragenter sécurisé
+     */
+    safeHandleDragEnter(e, cell) {
+        try {
+            this.handleDragEnter(e, cell);
+        } catch (error) {
+            console.error('❌ Erreur dragenter:', error);
+        }
     }
 
     /**
-     * Fin de drag d'un créneau
+     * Gestionnaire dragleave sécurisé
+     */
+    safeHandleDragLeave(e, cell) {
+        try {
+            this.handleDragLeave(e, cell);
+        } catch (error) {
+            console.error('❌ Erreur dragleave:', error);
+        }
+    }
+
+    /**
+     * Gestionnaire dragover sécurisé
+     */
+    safeHandleDragOver(e, cell) {
+        try {
+            this.handleDragOver(e, cell);
+        } catch (error) {
+            console.error('❌ Erreur dragover:', error);
+        }
+    }
+
+    /**
+     * Gestionnaire drop sécurisé
+     */
+    safeHandleDrop(e, cell) {
+        try {
+            this.handleDrop(e, cell);
+        } catch (error) {
+            console.error('❌ Erreur lors du drop:', error);
+            this.showError('Erreur lors du déplacement');
+        }
+    }
+
+    // ==================== GESTIONNAIRES D'ÉVÉNEMENTS ====================
+
+    /**
+     * Début du drag
+     */
+    handleDragStart(e, element) {
+        if (!element._dragListeners) return; // Ignorer les anciens listeners
+
+        try {
+            // Récupération des données du créneau avec validation
+            const shiftData = this.extractShiftData(element);
+            if (!shiftData) {
+                e.preventDefault();
+                console.error('❌ Données de créneau invalides');
+                return;
+            }
+
+            this.draggedElement = element;
+            this.draggedShift = shiftData;
+            this.isDragging = true;
+
+            // Configuration du dataTransfer avec gestion d'erreurs
+            try {
+                const transferData = JSON.stringify({
+                    type: 'shift',
+                    shift: shiftData,
+                    timestamp: Date.now()
+                });
+
+                e.dataTransfer.setData('application/json', transferData);
+                e.dataTransfer.setData('text/plain', `Créneau: ${shiftData.id}`);
+                e.dataTransfer.effectAllowed = 'move';
+            } catch (jsonError) {
+                console.error('❌ Erreur sérialisation dataTransfer:', jsonError);
+                // Fallback sans JSON
+                e.dataTransfer.setData('text/plain', shiftData.id);
+            }
+
+            // Style visuel
+            element.style.cssText += this.styles.dragging;
+
+            // Calcul de l'offset pour un positionnement précis
+            const rect = element.getBoundingClientRect();
+            this.dragOffset = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            console.log('🎯 Début drag créneau:', shiftData.id);
+
+        } catch (error) {
+            console.error('❌ Erreur début drag:', error);
+            e.preventDefault();
+        }
+    }
+
+    /**
+     * Extraction sécurisée des données de créneau
+     */
+    extractShiftData(element) {
+        try {
+            // Plusieurs méthodes pour récupérer les données
+            let shiftData = null;
+
+            // Méthode 1: Dataset
+            if (element.dataset.shiftId) {
+                const shifts = window.StateManager?.getState('shifts');
+                if (shifts) {
+                    shiftData = shifts.get(element.dataset.shiftId);
+                }
+            }
+
+            // Méthode 2: Attributs data-*
+            if (!shiftData && element.dataset.day) {
+                shiftData = {
+                    id: element.dataset.shiftId || `temp_${Date.now()}`,
+                    employee_id: element.dataset.employeeId,
+                    day: element.dataset.day,
+                    start_hour: parseInt(element.dataset.hour),
+                    start_minutes: parseInt(element.dataset.minutes || 0),
+                    duration: parseFloat(element.dataset.duration || 1)
+                };
+            }
+
+            // Méthode 3: Recherche dans le DOM parent
+            if (!shiftData) {
+                const timeSlot = element.closest('.time-slot');
+                if (timeSlot) {
+                    shiftData = {
+                        id: element.id || `temp_${Date.now()}`,
+                        employee_id: element.querySelector('.employee-info')?.dataset.employeeId,
+                        day: timeSlot.dataset.day,
+                        start_hour: parseInt(timeSlot.dataset.hour),
+                        start_minutes: parseInt(timeSlot.dataset.minutes || 0),
+                        duration: 1
+                    };
+                }
+            }
+
+            // Validation des données extraites
+            if (shiftData && this.validateShiftData(shiftData)) {
+                return shiftData;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ Erreur extraction données créneau:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Validation des données de créneau
+     */
+    validateShiftData(shiftData) {
+        if (!shiftData || typeof shiftData !== 'object') return false;
+
+        const required = ['id', 'day'];
+        return required.every(field => shiftData[field] !== undefined && shiftData[field] !== null);
+    }
+
+    /**
+     * Fin du drag
      */
     handleDragEnd(e, element) {
-        if (element) {
-            // Restaurer l'apparence
-            element.classList.remove('dragging');
-            element.style.opacity = '';
-            element.style.transform = '';
-            element.style.zIndex = '';
-            element.style.cursor = '';
+        if (!this.isDragging) return;
+
+        try {
+            // Nettoyage visuel
+            if (element) {
+                element.style.opacity = '';
+                element.style.transform = '';
+                element.style.zIndex = '';
+                element.style.cursor = 'grab';
+            }
+
+            this.clearAllDropStates();
+            this.resetDragState();
+
+            console.log('🎯 Fin drag créneau');
+
+        } catch (error) {
+            console.error('❌ Erreur fin drag:', error);
         }
-
-        // Nettoyer les références
-        this.draggedElement = null;
-        this.draggedShift = null;
-        this.dragOffset = { x: 0, y: 0 };
-
-        console.log('🔧 Fin drag créneau');
-
-        // Émettre l'événement
-        window.EventBus?.emit('dragdrop:end', {
-            element: element
-        });
     }
 
     /**
-     * Survol global pendant drag
-     */
-    handleGlobalDragOver(e) {
-        e.preventDefault(); // Nécessaire pour autoriser le drop
-    }
-
-    /**
-     * Drop global
-     */
-    handleGlobalDrop(e) {
-        e.preventDefault();
-    }
-
-    // ==================== GESTIONNAIRES D'ÉVÉNEMENTS DROP ====================
-
-    /**
-     * Entrée dans une zone de drop
+     * Survol d'une zone de drop
      */
     handleDragEnter(e, cell) {
-        if (!this.draggedShift) return;
+        if (!this.isDragging || !this.draggedShift) return;
 
         e.preventDefault();
 
-        // Vérifier si le drop est valide
         const isValid = this.isValidDrop(cell);
-
-        if (isValid) {
-            cell.classList.add('drag-over');
-            cell.style.backgroundColor = 'rgba(5, 150, 105, 0.1)';
-            cell.style.border = '2px dashed #059669';
-        } else {
-            cell.classList.add('drag-invalid');
-            cell.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
-            cell.style.border = '2px dashed #dc2626';
-        }
+        this.applyDropVisual(cell, isValid);
     }
 
     /**
      * Sortie d'une zone de drop
      */
     handleDragLeave(e, cell) {
+        if (!this.isDragging) return;
+
         // Vérifier que la souris sort vraiment de la cellule
         const rect = cell.getBoundingClientRect();
         const x = e.clientX;
@@ -340,49 +417,143 @@ class DragDropManager {
     }
 
     /**
-     * Survol d'une zone de drop
+     * Survol continu d'une zone de drop
      */
     handleDragOver(e, cell) {
-        if (!this.draggedShift) return;
+        if (!this.isDragging || !this.draggedShift) return;
 
         e.preventDefault();
 
-        // Maintenir l'état visuel
         const isValid = this.isValidDrop(cell);
         e.dataTransfer.dropEffect = isValid ? 'move' : 'none';
+
+        // Maintenir l'état visuel
+        this.applyDropVisual(cell, isValid);
     }
 
     /**
-     * Drop dans une zone
+     * Drop effectif
      */
     async handleDrop(e, cell) {
         e.preventDefault();
 
-        if (!this.draggedShift) return;
-
-        this.clearDropState(cell);
-
-        // Vérifier que le drop est valide
-        if (!this.isValidDrop(cell)) {
-            this.showDropError('Position invalide pour ce créneau');
+        if (!this.isDragging || !this.draggedShift) {
+            console.warn('⚠️ Pas de données de drag disponibles');
             return;
         }
 
         try {
-            // Extraire les informations de la cellule cible
-            const targetInfo = this.getCellInfo(cell);
+            // Récupération sécurisée des données transfer
+            const transferData = this.getTransferData(e);
+            if (!transferData) {
+                throw new Error('Données de transfert invalides');
+            }
 
-            console.log('🎯 Drop créneau:', this.draggedShift.id, 'vers', targetInfo);
+            // Validation de la position de drop
+            if (!this.isValidDrop(cell)) {
+                throw new Error('Position de drop invalide');
+            }
 
-            // Effectuer le déplacement
-            await this.moveShift(this.draggedShift, targetInfo);
+            // Extraction des coordonnées de destination
+            const dropPosition = this.extractDropPosition(cell);
+            if (!dropPosition) {
+                throw new Error('Position de destination invalide');
+            }
 
-            // Succès
-            this.showDropSuccess('Créneau déplacé avec succès');
+            console.log('🎯 Drop validé:', dropPosition);
+
+            // Appel API pour déplacer le créneau
+            await this.executeMove(this.draggedShift.id, dropPosition);
+
+            this.showSuccess('Créneau déplacé avec succès');
 
         } catch (error) {
             console.error('❌ Erreur lors du drop:', error);
-            this.showDropError(`Erreur: ${error.message}`);
+            this.showError(`Erreur lors du drop: ${error.message}`);
+        } finally {
+            this.clearAllDropStates();
+            this.resetDragState();
+        }
+    }
+
+    /**
+     * Récupère les données de transfert de manière sécurisée
+     */
+    getTransferData(e) {
+        try {
+            // Tentative de récupération JSON
+            const jsonData = e.dataTransfer.getData('application/json');
+            if (jsonData && jsonData.trim()) {
+                const parsed = JSON.parse(jsonData);
+                if (parsed.type === 'shift' && parsed.shift) {
+                    return parsed;
+                }
+            }
+        } catch (jsonError) {
+            console.warn('⚠️ Échec parsing JSON transfer, utilisation des données drag actuelles');
+        }
+
+        // Fallback avec les données actuelles
+        if (this.draggedShift) {
+            return {
+                type: 'shift',
+                shift: this.draggedShift,
+                timestamp: Date.now()
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Extrait la position de drop de la cellule
+     */
+    extractDropPosition(cell) {
+        try {
+            const day = cell.dataset.day;
+            const hour = parseInt(cell.dataset.hour);
+            const minutes = parseInt(cell.dataset.minutes || 0);
+
+            if (!day || isNaN(hour)) {
+                return null;
+            }
+
+            return { day, hour, minutes };
+        } catch (error) {
+            console.error('❌ Erreur extraction position drop:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Exécute le déplacement via l'API
+     */
+    async executeMove(shiftId, position) {
+        if (!window.APIManager) {
+            throw new Error('APIManager non disponible');
+        }
+
+        try {
+            const response = await window.APIManager.moveShift(
+                shiftId,
+                position.day,
+                position.hour,
+                position.minutes
+            );
+
+            if (!response.success) {
+                throw new Error(response.error || 'Échec du déplacement');
+            }
+
+            // Mise à jour locale du state
+            if (response.shift && window.StateManager) {
+                window.StateManager.setShift(response.shift);
+            }
+
+            return response;
+        } catch (error) {
+            console.error('❌ Erreur API moveShift:', error);
+            throw error;
         }
     }
 
@@ -392,45 +563,63 @@ class DragDropManager {
      * Vérifie si un drop est valide
      */
     isValidDrop(cell) {
-        if (!this.draggedShift || !cell) return false;
+        if (!cell || !this.draggedShift) return false;
 
-        const targetInfo = this.getCellInfo(cell);
-        if (!targetInfo) return false;
+        try {
+            // Vérification de base de la cellule
+            if (!cell.classList.contains('time-slot')) return false;
 
-        // Vérifier que ce n'est pas la même position
-        if (targetInfo.day === this.draggedShift.day &&
-            targetInfo.hour === this.draggedShift.start_hour &&
-            targetInfo.minutes === (this.draggedShift.start_minutes || 0)) {
+            const targetDay = cell.dataset.day;
+            const targetHour = parseInt(cell.dataset.hour);
+
+            if (!targetDay || isNaN(targetHour)) return false;
+
+            // Vérification des conflits
+            const wouldConflict = this.checkConflictAtPosition(
+                this.draggedShift.employee_id,
+                targetDay,
+                targetHour,
+                this.draggedShift.duration || 1,
+                this.draggedShift.id // Exclure le créneau actuel
+            );
+
+            if (wouldConflict) {
+                console.log('⚠️ Conflit détecté à la position cible');
+                return false;
+            }
+
+            // Vérification des contraintes horaires
+            if (!this.isValidTimeSlot(targetHour, targetDay)) return false;
+
+            return true;
+        } catch (error) {
+            console.error('❌ Erreur validation drop:', error);
             return false;
         }
-
-        // Vérifier les conflits potentiels
-        return !this.hasConflict(this.draggedShift, targetInfo);
     }
 
     /**
-     * Vérifie les conflits de planning
+     * Vérifie les conflits à une position donnée
      */
-    hasConflict(shift, targetInfo) {
-        if (!window.State) return false;
+    checkConflictAtPosition(employeeId, day, hour, duration, excludeShiftId) {
+        if (!window.StateManager) return false;
 
-        const existingShifts = window.State.getDayShifts(targetInfo.day);
+        const shifts = window.StateManager.getState('shifts');
+        if (!shifts) return false;
 
-        // Calculer l'heure de fin du créneau déplacé
-        const shiftStartTime = targetInfo.hour + (targetInfo.minutes / 60);
-        const shiftEndTime = shiftStartTime + (shift.duration || 1);
+        const endHour = hour + duration;
 
-        for (const existing of existingShifts) {
-            // Ignorer le créneau lui-même
-            if (existing.id === shift.id) continue;
+        for (const [shiftId, shift] of shifts.entries()) {
+            // Ignorer le créneau en cours de déplacement
+            if (shiftId === excludeShiftId) continue;
 
-            // Vérifier si c'est le même employé
-            if (existing.employee_id === shift.employee_id) {
-                const existingStartTime = existing.start_hour + ((existing.start_minutes || 0) / 60);
-                const existingEndTime = existingStartTime + (existing.duration || 1);
+            // Même employé et même jour
+            if (shift.employee_id === employeeId && shift.day === day) {
+                const shiftStart = shift.start_hour + (shift.start_minutes || 0) / 60;
+                const shiftEnd = shiftStart + (shift.duration || 1);
 
-                // Vérifier le chevauchement
-                if (shiftStartTime < existingEndTime && shiftEndTime > existingStartTime) {
+                // Vérification du chevauchement
+                if (!(endHour <= shiftStart || hour >= shiftEnd)) {
                     return true; // Conflit détecté
                 }
             }
@@ -440,64 +629,31 @@ class DragDropManager {
     }
 
     /**
-     * Déplace un créneau vers une nouvelle position
+     * Vérifie si un créneau horaire est valide
      */
-    async moveShift(shift, targetInfo) {
-        const newShiftData = {
-            ...shift,
-            day: targetInfo.day,
-            start_hour: targetInfo.hour,
-            start_minutes: targetInfo.minutes
-        };
+    isValidTimeSlot(hour, day) {
+        // Récupération des heures autorisées depuis la config
+        const validHours = window.Config?.HOURS_RANGE || [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+        const validDays = window.Config?.DAYS_OF_WEEK || ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-        if (window.APIManager && typeof window.APIManager.moveShift === 'function') {
-            // Déplacement via API
-            await window.APIManager.moveShift(
-                shift.id,
-                targetInfo.day,
-                targetInfo.hour,
-                targetInfo.minutes
-            );
+        return validHours.includes(hour) && validDays.includes(day);
+    }
+
+    // ==================== GESTION VISUELLE ====================
+
+    /**
+     * Applique l'état visuel de drop
+     */
+    applyDropVisual(cell, isValid) {
+        this.clearDropState(cell);
+
+        if (isValid) {
+            cell.style.cssText += this.styles.validDrop;
+            cell.classList.add('drag-over-valid');
         } else {
-            // Déplacement local
-            window.State?.setShift(newShiftData);
+            cell.style.cssText += this.styles.invalidDrop;
+            cell.classList.add('drag-over-invalid');
         }
-
-        // Émettre l'événement de déplacement
-        window.EventBus?.emit(window.Config?.EVENTS.SHIFT_MOVED, {
-            shift: newShiftData,
-            oldPosition: {
-                day: shift.day,
-                hour: shift.start_hour,
-                minutes: shift.start_minutes || 0
-            },
-            newPosition: targetInfo
-        });
-    }
-
-    // ==================== UTILITAIRES ====================
-
-    /**
-     * Extrait les informations d'un créneau depuis son élément DOM
-     */
-    getShiftFromElement(element) {
-        const shiftId = element.dataset.shiftId;
-        if (!shiftId || !window.State) return null;
-
-        return window.State.state.shifts.get(shiftId);
-    }
-
-    /**
-     * Extrait les informations d'une cellule
-     */
-    getCellInfo(cell) {
-        if (!cell || !cell.dataset) return null;
-
-        return {
-            day: cell.dataset.day,
-            hour: parseInt(cell.dataset.hour),
-            minutes: parseInt(cell.dataset.minutes || 0)
-        };
     }
 
     /**
@@ -506,155 +662,117 @@ class DragDropManager {
     clearDropState(cell) {
         if (!cell) return;
 
-        cell.classList.remove('drag-over', 'drag-invalid');
         cell.style.backgroundColor = '';
         cell.style.border = '';
+        cell.classList.remove('drag-over-valid', 'drag-over-invalid', 'drag-over');
     }
 
     /**
-     * Nettoie tous les états visuels
+     * Nettoie tous les états visuels de drop
      */
     clearAllDropStates() {
-        this.dropZones.forEach(cell => {
-            this.clearDropState(cell);
-        });
+        this.dropZones.forEach(cell => this.clearDropState(cell));
     }
 
     /**
-     * Annule le drag en cours
+     * Remet à zéro l'état du drag
+     */
+    resetDragState() {
+        this.draggedElement = null;
+        this.draggedShift = null;
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
+    }
+
+    /**
+     * Annule un drag en cours
      */
     cancelDrag() {
+        if (!this.isDragging) return;
+
+        console.log('🚫 Drag annulé');
+
         if (this.draggedElement) {
-            // Déclencher l'événement dragend
-            const dragEndEvent = new Event('dragend', { bubbles: true });
-            this.draggedElement.dispatchEvent(dragEndEvent);
+            this.draggedElement.style.opacity = '';
+            this.draggedElement.style.transform = '';
+            this.draggedElement.style.zIndex = '';
         }
 
         this.clearAllDropStates();
-        console.log('🔧 Drag annulé par l\'utilisateur');
+        this.resetDragState();
     }
 
-    // ==================== FEEDBACK UTILISATEUR ====================
+    // ==================== GESTIONNAIRES GLOBAUX ====================
 
     /**
-     * Affiche un message de succès du drop
+     * Gestionnaire dragover global
      */
-    showDropSuccess(message) {
-        if (window.NotificationManager && typeof window.NotificationManager.success === 'function') {
-            window.NotificationManager.success(message);
-        } else {
-            console.log('✅', message);
+    handleGlobalDragOver(e) {
+        if (this.isDragging) {
+            e.preventDefault();
         }
     }
 
     /**
-     * Affiche un message d'erreur du drop
+     * Gestionnaire drop global
      */
-    showDropError(message) {
-        if (window.NotificationManager && typeof window.NotificationManager.error === 'function') {
-            window.NotificationManager.error(message);
-        } else {
-            console.error('❌', message);
+    handleGlobalDrop(e) {
+        if (this.isDragging) {
+            e.preventDefault();
+            // Si on arrive ici, c'est un drop en dehors des zones valides
+            console.log('🎯 Drop en dehors des zones valides - annulation');
+            this.cancelDrag();
         }
     }
 
-    // ==================== CONFIGURATION AVANCÉE ====================
+    // ==================== NOTIFICATIONS ====================
 
     /**
-     * Active/désactive le drag & drop
+     * Affiche un message de succès
      */
-    setEnabled(enabled) {
-        const shiftBlocks = document.querySelectorAll('.shift-block');
-
-        shiftBlocks.forEach(block => {
-            if (enabled) {
-                this.makeDraggable(block);
-            } else {
-                this.removeDraggable(block);
-            }
-        });
-
-        console.log(`🔧 Drag & Drop ${enabled ? 'activé' : 'désactivé'}`);
+    showSuccess(message) {
+        this.showNotification(message, 'success');
     }
 
     /**
-     * Configure la sensibilité du drag
+     * Affiche un message d'erreur
      */
-    setSensitivity(pixels = 5) {
-        // Cette valeur peut être utilisée pour configurer quand commencer le drag
-        this.dragSensitivity = pixels;
+    showError(message) {
+        this.showNotification(message, 'error');
     }
 
     /**
-     * Configure les animations
+     * Affiche une notification
      */
-    setAnimationDuration(duration = 300) {
-        const style = document.createElement('style');
-        style.textContent = `
-            .shift-block {
-                transition: all ${duration}ms ease-in-out !important;
-            }
-            .drop-zone {
-                transition: all ${duration}ms ease-in-out !important;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // ==================== GESTION DES CONFLITS ====================
-
-    /**
-     * Vérifie tous les conflits de planning
-     */
-    checkAllConflicts() {
-        if (!window.State) return [];
-
-        return window.State.detectConflicts();
-    }
-
-    /**
-     * Résout automatiquement les conflits mineurs
-     */
-    resolveConflicts() {
-        const conflicts = this.checkAllConflicts();
-
-        conflicts.forEach(conflict => {
-            if (conflict.type === 'overlap') {
-                // Tentative de résolution automatique
-                this.tryResolveOverlap(conflict);
-            }
-        });
-    }
-
-    /**
-     * Tente de résoudre un chevauchement
-     */
-    tryResolveOverlap(conflict) {
-        // Logique simple : décaler le second créneau
-        const shift2 = conflict.shift2;
-        const shift1EndTime = conflict.shift1.start_hour + (conflict.shift1.duration || 1);
-
-        const newShift2Data = {
-            ...shift2,
-            start_hour: Math.ceil(shift1EndTime),
-            start_minutes: 0
-        };
-
-        // Vérifier que la nouvelle position est valide
-        const targetCell = document.querySelector(
-            `[data-day="${newShift2Data.day}"][data-hour="${newShift2Data.start_hour}"][data-minutes="0"]`
-        );
-
-        if (targetCell && this.isValidDrop(targetCell)) {
-            window.State?.setShift(newShift2Data);
-            this.showDropSuccess('Conflit résolu automatiquement');
+    showNotification(message, type = 'info') {
+        // Réutilisation du système de notification de l'APIManager
+        if (window.APIManager && window.APIManager.showNotification) {
+            window.APIManager.showNotification(message, type);
+            return;
         }
+
+        // Fallback simple
+        console.log(`${type.toUpperCase()}: ${message}`);
     }
 
-    // ==================== ÉTAT ET DEBUG ====================
+    // ==================== UTILITAIRES ====================
 
     /**
-     * Obtient l'état actuel du drag & drop
+     * Reconfigure tous les éléments drag & drop
+     */
+    refresh() {
+        this.clearAllDropStates();
+        this.resetDragState();
+
+        // Reconfiguration
+        this.setupDraggableElements();
+        this.setupDropZones();
+
+        console.log('🔄 DragDropManager rafraîchi');
+    }
+
+    /**
+     * Obtient l'état actuel
      */
     getState() {
         return {
@@ -667,77 +785,45 @@ class DragDropManager {
     }
 
     /**
-     * Debug - Affiche l'état complet
-     */
-    debug() {
-        console.group('🔧 DragDropManager Debug');
-        console.table(this.getState());
-        console.log('Drop zones:', Array.from(this.dropZones));
-        console.log('Conflits détectés:', this.checkAllConflicts());
-        console.groupEnd();
-    }
-
-    /**
-     * Réinitialise complètement le drag & drop
-     */
-    reset() {
-        this.clearAllDropStates();
-        this.draggedElement = null;
-        this.draggedShift = null;
-        this.isDragging = false;
-
-        // Reconfigurer tout
-        this.setupDraggableElements();
-        this.setupDropZones();
-
-        console.log('🔧 Drag & Drop réinitialisé');
-    }
-
-    /**
-     * Détruit le drag & drop manager
+     * Détruit le manager et nettoie les ressources
      */
     destroy() {
+        this.cancelDrag();
         this.clearAllDropStates();
 
-        // Supprimer tous les listeners
-        const draggableElements = document.querySelectorAll('.draggable-element');
-        draggableElements.forEach(element => {
-            this.removeDraggable(element);
+        // Suppression des listeners globaux
+        document.removeEventListener('dragover', this.handleGlobalDragOver);
+        document.removeEventListener('drop', this.handleGlobalDrop);
+
+        // Arrêt de l'observer
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+        }
+
+        // Nettoyage des éléments
+        document.querySelectorAll('[draggable="true"]').forEach(el => {
+            this.removeDraggable(el);
         });
 
         this.dropZones.clear();
         this.isInitialized = false;
 
-        console.log('🗑️ Drag & Drop Manager détruit');
-    }
-
-    // ==================== HOOKS POUR EXTENSIONS ====================
-
-    /**
-     * Hook appelé avant le début d'un drag
-     */
-    onBeforeDragStart(callback) {
-        if (typeof callback === 'function') {
-            window.EventBus?.on('dragdrop:start', callback);
-        }
+        console.log('🗑️ DragDropManager détruit');
     }
 
     /**
-     * Hook appelé après la fin d'un drag
+     * Debug - Affiche l'état complet
      */
-    onAfterDragEnd(callback) {
-        if (typeof callback === 'function') {
-            window.EventBus?.on('dragdrop:end', callback);
-        }
-    }
-
-    /**
-     * Hook appelé lors d'un déplacement réussi
-     */
-    onShiftMoved(callback) {
-        if (typeof callback === 'function') {
-            window.EventBus?.on(window.Config?.EVENTS.SHIFT_MOVED, callback);
-        }
+    debug() {
+        console.group('🎯 DragDropManager Debug');
+        console.table(this.getState());
+        console.log('Drop zones:', Array.from(this.dropZones));
+        console.log('Conflits détectés:', window.StateManager?.detectConflicts() || []);
+        console.log('Configuration:', {
+            sensitivity: this.dragSensitivity,
+            styles: this.styles
+        });
+        console.groupEnd();
     }
 }
 
@@ -745,7 +831,7 @@ class DragDropManager {
 if (!window.DragDropManager) {
     window.DragDropManager = new DragDropManager();
 
-    // Exposer pour debugging
+    // Exposition pour debug en développement
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         window.debugDragDrop = () => window.DragDropManager.debug();
     }

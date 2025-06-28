@@ -1,564 +1,403 @@
 /**
- * GESTION D'ÉTAT CENTRALISÉE - Planning Restaurant
- * Remplace et unifie AppState, les variables globales dispersées
- * State management moderne avec observateurs et synchronisation
+ * STATE MANAGER - Version corrigée et optimisée
+ * Gestion centralisée de l'état avec validation JSON robuste
  */
 
-class PlanningState {
+class StateManager {
     constructor() {
-        this.observers = new Map();
+        this.state = new Map();
+        this.listeners = new Map();
+        this.cache = new Map();
+        this.isDirty = false;
+        this.lastSave = null;
+
         this.initializeState();
         this.setupAutoSave();
 
-        console.log('📊 State management centralisé initialisé');
+        console.log('🚀 StateManager initialisé');
     }
 
     /**
-     * Initialise l'état de l'application
+     * Initialise l'état par défaut
      */
     initializeState() {
-        this.state = {
-            // Données principales
-            employees: new Map(),
-            shifts: new Map(),
-
-            // Interface utilisateur
-            ui: {
-                currentWeekOffset: 0,
-                currentView: 'week', // week, day, employee
-                selectedEmployee: null,
-                selectedShift: null,
-                isLoading: false,
-                draggedElement: null,
-                dragOffset: { x: 0, y: 0 },
-                isResizing: false,
-                resizeDirection: null
-            },
-
-            // Filtres et vues
-            filters: {
-                employee: '',
-                day: '',
-                type: '',
-                timeRange: null
-            },
-
-            // Cache des données organisées
-            cache: {
-                shiftsByCell: new Map(),      // key: "day_hour_minutes", value: [shifts]
-                employeeShifts: new Map(),    // key: employeeId, value: [shifts]
-                dayShifts: new Map(),         // key: day, value: [shifts]
-                statistics: null,             // Stats calculées
-                lastUpdated: null
-            },
-
-            // Configuration temporaire
-            temp: {
-                granularity: window.Config?.TIME_SLOT_GRANULARITY || 60,
-                weekStart: new Date(),
-                isDirty: false,
-                lastSaveTime: null,
-                pendingChanges: []
-            },
-
-            // Métadonnées
-            meta: {
-                version: '2.0.0',
-                lastDataLoad: null,
-                totalEmployees: 0,
-                totalShifts: 0,
-                totalHours: 0
-            }
-        };
-
-        // Calculer la semaine actuelle
-        this.updateCurrentWeek();
+        this.state.set('employees', new Map());
+        this.state.set('shifts', new Map());
+        this.state.set('ui', {
+            isLoading: false,
+            selectedEmployee: null,
+            draggedElement: null,
+            granularity: 60
+        });
+        this.state.set('meta', {
+            version: '1.0.0',
+            lastModified: new Date().toISOString(),
+            totalEmployees: 0,
+            totalShifts: 0,
+            totalHours: 0
+        });
     }
 
     /**
-     * Observe les changements d'une propriété
+     * Met une valeur dans l'état
      */
-    observe(path, callback) {
-        if (!this.observers.has(path)) {
-            this.observers.set(path, []);
-        }
-        this.observers.get(path).push(callback);
+    setState(key, value) {
+        try {
+            const keys = key.split('.');
+            let current = this.state;
 
-        // Retourner une fonction de désabonnement
-        return () => {
-            const callbacks = this.observers.get(path);
-            if (callbacks) {
-                const index = callbacks.indexOf(callback);
-                if (index > -1) {
-                    callbacks.splice(index, 1);
+            // Navigation dans l'arbre d'état
+            for (let i = 0; i < keys.length - 1; i++) {
+                const k = keys[i];
+                if (!current.has(k)) {
+                    current.set(k, new Map());
                 }
+                current = current.get(k);
             }
-        };
+
+            const finalKey = keys[keys.length - 1];
+            const oldValue = current.get(finalKey);
+
+            // Validation avant modification
+            if (this.validateStateChange(key, value)) {
+                current.set(finalKey, value);
+                this.markDirty();
+                this.notifyListeners(key, value, oldValue);
+
+                console.log(`📝 État mis à jour: ${key}`);
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('❌ Erreur setState:', error);
+            return false;
+        }
     }
 
     /**
-     * Émet les changements aux observateurs
+     * Récupère une valeur de l'état
      */
-    emit(path, oldValue, newValue) {
-        const callbacks = this.observers.get(path);
-        if (callbacks) {
-            callbacks.forEach(callback => {
-                try {
-                    callback(newValue, oldValue, path);
-                } catch (error) {
-                    console.error(`Erreur dans l'observateur ${path}:`, error);
+    getState(key) {
+        try {
+            if (!key) return this.state;
+
+            const keys = key.split('.');
+            let current = this.state;
+
+            for (const k of keys) {
+                if (!current.has(k)) {
+                    return undefined;
                 }
-            });
-        }
-
-        // Émettre aussi vers EventBus global si disponible
-        if (window.EventBus) {
-            window.EventBus.emit(`state:${path}`, { oldValue, newValue, path });
-        }
-    }
-
-    /**
-     * Met à jour une propriété de l'état
-     */
-    setState(path, value) {
-        const keys = path.split('.');
-        let current = this.state;
-        let oldValue;
-
-        // Naviguer jusqu'à la propriété parent
-        for (let i = 0; i < keys.length - 1; i++) {
-            if (!current[keys[i]]) {
-                current[keys[i]] = {};
+                current = current.get(k);
             }
-            current = current[keys[i]];
-        }
 
-        const lastKey = keys[keys.length - 1];
-        oldValue = current[lastKey];
-
-        // Mettre à jour seulement si la valeur a changé
-        if (oldValue !== value) {
-            current[lastKey] = value;
-            this.emit(path, oldValue, value);
-
-            // Marquer comme modifié
-            this.markDirty();
+            return current;
+        } catch (error) {
+            console.error('❌ Erreur getState:', error);
+            return undefined;
         }
     }
 
     /**
-     * Obtient une propriété de l'état
+     * Valide un changement d'état
      */
-    getState(path) {
-        if (!path) return this.state;
-
-        const keys = path.split('.');
-        let current = this.state;
-
-        for (const key of keys) {
-            if (current === null || current === undefined) {
-                return undefined;
-            }
-            current = current[key];
+    validateStateChange(key, value) {
+        // Validation spécifique par type de données
+        if (key.startsWith('employees.')) {
+            return this.validateEmployee(value);
         }
 
-        return current;
+        if (key.startsWith('shifts.')) {
+            return this.validateShift(value);
+        }
+
+        return true; // Validation par défaut
     }
 
-    // ==================== GESTION DES EMPLOYÉS ====================
+    /**
+     * Valide un employé
+     */
+    validateEmployee(employee) {
+        if (!employee || typeof employee !== 'object') return false;
+
+        const required = ['id', 'nom', 'prenom', 'poste'];
+        return required.every(field => employee.hasOwnProperty(field) && employee[field]);
+    }
 
     /**
-     * Ajoute ou met à jour un employé
+     * Valide un créneau
+     */
+    validateShift(shift) {
+        if (!shift || typeof shift !== 'object') return false;
+
+        const required = ['id', 'employee_id', 'day', 'start_hour'];
+        const valid = required.every(field => shift.hasOwnProperty(field) && shift[field] !== null);
+
+        // Validation des heures
+        if (valid && typeof shift.start_hour === 'number') {
+            return shift.start_hour >= 0 && shift.start_hour <= 23;
+        }
+
+        return valid;
+    }
+
+    /**
+     * Ajoute/Met à jour un employé
      */
     setEmployee(employee) {
-        const existingEmployee = this.state.employees.get(employee.id);
-        this.state.employees.set(employee.id, { ...employee });
-
-        this.updateCache();
-        this.emit('employees', existingEmployee, employee);
-
-        if (!existingEmployee) {
-            this.state.meta.totalEmployees++;
-            console.log(`👤 Employé ajouté: ${employee.prenom} ${employee.nom}`);
-        } else {
-            console.log(`👤 Employé mis à jour: ${employee.prenom} ${employee.nom}`);
+        if (!this.validateEmployee(employee)) {
+            console.error('❌ Employé invalide:', employee);
+            return false;
         }
+
+        const employees = this.getState('employees');
+        employees.set(employee.id, { ...employee });
+
+        this.updateMeta();
+        this.markDirty();
+
+        console.log(`👤 Employé ${employee.nom} ${employee.prenom} mis à jour`);
+        return true;
     }
 
     /**
-     * Supprime un employé
-     */
-    removeEmployee(employeeId) {
-        const employee = this.state.employees.get(employeeId);
-        if (employee) {
-            this.state.employees.delete(employeeId);
-
-            // Supprimer aussi tous les créneaux de cet employé
-            const shiftsToRemove = [];
-            this.state.shifts.forEach((shift, id) => {
-                if (shift.employee_id === employeeId) {
-                    shiftsToRemove.push(id);
-                }
-            });
-
-            shiftsToRemove.forEach(id => this.removeShift(id));
-
-            this.updateCache();
-            this.state.meta.totalEmployees--;
-            this.emit('employees', employee, null);
-
-            console.log(`👤 Employé supprimé: ${employee.prenom} ${employee.nom}`);
-        }
-    }
-
-    /**
-     * Obtient tous les employés actifs
-     */
-    getActiveEmployees() {
-        return Array.from(this.state.employees.values())
-            .filter(emp => emp.actif !== false)
-            .sort((a, b) => a.nom.localeCompare(b.nom));
-    }
-
-    // ==================== GESTION DES CRÉNEAUX ====================
-
-    /**
-     * Ajoute ou met à jour un créneau
+     * Ajoute/Met à jour un créneau
      */
     setShift(shift) {
-        const existingShift = this.state.shifts.get(shift.id);
-        this.state.shifts.set(shift.id, { ...shift });
-
-        this.updateCache();
-        this.emit('shifts', existingShift, shift);
-
-        if (!existingShift) {
-            this.state.meta.totalShifts++;
-            this.state.meta.totalHours += shift.duration || 0;
-            console.log(`📅 Créneau ajouté: ${shift.employee_id} - ${shift.day}`);
-        } else {
-            this.state.meta.totalHours -= existingShift.duration || 0;
-            this.state.meta.totalHours += shift.duration || 0;
-            console.log(`📅 Créneau mis à jour: ${shift.employee_id} - ${shift.day}`);
+        if (!this.validateShift(shift)) {
+            console.error('❌ Créneau invalide:', shift);
+            return false;
         }
-    }
 
-    /**
-     * Supprime un créneau
-     */
-    removeShift(shiftId) {
-        const shift = this.state.shifts.get(shiftId);
-        if (shift) {
-            this.state.shifts.delete(shiftId);
-
-            this.updateCache();
-            this.state.meta.totalShifts--;
-            this.state.meta.totalHours -= shift.duration || 0;
-            this.emit('shifts', shift, null);
-
-            console.log(`📅 Créneau supprimé: ${shift.employee_id} - ${shift.day}`);
+        // Vérifier que l'employé existe
+        const employees = this.getState('employees');
+        if (!employees.has(shift.employee_id)) {
+            console.error('❌ Employé introuvable pour le créneau:', shift.employee_id);
+            return false;
         }
+
+        const shifts = this.getState('shifts');
+        shifts.set(shift.id, { ...shift });
+
+        this.updateMeta();
+        this.markDirty();
+
+        console.log(`⏰ Créneau ${shift.id} mis à jour`);
+        return true;
     }
 
     /**
-     * Obtient les créneaux d'une cellule spécifique
+     * Met à jour les métadonnées
      */
-    getShiftsForCell(day, hour, minutes = 0) {
-        const key = `${day}_${hour}_${minutes}`;
-        return this.state.cache.shiftsByCell.get(key) || [];
-    }
+    updateMeta() {
+        const meta = this.getState('meta');
+        const employees = this.getState('employees');
+        const shifts = this.getState('shifts');
 
-    /**
-     * Obtient tous les créneaux d'un employé
-     */
-    getEmployeeShifts(employeeId) {
-        return this.state.cache.employeeShifts.get(employeeId) || [];
-    }
+        meta.totalEmployees = employees.size;
+        meta.totalShifts = shifts.size;
+        meta.lastModified = new Date().toISOString();
 
-    /**
-     * Obtient tous les créneaux d'un jour
-     */
-    getDayShifts(day) {
-        return this.state.cache.dayShifts.get(day) || [];
-    }
-
-    // ==================== CACHE ET OPTIMISATIONS ====================
-
-    /**
-     * Met à jour le cache des données organisées
-     */
-    updateCache() {
-        const startTime = performance.now();
-
-        // Réinitialiser les caches
-        this.state.cache.shiftsByCell.clear();
-        this.state.cache.employeeShifts.clear();
-        this.state.cache.dayShifts.clear();
-
-        // Reconstruire les caches
-        this.state.shifts.forEach(shift => {
-            // Cache par cellule
-            const cellKey = `${shift.day}_${shift.start_hour}_${shift.start_minutes || 0}`;
-            if (!this.state.cache.shiftsByCell.has(cellKey)) {
-                this.state.cache.shiftsByCell.set(cellKey, []);
-            }
-            this.state.cache.shiftsByCell.get(cellKey).push(shift);
-
-            // Cache par employé
-            if (!this.state.cache.employeeShifts.has(shift.employee_id)) {
-                this.state.cache.employeeShifts.set(shift.employee_id, []);
-            }
-            this.state.cache.employeeShifts.get(shift.employee_id).push(shift);
-
-            // Cache par jour
-            if (!this.state.cache.dayShifts.has(shift.day)) {
-                this.state.cache.dayShifts.set(shift.day, []);
-            }
-            this.state.cache.dayShifts.get(shift.day).push(shift);
+        // Calcul des heures totales
+        let totalHours = 0;
+        shifts.forEach(shift => {
+            totalHours += shift.duration || 1;
         });
-
-        this.state.cache.lastUpdated = new Date();
-
-        const endTime = performance.now();
-        console.log(`🔄 Cache mis à jour en ${(endTime - startTime).toFixed(2)}ms`);
+        meta.totalHours = totalHours;
     }
 
     /**
-     * Calcule les statistiques
+     * Exporte les données avec validation JSON
      */
-    calculateStatistics() {
-        const stats = {
-            totalEmployees: this.state.employees.size,
-            activeEmployees: this.getActiveEmployees().length,
-            totalShifts: this.state.shifts.size,
-            totalHours: this.state.meta.totalHours,
+    exportData() {
+        try {
+            const employees = this.getState('employees');
+            const shifts = this.getState('shifts');
+            const meta = this.getState('meta');
 
-            byEmployee: new Map(),
-            byDay: new Map(),
-            byType: new Map()
-        };
+            // Conversion Map vers Array avec validation
+            const employeeArray = [];
+            employees.forEach(emp => {
+                if (this.validateEmployee(emp)) {
+                    employeeArray.push(this.sanitizeForJSON(emp));
+                }
+            });
 
-        // Statistiques par employé
-        this.state.cache.employeeShifts.forEach((shifts, employeeId) => {
-            const employee = this.state.employees.get(employeeId);
-            if (employee) {
-                const totalHours = shifts.reduce((sum, shift) => sum + (shift.duration || 0), 0);
-                stats.byEmployee.set(employeeId, {
-                    employee,
-                    shiftsCount: shifts.length,
-                    totalHours,
-                    averageShift: totalHours / shifts.length || 0
+            const shiftArray = [];
+            shifts.forEach(shift => {
+                if (this.validateShift(shift)) {
+                    shiftArray.push(this.sanitizeForJSON(shift));
+                }
+            });
+
+            const exportData = {
+                employees: employeeArray,
+                shifts: shiftArray,
+                meta: {
+                    ...meta,
+                    exportDate: new Date().toISOString(),
+                    totalEmployees: employeeArray.length,
+                    totalShifts: shiftArray.length
+                }
+            };
+
+            // Test de sérialisation JSON
+            const jsonString = JSON.stringify(exportData);
+            if (!jsonString || jsonString === '{}') {
+                throw new Error('Données vides après sérialisation');
+            }
+
+            // Test de parsing pour vérifier l'intégrité
+            JSON.parse(jsonString);
+
+            console.log(`📤 Export réussi: ${employeeArray.length} employés, ${shiftArray.length} créneaux`);
+            return exportData;
+
+        } catch (error) {
+            console.error('❌ Erreur export données:', error);
+            throw new Error(`Export échoué: ${error.message}`);
+        }
+    }
+
+    /**
+     * Nettoie un objet pour la sérialisation JSON
+     */
+    sanitizeForJSON(obj) {
+        const cleaned = {};
+
+        for (const [key, value] of Object.entries(obj)) {
+            // Ignorer les propriétés non sérialisables
+            if (value === undefined || typeof value === 'function') {
+                continue;
+            }
+
+            // Conversion des types problématiques
+            if (value instanceof Date) {
+                cleaned[key] = value.toISOString();
+            } else if (value instanceof Map) {
+                cleaned[key] = Object.fromEntries(value);
+            } else if (value instanceof Set) {
+                cleaned[key] = Array.from(value);
+            } else {
+                cleaned[key] = value;
+            }
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * Importe des données avec validation
+     */
+    importData(data) {
+        try {
+            if (!data || typeof data !== 'object') {
+                throw new Error('Données d\'import invalides');
+            }
+
+            let importedEmployees = 0;
+            let importedShifts = 0;
+
+            // Import des employés
+            if (Array.isArray(data.employees)) {
+                this.getState('employees').clear();
+                data.employees.forEach(emp => {
+                    if (this.setEmployee(emp)) {
+                        importedEmployees++;
+                    }
                 });
             }
-        });
 
-        // Statistiques par jour
-        this.state.cache.dayShifts.forEach((shifts, day) => {
-            const totalHours = shifts.reduce((sum, shift) => sum + (shift.duration || 0), 0);
-            stats.byDay.set(day, {
-                shiftsCount: shifts.length,
-                totalHours,
-                employeesCount: new Set(shifts.map(s => s.employee_id)).size
-            });
-        });
-
-        // Statistiques par type de poste
-        this.state.shifts.forEach(shift => {
-            const employee = this.state.employees.get(shift.employee_id);
-            if (employee) {
-                const type = employee.poste;
-                if (!stats.byType.has(type)) {
-                    stats.byType.set(type, { shiftsCount: 0, totalHours: 0 });
-                }
-                stats.byType.get(type).shiftsCount++;
-                stats.byType.get(type).totalHours += shift.duration || 0;
+            // Import des créneaux
+            if (Array.isArray(data.shifts)) {
+                this.getState('shifts').clear();
+                data.shifts.forEach(shift => {
+                    if (this.setShift(shift)) {
+                        importedShifts++;
+                    }
+                });
             }
-        });
 
-        this.state.cache.statistics = stats;
-        return stats;
-    }
+            this.updateMeta();
+            this.markClean(); // Les données importées sont considérées comme propres
 
-    // ==================== GESTION DE LA SEMAINE ====================
+            console.log(`📥 Import réussi: ${importedEmployees} employés, ${importedShifts} créneaux`);
+            return { importedEmployees, importedShifts };
 
-    /**
-     * Met à jour la semaine courante
-     */
-    updateCurrentWeek() {
-        const now = new Date();
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Ajuster pour que lundi soit le premier jour
-
-        const monday = new Date(now.setDate(diff));
-        monday.setHours(0, 0, 0, 0);
-
-        this.state.temp.weekStart = monday;
-        this.updateWeekDisplay();
-    }
-
-    /**
-     * Change la semaine
-     */
-    changeWeek(offset) {
-        const oldOffset = this.state.ui.currentWeekOffset;
-        this.state.ui.currentWeekOffset += offset;
-
-        // Calculer la nouvelle date de début
-        const newWeekStart = new Date(this.state.temp.weekStart);
-        newWeekStart.setDate(newWeekStart.getDate() + (this.state.ui.currentWeekOffset * 7));
-
-        this.updateWeekDisplay();
-        this.emit('week', oldOffset, this.state.ui.currentWeekOffset);
-
-        console.log(`📅 Changement semaine: ${offset > 0 ? 'suivante' : 'précédente'}`);
-    }
-
-    /**
-     * Met à jour l'affichage de la semaine
-     */
-    updateWeekDisplay() {
-        const weekStart = new Date(this.state.temp.weekStart);
-        weekStart.setDate(weekStart.getDate() + (this.state.ui.currentWeekOffset * 7));
-
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-
-        const formatDate = (date) => {
-            return date.toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long'
-            });
-        };
-
-        const weekDisplay = `Semaine du ${formatDate(weekStart)} au ${formatDate(weekEnd)} ${weekStart.getFullYear()}`;
-
-        const displayElement = document.getElementById('currentWeekDisplay');
-        if (displayElement) {
-            displayElement.textContent = weekDisplay;
+        } catch (error) {
+            console.error('❌ Erreur import données:', error);
+            throw error;
         }
     }
-
-    // ==================== PERSISTANCE ET SYNCHRONISATION ====================
 
     /**
      * Marque l'état comme modifié
      */
     markDirty() {
-        this.state.temp.isDirty = true;
-        this.state.temp.pendingChanges.push({
-            timestamp: Date.now(),
-            action: 'modify'
-        });
+        this.isDirty = true;
+        const ui = this.getState('ui');
+        ui.hasUnsavedChanges = true;
     }
 
     /**
-     * Marque l'état comme sauvegardé
+     * Marque l'état comme propre (sauvegardé)
      */
     markClean() {
-        this.state.temp.isDirty = false;
-        this.state.temp.lastSaveTime = Date.now();
-        this.state.temp.pendingChanges = [];
+        this.isDirty = false;
+        this.lastSave = new Date();
+        const ui = this.getState('ui');
+        ui.hasUnsavedChanges = false;
     }
 
     /**
      * Configure la sauvegarde automatique
      */
     setupAutoSave() {
-        // Sauvegarder toutes les 30 secondes si des modifications sont en attente
+        // Sauvegarde toutes les 30 secondes si des modifications existent
         setInterval(() => {
-            if (this.state.temp.isDirty && window.APIManager) {
-                console.log('💾 Sauvegarde automatique déclenchée');
-                window.APIManager.autoSave();
+            if (this.isDirty && window.APIManager) {
+                window.APIManager.autoSave().catch(error => {
+                    console.error('💾 Échec sauvegarde auto:', error);
+                });
             }
         }, 30000);
-
-        // Sauvegarder avant fermeture de la page
-        window.addEventListener('beforeunload', (e) => {
-            if (this.state.temp.isDirty) {
-                e.preventDefault();
-                e.returnValue = 'Des modifications non sauvegardées seront perdues. Continuer ?';
-            }
-        });
-    }
-
-    // ==================== UTILITAIRES ====================
-
-    /**
-     * Réinitialise l'état
-     */
-    reset() {
-        this.initializeState();
-        this.updateCache();
-        console.log('🔄 État réinitialisé');
     }
 
     /**
-     * Importe des données
+     * Ajoute un listener pour les changements d'état
      */
-    importData(data) {
-        if (data.employees) {
-            this.state.employees.clear();
-            data.employees.forEach(emp => this.setEmployee(emp));
+    addListener(key, callback) {
+        if (!this.listeners.has(key)) {
+            this.listeners.set(key, new Set());
         }
-
-        if (data.shifts) {
-            this.state.shifts.clear();
-            data.shifts.forEach(shift => this.setShift(shift));
-        }
-
-        this.updateCache();
-        this.state.meta.lastDataLoad = new Date();
-
-        console.log(`📥 Données importées: ${this.state.employees.size} employés, ${this.state.shifts.size} créneaux`);
+        this.listeners.get(key).add(callback);
     }
 
     /**
-     * Exporte les données
+     * Supprime un listener
      */
-    exportData() {
-        return {
-            employees: Array.from(this.state.employees.values()),
-            shifts: Array.from(this.state.shifts.values()),
-            meta: {
-                exportDate: new Date().toISOString(),
-                version: this.state.meta.version,
-                totalEmployees: this.state.meta.totalEmployees,
-                totalShifts: this.state.meta.totalShifts,
-                totalHours: this.state.meta.totalHours
-            }
-        };
+    removeListener(key, callback) {
+        const keyListeners = this.listeners.get(key);
+        if (keyListeners) {
+            keyListeners.delete(callback);
+        }
     }
 
     /**
-     * Valide l'intégrité des données
+     * Notifie les listeners d'un changement
      */
-    validateIntegrity() {
-        const errors = [];
-
-        // Vérifier que tous les créneaux ont un employé valide
-        this.state.shifts.forEach((shift, id) => {
-            if (!this.state.employees.has(shift.employee_id)) {
-                errors.push(`Créneau ${id} référence un employé inexistant: ${shift.employee_id}`);
-            }
-        });
-
-        // Vérifier les doublons de créneaux
-        const shiftKeys = new Set();
-        this.state.shifts.forEach((shift, id) => {
-            const key = `${shift.employee_id}_${shift.day}_${shift.start_hour}_${shift.start_minutes || 0}`;
-            if (shiftKeys.has(key)) {
-                errors.push(`Créneau en doublon détecté: ${key}`);
-            }
-            shiftKeys.add(key);
-        });
-
-        if (errors.length > 0) {
-            console.warn('⚠️ Problèmes d\'intégrité détectés:', errors);
-        } else {
-            console.log('✅ Intégrité des données validée');
+    notifyListeners(key, newValue, oldValue) {
+        const keyListeners = this.listeners.get(key);
+        if (keyListeners) {
+            keyListeners.forEach(callback => {
+                try {
+                    callback(newValue, oldValue, key);
+                } catch (error) {
+                    console.error('❌ Erreur listener:', error);
+                }
+            });
         }
-
-        return errors;
     }
 
     /**
@@ -566,94 +405,175 @@ class PlanningState {
      */
     detectConflicts() {
         const conflicts = [];
-        const employeeSchedules = new Map();
+        const shifts = this.getState('shifts');
+        const shiftArray = Array.from(shifts.values());
 
-        // Organiser les créneaux par employé et par jour
-        this.state.shifts.forEach(shift => {
-            const key = `${shift.employee_id}_${shift.day}`;
-            if (!employeeSchedules.has(key)) {
-                employeeSchedules.set(key, []);
-            }
-            employeeSchedules.get(key).push(shift);
-        });
+        for (let i = 0; i < shiftArray.length; i++) {
+            for (let j = i + 1; j < shiftArray.length; j++) {
+                const shift1 = shiftArray[i];
+                const shift2 = shiftArray[j];
 
-        // Détecter les chevauchements
-        employeeSchedules.forEach((shifts, key) => {
-            shifts.sort((a, b) => a.start_hour - b.start_hour || (a.start_minutes || 0) - (b.start_minutes || 0));
-
-            for (let i = 0; i < shifts.length - 1; i++) {
-                const current = shifts[i];
-                const next = shifts[i + 1];
-
-                const currentEnd = current.start_hour + (current.duration || 0);
-                const nextStart = next.start_hour + ((next.start_minutes || 0) / 60);
-
-                if (currentEnd > nextStart) {
-                    conflicts.push({
-                        type: 'overlap',
-                        employee_id: current.employee_id,
-                        day: current.day,
-                        shift1: current,
-                        shift2: next
-                    });
+                // Même employé, même jour
+                if (shift1.employee_id === shift2.employee_id && shift1.day === shift2.day) {
+                    const conflict = this.checkTimeOverlap(shift1, shift2);
+                    if (conflict) {
+                        conflicts.push({
+                            type: 'overlap',
+                            shift1,
+                            shift2,
+                            message: `Conflit horaire pour ${shift1.day}`
+                        });
+                    }
                 }
             }
-        });
+        }
 
         return conflicts;
+    }
+
+    /**
+     * Vérifie le chevauchement horaire
+     */
+    checkTimeOverlap(shift1, shift2) {
+        const start1 = shift1.start_hour + (shift1.start_minutes || 0) / 60;
+        const end1 = start1 + (shift1.duration || 1);
+
+        const start2 = shift2.start_hour + (shift2.start_minutes || 0) / 60;
+        const end2 = start2 + (shift2.duration || 1);
+
+        return !(end1 <= start2 || end2 <= start1);
+    }
+
+    /**
+     * Réinitialise complètement l'état
+     */
+    reset() {
+        this.state.clear();
+        this.cache.clear();
+        this.listeners.clear();
+        this.initializeState();
+        this.markClean();
+        console.log('🔄 État réinitialisé');
     }
 
     /**
      * Debug - Affiche l'état complet
      */
     debug() {
-        console.group('📊 État de l\'application');
-        console.log('Employés:', this.state.employees.size);
-        console.log('Créneaux:', this.state.shifts.size);
-        console.log('Interface:', this.state.ui);
-        console.log('Cache:', {
-            shiftsByCell: this.state.cache.shiftsByCell.size,
-            employeeShifts: this.state.cache.employeeShifts.size,
-            dayShifts: this.state.cache.dayShifts.size,
-            lastUpdated: this.state.cache.lastUpdated
-        });
-        console.log('Temporaire:', this.state.temp);
-        console.log('Métadonnées:', this.state.meta);
+        console.group('🔍 StateManager Debug');
+        console.log('État complet:', this.state);
+        console.log('Listeners:', this.listeners);
+        console.log('Is Dirty:', this.isDirty);
+        console.log('Dernière sauvegarde:', this.lastSave);
+        console.log('Conflits:', this.detectConflicts());
         console.groupEnd();
-    }
-
-    /**
-     * Obtient un résumé de l'état
-     */
-    getSummary() {
-        return {
-            employees: this.state.employees.size,
-            shifts: this.state.shifts.size,
-            totalHours: this.state.meta.totalHours,
-            isDirty: this.state.temp.isDirty,
-            weekOffset: this.state.ui.currentWeekOffset,
-            granularity: this.state.temp.granularity,
-            lastUpdate: this.state.cache.lastUpdated
-        };
     }
 }
 
 // Instance globale unique
-if (!window.State) {
-    window.State = new PlanningState();
+if (!window.StateManager) {
+    window.StateManager = new StateManager();
 
-    // Exposer des méthodes de debug
-    window.State.debug = window.State.debug.bind(window.State);
-    window.State.summary = window.State.getSummary.bind(window.State);
+    // Alias pour compatibilité
+    window.State = window.StateManager;
 
-    // Observer les changements pour le debug en mode développement
+    // Exposition pour debug en développement
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        window.State.observe('employees', () => console.log('👥 Employés modifiés'));
-        window.State.observe('shifts', () => console.log('📅 Créneaux modifiés'));
+        window.debugState = () => window.StateManager.debug();
     }
 }
 
-// Export pour les modules ES6
+// Export pour modules ES6
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PlanningState;
+    module.exports = StateManager;
 }
+
+/**
+ * CORRECTIF DE COMPATIBILITÉ
+ * Adapte le nouveau StateManager pour être compatible avec l'ancien code
+ * À ajouter TEMPORAIREMENT en fin du StateManager corrigé
+ */
+
+// ==================== COMPATIBILITÉ AVEC L'ANCIEN CODE ====================
+
+/**
+ * Méthode observe pour compatibilité avec l'ancien code
+ * @deprecated Utiliser addListener à la place
+ */
+StateManager.prototype.observe = function(key, callback) {
+    console.warn(`⚠️ observe() est deprecated, utilisez addListener('${key}', callback) à la place`);
+    return this.addListener(key, callback);
+};
+
+/**
+ * Méthode setState compatible avec l'ancien format
+ */
+StateManager.prototype.setStateOld = StateManager.prototype.setState;
+StateManager.prototype.setState = function(key, value) {
+    // Support ancien format avec objet complet
+    if (typeof key === 'object' && value === undefined) {
+        Object.entries(key).forEach(([k, v]) => {
+            this.setStateOld(k, v);
+        });
+        return;
+    }
+
+    return this.setStateOld(key, value);
+};
+
+/**
+ * Méthode getState compatible
+ */
+StateManager.prototype.getStateOld = StateManager.prototype.getState;
+StateManager.prototype.getState = function(key) {
+    if (!key) {
+        // Retourner un objet plat pour compatibilité
+        const flatState = {};
+
+        // Conversion Map vers objet pour employees
+        const employees = this.state.get('employees');
+        if (employees) {
+            flatState.employees = Array.from(employees.values());
+        }
+
+        // Conversion Map vers objet pour shifts
+        const shifts = this.state.get('shifts');
+        if (shifts) {
+            flatState.shifts = Array.from(shifts.values());
+        }
+
+        // Autres propriétés
+        flatState.ui = this.state.get('ui') || {};
+        flatState.meta = this.state.get('meta') || {};
+
+        return flatState;
+    }
+
+    return this.getStateOld(key);
+};
+
+/**
+ * Propriété state accessible pour compatibilité
+ */
+if (window.StateManager && !window.StateManager.state.temp) {
+    window.StateManager.state.set('temp', {
+        isDirty: false,
+        granularity: 60
+    });
+}
+
+// Alias pour compatibilité totale
+if (window.StateManager) {
+    // Méthodes manquantes de l'ancien State
+    window.StateManager.calculateStatistics = function() {
+        console.log('📊 Calcul des statistiques...');
+        this.updateMeta();
+    };
+
+    window.StateManager.setSapp = function(key, value) {
+        console.warn('⚠️ setSapp() deprecated, utilisez setState()');
+        return this.setState(key, value);
+    };
+}
+
+console.log('🔧 Correctifs de compatibilité appliqués');

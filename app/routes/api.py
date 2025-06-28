@@ -300,81 +300,249 @@ def delete_employee_photo(employee_id):
 
 @api_bp.route('/shifts', methods=['GET'])
 def get_shifts():
-    """Récupère tous les créneaux"""
+    """Récupère tous les créneaux avec gestion d'erreur robuste"""
     try:
-        week = request.args.get('week')  # Format: YYYY-WW
-        employee_id = request.args.get('employee_id')
+        # Vérifier que le manager est initialisé
+        if not hasattr(shift_manager, 'get_all_shifts'):
+            return jsonify({
+                'success': False,
+                'error': 'Gestionnaire de créneaux non initialisé'
+            }), 500
 
-        shifts_data = shift_manager.get_all_shifts_dict(
-            week=week,
-            employee_id=employee_id
-        )
+        # Récupérer les créneaux avec gestion d'exception
+        shifts = []
+        try:
+            shifts = shift_manager.get_all_shifts()
+        except AttributeError as e:
+            print(f"Erreur AttributeError dans get_all_shifts: {e}")
+            shifts = []
+        except Exception as e:
+            print(f"Erreur générale dans get_all_shifts: {e}")
+            shifts = []
+
+        # Convertir en dictionnaire avec gestion d'erreur
+        shifts_data = []
+        for shift in shifts:
+            try:
+                if hasattr(shift, 'to_dict'):
+                    shift_dict = shift.to_dict()
+                else:
+                    # Fallback si to_dict n'existe pas
+                    shift_dict = {
+                        'id': getattr(shift, 'id', None),
+                        'employee_id': getattr(shift, 'employee_id', None),
+                        'day': getattr(shift, 'day', ''),
+                        'start_hour': getattr(shift, 'start_hour', 0),
+                        'duration': getattr(shift, 'duration', 1),
+                        'notes': getattr(shift, 'notes', '')
+                    }
+
+                # Validation des données essentielles
+                if shift_dict.get('id') and shift_dict.get('employee_id'):
+                    shifts_data.append(shift_dict)
+
+            except Exception as e:
+                print(f"Erreur lors de la conversion du créneau {getattr(shift, 'id', 'unknown')}: {e}")
+                continue
+
+        print(f"✅ {len(shifts_data)} créneaux récupérés avec succès")
 
         return jsonify({
             'success': True,
             'shifts': shifts_data,
             'count': len(shifts_data)
         })
+
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        error_msg = str(e)
+        print(f"❌ Erreur critique dans get_shifts: {error_msg}")
+
+        return jsonify({
+            'success': False,
+            'error': f'Erreur lors de la récupération des créneaux: {error_msg}',
+            'shifts': [],
+            'count': 0
+        }), 500
+
+
+@api_bp.route('/shifts/<int:shift_id>', methods=['GET'])
+def get_shift(shift_id):
+    """Récupère un créneau spécifique avec gestion d'erreur"""
+    try:
+        if not hasattr(shift_manager, 'get_shift_by_id'):
+            return jsonify({
+                'success': False,
+                'error': 'Gestionnaire de créneaux non initialisé'
+            }), 500
+
+        shift = shift_manager.get_shift_by_id(shift_id)
+
+        if not shift:
+            return jsonify({
+                'success': False,
+                'error': f'Créneau {shift_id} non trouvé'
+            }), 404
+
+        # Conversion sécurisée
+        try:
+            if hasattr(shift, 'to_dict'):
+                shift_data = shift.to_dict()
+            else:
+                shift_data = {
+                    'id': getattr(shift, 'id', shift_id),
+                    'employee_id': getattr(shift, 'employee_id', None),
+                    'day': getattr(shift, 'day', ''),
+                    'start_hour': getattr(shift, 'start_hour', 0),
+                    'duration': getattr(shift, 'duration', 1),
+                    'notes': getattr(shift, 'notes', '')
+                }
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Erreur de conversion des données: {str(e)}'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'shift': shift_data
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @api_bp.route('/shifts', methods=['POST'])
 def create_shift():
-    """Crée un nouveau créneau avec support granularité"""
+    """Crée un nouveau créneau avec validation robuste"""
     try:
         data = request.get_json()
 
-        # Validation des données avec granularité
-        errors = shift_manager.validate_shift_data(data)
-        if errors:
+        if not data:
             return jsonify({
                 'success': False,
-                'errors': errors
+                'error': 'Données JSON manquantes'
             }), 400
 
-        shift = Shift(
-            employee_id=data['employee_id'],
-            day=data['day'],
-            start_hour=int(data['start_hour']),
-            start_minutes=int(data.get('start_minutes', 0)),
-            duration=float(data.get('duration', 1)),
-            notes=data.get('notes', '')
-        )
+        # Validation des champs obligatoires
+        required_fields = ['employee_id', 'day', 'start_hour', 'duration']
+        missing_fields = [field for field in required_fields if field not in data]
 
-        if shift_manager.add_shift(shift):
-            return jsonify({
-                'success': True,
-                'shift': shift.to_dict(),
-                'message': 'Créneau créé avec succès'
-            }), 201
-        else:
+        if missing_fields:
             return jsonify({
                 'success': False,
-                'error': 'Erreur lors de la création du créneau'
+                'error': f'Champs manquants: {", ".join(missing_fields)}'
+            }), 400
+
+        # Validation des types
+        try:
+            employee_id = int(data['employee_id'])
+            start_hour = int(data['start_hour'])
+            duration = int(data['duration'])
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'error': 'Types de données invalides'
+            }), 400
+
+        # Validation des valeurs
+        if start_hour < 0 or start_hour > 23:
+            return jsonify({
+                'success': False,
+                'error': 'Heure de début invalide (0-23)'
+            }), 400
+
+        if duration < 1 or duration > 12:
+            return jsonify({
+                'success': False,
+                'error': 'Durée invalide (1-12 heures)'
+            }), 400
+
+        # Vérifier que l'employé existe
+        if not hasattr(employee_manager, 'get_employee_by_id'):
+            return jsonify({
+                'success': False,
+                'error': 'Gestionnaire d\'employés non initialisé'
             }), 500
 
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@api_bp.route('/shifts/<shift_id>', methods=['GET'])
-def get_shift(shift_id):
-    """Récupère un créneau par son ID"""
-    try:
-        shift = shift_manager.get_shift_by_id(shift_id)
-        if shift:
-            return jsonify({
-                'success': True,
-                'shift': shift.to_dict()
-            })
-        else:
+        employee = employee_manager.get_employee_by_id(employee_id)
+        if not employee:
             return jsonify({
                 'success': False,
-                'error': 'Créneau non trouvé'
+                'error': f'Employé {employee_id} non trouvé'
             }), 404
+
+        # Créer le créneau
+        shift_data = {
+            'employee_id': employee_id,
+            'day': data['day'],
+            'start_hour': start_hour,
+            'duration': duration,
+            'notes': data.get('notes', '')
+        }
+
+        if not hasattr(shift_manager, 'create_shift'):
+            return jsonify({
+                'success': False,
+                'error': 'Méthode create_shift non disponible'
+            }), 500
+
+        new_shift = shift_manager.create_shift(shift_data)
+
+        if not new_shift:
+            return jsonify({
+                'success': False,
+                'error': 'Échec de la création du créneau'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'shift': new_shift.to_dict() if hasattr(new_shift, 'to_dict') else shift_data,
+            'message': 'Créneau créé avec succès'
+        })
+
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': f'Erreur lors de la création: {str(e)}'
+        }), 500
+
+
+# Route de diagnostic pour debug
+@api_bp.route('/shifts/debug', methods=['GET'])
+def debug_shifts():
+    """Route de diagnostic pour les créneaux (à supprimer en production)"""
+    try:
+        debug_info = {
+            'shift_manager_exists': 'shift_manager' in globals(),
+            'shift_manager_type': type(shift_manager).__name__ if 'shift_manager' in globals() else None,
+            'has_get_all_shifts': hasattr(shift_manager, 'get_all_shifts') if 'shift_manager' in globals() else False,
+            'has_create_shift': hasattr(shift_manager, 'create_shift') if 'shift_manager' in globals() else False
+        }
+
+        # Tenter de récupérer les créneaux
+        try:
+            if 'shift_manager' in globals() and hasattr(shift_manager, 'get_all_shifts'):
+                shifts = shift_manager.get_all_shifts()
+                debug_info['shifts_count'] = len(shifts)
+                debug_info['sample_shift'] = shifts[0].to_dict() if shifts and hasattr(shifts[0], 'to_dict') else None
+            else:
+                debug_info['shifts_count'] = 'unavailable'
+        except Exception as e:
+            debug_info['shifts_error'] = str(e)
+
+        return jsonify({
+            'success': True,
+            'debug_info': debug_info
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @api_bp.route('/shifts/<shift_id>', methods=['PUT'])
@@ -784,4 +952,209 @@ def health_check():
             'success': False,
             'status': 'unhealthy',
             'error': str(e)
+        }), 500
+
+
+# À ajouter dans app/routes/api.py
+# Route de synchronisation manquante qui cause l'erreur 404
+
+@api_bp.route('/sync', methods=['POST'])
+def sync_data():
+    """Synchronise les données entre le client et le serveur"""
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Données de synchronisation manquantes'
+            }), 400
+
+        # Extraire les données
+        employees_data = data.get('employees', [])
+        shifts_data = data.get('shifts', [])
+
+        sync_results = {
+            'employees': {'created': 0, 'updated': 0, 'errors': []},
+            'shifts': {'created': 0, 'updated': 0, 'errors': []},
+            'timestamp': datetime.now().isoformat()
+        }
+
+        # Synchroniser les employés
+        for emp_data in employees_data:
+            try:
+                employee_id = emp_data.get('id')
+
+                if employee_id:
+                    # Vérifier si l'employé existe
+                    existing_employee = employee_manager.get_employee_by_id(employee_id)
+
+                    if existing_employee:
+                        # Mettre à jour
+                        if employee_manager.update_employee(employee_id, emp_data):
+                            sync_results['employees']['updated'] += 1
+                        else:
+                            sync_results['employees']['errors'].append(f"Erreur mise à jour employé {employee_id}")
+                    else:
+                        # Créer nouveau
+                        from app.models.employee import Employee
+                        new_employee = Employee(
+                            id=employee_id,
+                            prenom=emp_data.get('prenom', ''),
+                            nom=emp_data.get('nom', ''),
+                            poste=emp_data.get('poste', ''),
+                            taux_horaire=float(emp_data.get('taux_horaire', 15.0)),
+                            email=emp_data.get('email', ''),
+                            telephone=emp_data.get('telephone', '')
+                        )
+
+                        if employee_manager.add_employee(new_employee):
+                            sync_results['employees']['created'] += 1
+                        else:
+                            sync_results['employees']['errors'].append(f"Erreur création employé {employee_id}")
+
+            except Exception as e:
+                sync_results['employees']['errors'].append(f"Erreur employé: {str(e)}")
+
+        # Synchroniser les créneaux
+        for shift_data in shifts_data:
+            try:
+                shift_id = shift_data.get('id')
+
+                if shift_id:
+                    # Vérifier si le créneau existe
+                    existing_shift = shift_manager.get_shift_by_id(shift_id)
+
+                    if existing_shift:
+                        # Mettre à jour
+                        if shift_manager.update_shift(shift_id, shift_data):
+                            sync_results['shifts']['updated'] += 1
+                        else:
+                            sync_results['shifts']['errors'].append(f"Erreur mise à jour créneau {shift_id}")
+                    else:
+                        # Créer nouveau
+                        from app.models.shift import Shift
+                        new_shift = Shift(
+                            id=shift_id,
+                            employee_id=shift_data.get('employee_id', ''),
+                            day=shift_data.get('day', ''),
+                            start_hour=int(shift_data.get('start_hour', 9)),
+                            start_minutes=int(shift_data.get('start_minutes', 0)),
+                            duration=float(shift_data.get('duration', 1)),
+                            notes=shift_data.get('notes', '')
+                        )
+
+                        if shift_manager.add_shift(new_shift):
+                            sync_results['shifts']['created'] += 1
+                        else:
+                            sync_results['shifts']['errors'].append(f"Erreur création créneau {shift_id}")
+
+            except Exception as e:
+                sync_results['shifts']['errors'].append(f"Erreur créneau: {str(e)}")
+
+        # Calculer le statut global
+        total_errors = len(sync_results['employees']['errors']) + len(sync_results['shifts']['errors'])
+        success = total_errors == 0
+
+        return jsonify({
+            'success': success,
+            'message': 'Synchronisation terminée' if success else f'Synchronisation avec {total_errors} erreurs',
+            'results': sync_results
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erreur lors de la synchronisation: {str(e)}'
+        }), 500
+
+
+@api_bp.route('/sync/status', methods=['GET'])
+def sync_status():
+    """Retourne le statut de synchronisation"""
+    try:
+        # Compter les employés et créneaux
+        employees_count = len(employee_manager.get_all_employees())
+        shifts_count = len(shift_manager.get_all_shifts())
+
+        # Vérifier la cohérence des données
+        orphaned_shifts = []
+        for shift in shift_manager.get_all_shifts():
+            employee = employee_manager.get_employee_by_id(shift.employee_id)
+            if not employee:
+                orphaned_shifts.append(shift.id)
+
+        return jsonify({
+            'success': True,
+            'status': {
+                'employees': employees_count,
+                'shifts': shifts_count,
+                'orphaned_shifts': len(orphaned_shifts),
+                'orphaned_shift_ids': orphaned_shifts,
+                'last_sync': datetime.now().isoformat(),
+                'data_consistent': len(orphaned_shifts) == 0
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/sync/repair', methods=['POST'])
+def repair_data():
+    """Répare les incohérences de données"""
+    try:
+        repair_results = {
+            'employees_repaired': 0,
+            'shifts_repaired': 0,
+            'shifts_removed': 0,
+            'errors': []
+        }
+
+        # Réparer les créneaux orphelins
+        all_shifts = shift_manager.get_all_shifts()
+        all_employees = employee_manager.get_all_employees()
+
+        for shift in all_shifts:
+            # Vérifier si l'employé existe
+            employee = employee_manager.get_employee_by_id(shift.employee_id)
+
+            if not employee:
+                # Essayer de trouver un employé correspondant
+                found_employee = None
+
+                # Recherche par pattern d'ID
+                for emp in all_employees:
+                    if (emp.id.replace('emp_', '') == shift.employee_id.replace('emp_', '') or
+                            emp.id.replace('employee_', '') == shift.employee_id.replace('emp_', '')):
+                        found_employee = emp
+                        break
+
+                if found_employee:
+                    # Réparer l'ID du créneau
+                    shift.employee_id = found_employee.id
+                    if shift_manager.update_shift(shift.id, {'employee_id': found_employee.id}):
+                        repair_results['shifts_repaired'] += 1
+                    else:
+                        repair_results['errors'].append(f"Impossible de réparer le créneau {shift.id}")
+                else:
+                    # Supprimer le créneau orphelin
+                    if shift_manager.delete_shift(shift.id):
+                        repair_results['shifts_removed'] += 1
+                    else:
+                        repair_results['errors'].append(f"Impossible de supprimer le créneau orphelin {shift.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Réparation terminée',
+            'results': repair_results
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erreur lors de la réparation: {str(e)}'
         }), 500

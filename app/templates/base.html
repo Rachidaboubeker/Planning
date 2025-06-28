@@ -74,6 +74,7 @@
 
     <!-- 2. Utilitaires -->
     <script src="{{ url_for('static', filename='js/utils/time.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/validation.js') }}"></script>
 
     <!-- 3. Managers -->
     <script src="{{ url_for('static', filename='js/managers/api.js') }}"></script>
@@ -86,10 +87,17 @@
     <script src="{{ url_for('static', filename='js/components/notification.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/legend.js') }}"></script>
 
-    <!-- 5. Application principale -->
+    <!-- 5. App principal -->
+    <!-- Dans la section scripts, avant app.js -->
+    <script src="{{ url_for('static', filename='js/utils/employee-shift-mapper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    {% endblock %}
 
+    <!-- 🐛 DEBUG - Uniquement en développement -->
+    {% if config.DEBUG %}
+    <script src="{{ url_for('static', filename='js/utils/auto-repair.js') }}"></script>
+    {% endif %}
+
+    {% endblock %}
     {% block extra_js %}{% endblock %}
 
     <!-- ✅ Styles de transition pour éviter le FOUC -->
