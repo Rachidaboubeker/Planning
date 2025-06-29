@@ -1,0 +1,527 @@
+/**
+ * WEEK LAYOUT CSS - Vue semaine avec colonnes employés
+ * CSS spécialisé pour remplacer/compléter layout-grid.css
+ */
+
+/* ==================== RESET ET AJUSTEMENTS ==================== */
+
+/* Correction des styles existants si nécessaire */
+.planning-grid-container {
+    overflow: visible !important; /* Pour permettre le sticky header */
+}
+
+.planning-container {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    max-height: none !important;
+}
+
+/* ==================== LAYOUT SEMAINE SPÉCIALISÉ ==================== */
+
+/* Variables spécifiques à la vue semaine */
+:root {
+    --week-time-col-width: 80px;
+    --week-min-employee-width: 100px;
+    --week-cell-height: 60px;
+    --week-header-height: 80px;
+    --week-employee-header-height: 60px;
+
+    /* Couleurs spécifiques */
+    --week-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --week-employee-header-bg: #f8f9fa;
+    --week-time-cell-bg: #f8f9fa;
+    --week-grid-border: #dee2e6;
+    --week-cell-border: #e9ecef;
+}
+
+/* ==================== STRUCTURE PRINCIPALE ==================== */
+
+.planning-wrapper {
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== EN-TÊTE SEMAINE ==================== */
+
+.week-header-container {
+    background: var(--week-employee-header-bg);
+    border-bottom: 2px solid var(--week-grid-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* En-tête des jours */
+.week-days-header {
+    display: grid;
+    grid-template-columns: var(--week-time-col-width) repeat(7, 1fr);
+    background: var(--week-employee-header-bg);
+}
+
+.corner-header {
+    background: #e9ecef;
+    padding: 1rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--week-grid-border);
+    font-size: 0.9rem;
+}
+
+.day-header {
+    background: var(--week-header-bg);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    border-right: 1px solid var(--week-grid-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--week-header-height);
+}
+
+.day-header:last-child {
+    border-right: none;
+}
+
+.day-name {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+}
+
+.day-date {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+/* ==================== EN-TÊTE EMPLOYÉS ==================== */
+
+.employees-header-container {
+    display: grid;
+    grid-template-columns: var(--week-time-col-width) repeat(7, 1fr);
+    background: var(--week-employee-header-bg);
+    border-bottom: 1px solid var(--week-cell-border);
+}
+
+.employees-header-spacer {
+    background: #e9ecef;
+    border-right: 1px solid var(--week-grid-border);
+    min-height: var(--week-employee-header-height);
+}
+
+.day-employees-header {
+    display: flex;
+    border-right: 1px solid var(--week-grid-border);
+    min-height: var(--week-employee-header-height);
+    background: var(--week-employee-header-bg);
+}
+
+.day-employees-header:last-child {
+    border-right: none;
+}
+
+.employee-column-header {
+    flex: 1;
+    background: white;
+    border-right: 1px solid var(--week-cell-border);
+    padding: 0.5rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.75rem;
+    min-width: var(--week-min-employee-width);
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.employee-column-header:last-child {
+    border-right: none;
+}
+
+.employee-column-header:hover {
+    background: #f8f9fa;
+}
+
+.employee-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.7rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.employee-name {
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+}
+
+/* ==================== CORPS DU PLANNING ==================== */
+
+.planning-body {
+    flex: 1;
+    overflow: auto;
+    background: white;
+}
+
+.planning-grid {
+    display: grid;
+    grid-template-columns: var(--week-time-col-width) repeat(7, 1fr);
+    min-height: 100%;
+}
+
+/* Cellules heures */
+.time-cell {
+    background: var(--week-time-cell-bg);
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-weight: 500;
+    color: #6c757d;
+    border-right: 1px solid var(--week-grid-border);
+    border-bottom: 1px solid var(--week-cell-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--week-cell-height);
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    font-size: 0.9rem;
+}
+
+/* Colonnes jours */
+.day-column {
+    border-right: 1px solid var(--week-grid-border);
+    display: flex;
+    min-height: var(--week-cell-height);
+}
+
+.day-column:last-child {
+    border-right: none;
+}
+
+/* Cellules employés */
+.employee-cell {
+    flex: 1;
+    background: white;
+    border-right: 1px solid var(--week-cell-border);
+    border-bottom: 1px solid var(--week-cell-border);
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: var(--week-min-employee-width);
+    min-height: var(--week-cell-height);
+}
+
+.employee-cell:last-child {
+    border-right: none;
+}
+
+.employee-cell:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+.employee-cell.cell-hover {
+    background-color: rgba(102, 126, 234, 0.1) !important;
+    border-color: #667eea !important;
+}
+
+.employee-cell[data-drop-zone="true"] {
+    background-color: #e3f2fd !important;
+    border: 2px dashed #2196f3 !important;
+}
+
+.employee-cell.conflict-zone {
+    background-color: #ffebee !important;
+    border: 2px dashed #f44336 !important;
+}
+
+/* ==================== CRÉNEAUX DE TRAVAIL ==================== */
+
+.shift-block {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: move;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 20;
+    user-select: none;
+    min-height: 56px;
+    backdrop-filter: blur(1px);
+}
+
+.shift-block:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 30;
+}
+
+.shift-block.dragging {
+    opacity: 0.7;
+    transform: scale(1.05) rotate(2deg);
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.shift-time {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-bottom: 0.125rem;
+    font-weight: 400;
+}
+
+.shift-employee {
+    font-weight: 600;
+    margin-bottom: 0.125rem;
+    font-size: 0.8rem;
+}
+
+.shift-duration {
+    font-size: 0.65rem;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+/* Couleurs par type de poste avec gradients */
+.shift-cuisinier {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+}
+
+.shift-serveur {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+}
+
+.shift-barman {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+}
+
+.shift-manager {
+    background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+}
+
+.shift-aide {
+    background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+}
+
+.shift-commis {
+    background: linear-gradient(135deg, #6c5ce7 0%, #5a4fcf 100%);
+}
+
+/* ==================== ANIMATIONS ET TRANSITIONS ==================== */
+
+@keyframes slideInWeek {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.planning-wrapper {
+    animation: slideInWeek 0.3s ease-out;
+}
+
+@keyframes shiftPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+.shift-block.new-shift {
+    animation: shiftPulse 0.6s ease-in-out;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 1400px) {
+    :root {
+        --week-min-employee-width: 90px;
+    }
+
+    .employee-name {
+        font-size: 0.7rem;
+    }
+
+    .employee-avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 1200px) {
+    :root {
+        --week-min-employee-width: 80px;
+        --week-time-col-width: 70px;
+    }
+
+    .employee-name {
+        font-size: 0.65rem;
+    }
+
+    .employee-avatar {
+        width: 24px;
+        height: 24px;
+        font-size: 0.6rem;
+    }
+
+    .shift-block {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --week-time-col-width: 60px;
+        --week-min-employee-width: 60px;
+        --week-cell-height: 55px;
+    }
+
+    .employee-name {
+        display: none; /* Masquer les noms sur mobile */
+    }
+
+    .employee-avatar {
+        width: 20px;
+        height: 20px;
+        font-size: 0.55rem;
+    }
+
+    .shift-block {
+        font-size: 0.65rem;
+        min-height: 50px;
+    }
+
+    .day-name {
+        font-size: 0.9rem;
+    }
+
+    .day-date {
+        font-size: 0.7rem;
+    }
+
+    .time-cell {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.25rem;
+    }
+}
+
+/* ==================== ÉTATS SPÉCIAUX ==================== */
+
+/* Mode loading */
+.planning-wrapper.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.planning-wrapper.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 3px solid #e3f2fd;
+    border-top: 3px solid #2196f3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1000;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mode édition */
+.planning-wrapper.editing .employee-cell {
+    border-color: #ffc107;
+}
+
+.planning-wrapper.editing .shift-block {
+    border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* ==================== CORRECTIONS COMPATIBILITÉ ==================== */
+
+/* Corriger les conflits avec les styles existants */
+.planning-container .planning-grid {
+    display: grid !important;
+    grid-template-columns: var(--week-time-col-width) repeat(7, 1fr) !important;
+}
+
+/* Assurer que les cellules ont la bonne hauteur */
+.planning-grid > * {
+    min-height: var(--week-cell-height);
+}
+
+/* Corriger l'affichage des conteneurs si nécessaire */
+#planningHeader,
+#planningGrid {
+    width: 100%;
+}
+
+/* ==================== UTILITAIRES ==================== */
+
+.week-view-hidden {
+    display: none !important;
+}
+
+.week-view-visible {
+    display: block !important;
+}
+
+/* Classes pour le debug */
+.debug-grid-lines .employee-cell {
+    border: 1px solid red !important;
+}
+
+.debug-grid-lines .day-column {
+    border: 2px solid blue !important;
+}
+
+.debug-grid-lines .time-cell {
+    border: 2px solid green !important;
+}

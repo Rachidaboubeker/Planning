@@ -682,3 +682,523 @@ if (!window.PlanningManager) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PlanningManager;
 }
+
+/**
+ * PATCH POUR PLANNING.JS EXISTANT
+ * Ajouter ces méthodes à votre PlanningManager existant
+ * pour implémenter la vue semaine avec colonnes employés
+ */
+
+// ==================== MÉTHODES À AJOUTER DANS PLANNING.JS ====================
+
+/**
+ * Génère la grille avec vue semaine (colonnes par jour + sous-colonnes employés)
+ * Remplace ou modifie la méthode generateGrid() existante
+ */
+generateWeekViewGrid() {
+    console.log('🏗️ Génération grille vue semaine avec colonnes employés...');
+
+    const headerContainer = document.getElementById('planningHeader');
+    const gridContainer = document.getElementById('planningGrid');
+
+    if (!headerContainer || !gridContainer) {
+        console.error('❌ Conteneurs manquants pour la vue semaine');
+        return;
+    }
+
+    // Récupérer les données
+    const employees = this.getActiveEmployees();
+    const shifts = window.State?.state.shifts || new Map();
+    const employeesByDay = this.calculateEmployeesByDay(employees, shifts);
+
+    console.log(`📊 Vue semaine: ${employees.length} employés total`);
+    console.log('📊 Répartition par jour:', employeesByDay);
+
+    // Générer l'en-tête semaine
+    this.generateWeekHeader(headerContainer, employeesByDay);
+
+    // Générer la grille corps
+    this.generateWeekBody(gridContainer, employeesByDay);
+
+    console.log('✅ Grille vue semaine générée');
+}
+
+/**
+ * Calcule quels employés travaillent quels jours
+ */
+calculateEmployeesByDay(employees, shifts) {
+    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    const employeesByDay = {};
+
+    // Initialiser chaque jour
+    days.forEach(day => {
+        employeesByDay[day] = [];
+    });
+
+    // Analyser les créneaux pour déterminer les assignations
+    if (shifts && shifts.size > 0) {
+        shifts.forEach(shift => {
+            if (shift.day && shift.employee_id) {
+                const employee = employees.find(emp => emp.id === shift.employee_id);
+                if (employee && !employeesByDay[shift.day].find(emp => emp.id === employee.id)) {
+                    employeesByDay[shift.day].push(employee);
+                }
+            }
+        });
+    }
+
+    // Si aucun créneau, mettre au moins un employé par jour pour la démo
+    const hasAnyAssignment = Object.values(employeesByDay).some(dayEmps => dayEmps.length > 0);
+    if (!hasAnyAssignment && employees.length > 0) {
+        // Répartir les employés sur la semaine pour la démo
+        employees.forEach((emp, index) => {
+            const dayIndex = index % days.length;
+            employeesByDay[days[dayIndex]].push(emp);
+        });
+    }
+
+    // Trier les employés dans chaque jour
+    Object.keys(employeesByDay).forEach(day => {
+        employeesByDay[day].sort((a, b) => {
+            const posteOrder = { 'manager': 0, 'cuisinier': 1, 'serveur': 2, 'barman': 3, 'aide': 4, 'commis': 5 };
+            const aOrder = posteOrder[a.poste] ?? 99;
+            const bOrder = posteOrder[b.poste] ?? 99;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`);
+        });
+    });
+
+    return employeesByDay;
+}
+
+/**
+ * Génère l'en-tête semaine avec jours et employés
+ */
+generateWeekHeader(container, employeesByDay) {
+    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+    let html = '<div class="week-header-container">';
+
+    // En-tête des jours
+    html += '<div class="week-days-header">';
+    html += '<div class="corner-header">Heures</div>';
+
+    days.forEach((day, index) => {
+        const date = this.getCurrentWeekDates()[index];
+        const dateStr = date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+
+        html += `
+            <div class="day-header">
+                <div class="day-name">${day}</div>
+                <div class="day-date">${dateStr}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    // En-tête des employés par jour
+    html += '<div class="employees-header-container">';
+    html += '<div class="employees-header-spacer"></div>';
+
+    days.forEach(day => {
+        const dayEmployees = employeesByDay[day] || [];
+
+        html += '<div class="day-employees-header">';
+
+        if (dayEmployees.length === 0) {
+            html += `
+                <div class="employee-column-header">
+                    <div class="employee-avatar" style="background: #e9ecef; color: #6c757d;">--</div>
+                    <div class="employee-name">Libre</div>
+                </div>
+            `;
+        } else {
+            dayEmployees.forEach(employee => {
+                const color = this.getEmployeeColor(employee.poste);
+                const initials = this.getEmployeeInitials(employee);
+
+                html += `
+                    <div class="employee-column-header" data-employee-id="${employee.id}">
+                        <div class="employee-avatar" style="background: ${color};">${initials}</div>
+                        <div class="employee-name">${employee.prenom} ${employee.nom}</div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '</div>';
+    });
+    html += '</div>';
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/**
+ * Génère le corps de la grille avec les créneaux horaires
+ */
+generateWeekBody(container, employeesByDay) {
+    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    const hours = this.getHoursRange();
+
+    let html = '<div class="week-planning-grid">';
+
+    hours.forEach(hour => {
+        // Cellule heure
+        const hourDisplay = typeof hour === 'number' ?
+            (hour === 0 ? '00:00' : `${hour.toString().padStart(2, '0')}:00`) :
+            hour;
+
+        html += `<div class="time-cell">${hourDisplay}</div>`;
+
+        // Colonnes jours
+        days.forEach(day => {
+            const dayEmployees = employeesByDay[day] || [];
+
+            html += '<div class="day-column">';
+
+            if (dayEmployees.length === 0) {
+                html += `
+                    <div class="employee-cell"
+                         data-day="${day}"
+                         data-hour="${hour}"
+                         data-employee-id="none">
+                    </div>
+                `;
+            } else {
+                dayEmployees.forEach(employee => {
+                    html += `
+                        <div class="employee-cell"
+                             data-day="${day}"
+                             data-hour="${hour}"
+                             data-employee-id="${employee.id}">
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+        });
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Appliquer les styles CSS Grid dynamiques
+    this.applyWeekViewStyles(employeesByDay);
+}
+
+/**
+ * Applique les styles CSS Grid pour la vue semaine
+ */
+applyWeekViewStyles(employeesByDay) {
+    // Supprimer anciens styles
+    document.querySelectorAll('#week-view-styles').forEach(s => s.remove());
+
+    const style = document.createElement('style');
+    style.id = 'week-view-styles';
+
+    // Calculer le nombre total de colonnes
+    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    let totalColumns = 1; // Colonne heures
+
+    days.forEach(day => {
+        const empCount = employeesByDay[day]?.length || 1;
+        totalColumns += empCount;
+    });
+
+    // Construire la définition des colonnes
+    let gridColumns = '80px'; // Colonne heures
+    days.forEach(day => {
+        const empCount = employeesByDay[day]?.length || 1;
+        gridColumns += ` repeat(${empCount}, 1fr)`;
+    });
+
+    style.textContent = `
+        /* Styles pour la vue semaine */
+        .week-header-container {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .week-days-header {
+            display: grid;
+            grid-template-columns: ${gridColumns};
+            background: #f8f9fa;
+        }
+
+        .employees-header-container {
+            display: grid;
+            grid-template-columns: ${gridColumns};
+            background: #f1f3f4;
+        }
+
+        .week-planning-grid {
+            display: grid;
+            grid-template-columns: ${gridColumns};
+            min-height: 100%;
+        }
+
+        .corner-header {
+            background: #e9ecef;
+            padding: 1rem;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .day-name {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .day-date {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .employees-header-spacer {
+            background: #e9ecef;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .day-employees-header {
+            display: flex;
+            border-right: 1px solid #dee2e6;
+            min-height: 60px;
+            background: #f8f9fa;
+        }
+
+        .employee-column-header {
+            flex: 1;
+            background: white;
+            border-right: 1px solid #e9ecef;
+            padding: 0.5rem 0.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.75rem;
+            min-width: 100px;
+        }
+
+        .employee-column-header:last-child {
+            border-right: none;
+        }
+
+        .employee-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .employee-name {
+            font-weight: 500;
+            color: #495057;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .time-cell {
+            background: #f8f9fa;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-weight: 500;
+            color: #6c757d;
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .day-column {
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            min-height: 60px;
+        }
+
+        .employee-cell {
+            flex: 1;
+            background: white;
+            border-right: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            min-width: 100px;
+        }
+
+        .employee-cell:last-child {
+            border-right: none;
+        }
+
+        .employee-cell:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+
+        .employee-cell[data-drop-zone="true"] {
+            background-color: #e3f2fd;
+            border: 2px dashed #2196f3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .employee-name {
+                display: none;
+            }
+
+            .employee-avatar {
+                width: 24px;
+                height: 24px;
+                font-size: 0.65rem;
+            }
+
+            .employee-column-header {
+                min-width: 60px;
+            }
+        }
+    `;
+
+    document.head.appendChild(style);
+    console.log('✅ Styles vue semaine appliqués');
+}
+
+/**
+ * Méthodes utilitaires pour la vue semaine
+ */
+getCurrentWeekDates() {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - today.getDay() + 1);
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        dates.push(date);
+    }
+    return dates;
+}
+
+getEmployeeColor(poste) {
+    const colors = {
+        'cuisinier': '#74b9ff',
+        'serveur': '#00b894',
+        'barman': '#fdcb6e',
+        'manager': '#a29bfe',
+        'aide': '#fd79a8',
+        'commis': '#e17055'
+    };
+    return colors[poste] || '#6c5ce7';
+}
+
+getEmployeeInitials(employee) {
+    if (!employee) return 'XX';
+    const firstName = employee.prenom || '';
+    const lastName = employee.nom || '';
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+}
+
+getHoursRange() {
+    // Utiliser la plage d'heures de votre configuration existante
+    if (window.Config && window.Config.get_hours_range) {
+        return window.Config.get_hours_range();
+    }
+    // Fallback
+    return [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+}
+
+/**
+ * Active la vue semaine
+ * Ajouter cette méthode et l'appeler pour activer la nouvelle vue
+ */
+enableWeekView() {
+    console.log('🔄 Activation de la vue semaine...');
+
+    // Sauvegarder l'ancienne méthode generateGrid
+    if (!this.originalGenerateGrid) {
+        this.originalGenerateGrid = this.generateGrid;
+    }
+
+    // Remplacer par la nouvelle méthode
+    this.generateGrid = this.generateWeekViewGrid;
+
+    // Régénérer immédiatement
+    this.generateGrid();
+    this.renderShifts();
+
+    console.log('✅ Vue semaine activée');
+}
+
+/**
+ * Désactive la vue semaine (retour à la vue normale)
+ */
+disableWeekView() {
+    console.log('🔄 Retour à la vue normale...');
+
+    if (this.originalGenerateGrid) {
+        this.generateGrid = this.originalGenerateGrid;
+    }
+
+    // Supprimer les styles spécifiques
+    document.querySelectorAll('#week-view-styles').forEach(s => s.remove());
+
+    // Régénérer
+    this.generateGrid();
+    this.renderShifts();
+
+    console.log('✅ Vue normale restaurée');
+}
+
+// ==================== INSTRUCTIONS D'INTÉGRATION ====================
+
+/*
+POUR ACTIVER LA VUE SEMAINE DANS VOTRE APPLICATION :
+
+1. Ajoutez ces méthodes à votre classe PlanningManager existante dans planning.js
+
+2. Pour activer la vue semaine, dans la console ou votre code :
+   window.PlanningManager.enableWeekView();
+
+3. Pour revenir à la vue normale :
+   window.PlanningManager.disableWeekView();
+
+4. Pour tester immédiatement dans la console :
+   window.PlanningManager.enableWeekView();
+
+Le système détectera automatiquement quels employés travaillent quels jours
+et créera les colonnes appropriées.
+*/

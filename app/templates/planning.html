@@ -1,570 +1,483 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning Restaurant - Structure Corrigée</title>
-    <style>
-        /* Reset et base */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+{% extends "base.html" %}
+
+{% block title %}Planning - Planning Restaurant{% endblock %}
+
+{% block extra_css %}
+<!-- CSS spécialisé pour le layout semaine -->
+<style>
+    /* ==================== LAYOUT SEMAINE SPÉCIALISÉ ==================== */
+    
+    /* Variables pour la vue semaine */
+    :root {
+        --week-day-header-height: 80px;
+        --employee-header-height: 60px;
+        --time-cell-width: 80px;
+        --min-employee-width: 100px;
+        --cell-height: 60px;
+    }
+
+    /* Structure principale */
+    .planning-wrapper {
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    /* En-tête semaine avec jours et employés */
+    .week-header-container {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .week-days-header {
+        display: grid;
+        grid-template-columns: var(--time-cell-width) repeat(7, 1fr);
+        background: #f8f9fa;
+    }
+
+    .corner-header {
+        background: #e9ecef;
+        padding: 1rem;
+        font-weight: 600;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-right: 1px solid #dee2e6;
+    }
+
+    .day-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .day-name {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .day-date {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    /* Sous-en-tête employés par jour */
+    .employees-header-container {
+        display: grid;
+        grid-template-columns: var(--time-cell-width) repeat(7, 1fr);
+        background: #f1f3f4;
+    }
+
+    .employees-header-spacer {
+        background: #e9ecef;
+        border-right: 1px solid #dee2e6;
+    }
+
+    .day-employees-header {
+        display: flex;
+        border-right: 1px solid #dee2e6;
+        min-height: var(--employee-header-height);
+        background: #f8f9fa;
+    }
+
+    .employee-column-header {
+        flex: 1;
+        background: white;
+        border-right: 1px solid #e9ecef;
+        padding: 0.5rem 0.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.75rem;
+        min-width: var(--min-employee-width);
+    }
+
+    .employee-column-header:last-child {
+        border-right: none;
+    }
+
+    .employee-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.7rem;
+    }
+
+    .employee-name {
+        font-weight: 500;
+        color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* Corps du planning avec grille heures/jours/employés */
+    .planning-body {
+        flex: 1;
+        overflow: auto;
+        background: white;
+    }
+
+    .planning-grid {
+        display: grid;
+        grid-template-columns: var(--time-cell-width) repeat(7, 1fr);
+    }
+
+    .time-cell {
+        background: #f8f9fa;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        font-weight: 500;
+        color: #6c757d;
+        border-right: 1px solid #dee2e6;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--cell-height);
+        position: sticky;
+        left: 0;
+        z-index: 10;
+    }
+
+    .day-column {
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        min-height: var(--cell-height);
+    }
+
+    .employee-cell {
+        flex: 1;
+        background: white;
+        border-right: 1px solid #e9ecef;
+        border-bottom: 1px solid #e9ecef;
+        position: relative;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        min-width: var(--min-employee-width);
+    }
+
+    .employee-cell:last-child {
+        border-right: none;
+    }
+
+    .employee-cell:hover {
+        background-color: #f8f9fa;
+    }
+
+    .employee-cell[data-drop-zone="true"] {
+        background-color: #e3f2fd;
+        border: 2px dashed #2196f3;
+    }
+
+    /* Créneaux de travail */
+    .shift-block {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        right: 2px;
+        border-radius: 4px;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: move;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        z-index: 20;
+        user-select: none;
+        min-height: 56px;
+    }
+
+    .shift-block:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 30;
+    }
+
+    .shift-block.dragging {
+        opacity: 0.7;
+        transform: scale(1.05);
+        z-index: 100;
+    }
+
+    .shift-time {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        margin-bottom: 0.125rem;
+    }
+
+    .shift-employee {
+        font-weight: 600;
+        margin-bottom: 0.125rem;
+    }
+
+    .shift-duration {
+        font-size: 0.65rem;
+        opacity: 0.8;
+    }
+
+    /* Couleurs par type de poste */
+    .shift-cuisinier { background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); }
+    .shift-serveur { background: linear-gradient(135deg, #00b894 0%, #00a085 100%); }
+    .shift-barman { background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%); }
+    .shift-manager { background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%); }
+    .shift-aide { background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%); }
+    .shift-commis { background: linear-gradient(135deg, #6c5ce7 0%, #5a4fcf 100%); }
+
+    /* États d'interaction */
+    .employee-cell.cell-hover {
+        background-color: rgba(102, 126, 234, 0.1);
+        border-color: #667eea;
+    }
+
+    .conflict-zone {
+        background-color: #ffebee !important;
+        border: 2px dashed #f44336 !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        :root {
+            --min-employee-width: 80px;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            overflow-x: hidden;
+        .employee-name {
+            font-size: 0.7rem;
         }
         
-        /* Structure principale */
-        .app-container {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+        .employee-avatar {
+            width: 24px;
+            height: 24px;
+            font-size: 0.65rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        :root {
+            --time-cell-width: 60px;
+            --min-employee-width: 60px;
         }
         
-        .main-content {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
+        .employee-name {
+            display: none;
         }
         
-        .planning-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-            border-radius: 8px;
-            margin: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
+        .shift-block {
+            font-size: 0.65rem;
+            min-height: 52px;
         }
-        
-        /* En-tête application */
-        .app-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .app-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .app-actions {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #0056b3;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        /* Barre d'outils planning */
-        .planning-toolbar {
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .toolbar-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .toolbar-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .week-navigation {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 0.25rem;
-        }
-        
-        .week-nav-btn {
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        
-        .week-nav-btn:hover {
-            background: #f8f9fa;
-        }
-        
-        .current-week {
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            color: #495057;
-            min-width: 200px;
-            text-align: center;
-        }
-        
-        /* Conteneur planning principal */
-        .planning-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .planning-header {
-            /* Styles générés dynamiquement par le layout manager */
-            min-height: 80px;
-        }
-        
-        .planning-grid-container {
-            flex: 1;
-            overflow: auto;
-        }
-        
-        .planning-grid {
-            /* Styles générés dynamiquement par le layout manager */
-            min-height: 100%;
-        }
-        
-        /* Sidebar employés */
-        .employees-sidebar {
-            width: 300px;
-            background: white;
-            border-left: 1px solid #dee2e6;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .sidebar-header {
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .sidebar-title {
-            font-weight: 600;
-            color: #495057;
-        }
-        
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-        }
-        
-        /* États de chargement */
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(248, 249, 250, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f4f6;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error-message {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c33;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem;
-            text-align: center;
-        }
-        
-        /* Messages d'état */
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 0.5rem;
-            color: #495057;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-content {
-                flex-direction: column;
-            }
-            
-            .employees-sidebar {
-                width: 100%;
-                max-height: 200px;
-                border-left: none;
-                border-top: 1px solid #dee2e6;
-            }
-            
-            .app-header {
-                padding: 1rem;
-            }
-            
-            .app-title {
-                font-size: 1.25rem;
-            }
-            
-            .app-actions {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .planning-toolbar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .toolbar-left,
-            .toolbar-right {
-                justify-content: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="app-container">
-        <!-- En-tête principal -->
-        <header class="app-header">
-            <div class="app-title">
-                📋 Planning Restaurant
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- En-tête avec contrôles -->
+    <section class="planning-header-section">
+        <div class="planning-toolbar">
+            <div class="toolbar-left">
+                <!-- Navigation semaine -->
+                <div class="week-navigation">
+                    <button class="week-nav-btn" id="prevWeekBtn" onclick="changeWeek(-1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="current-week" id="currentWeekDisplay">
+                        Semaine du 17 au 23 juin 2024
+                    </div>
+                    <button class="week-nav-btn" id="nextWeekBtn" onclick="changeWeek(1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
-            <div class="app-actions">
-                <button class="btn btn-secondary" onclick="window.location.reload()">
-                    🔄 Actualiser
-                </button>
-                <button class="btn btn-primary" id="addEmployeeBtn">
-                    👥 Nouvel employé
+            
+            <div class="toolbar-right">
+                <!-- Actions rapides -->
+                <button class="btn btn-success" id="addEmployeeBtn">
+                    <i class="fas fa-user-plus"></i>
+                    Nouvel employé
                 </button>
                 <button class="btn btn-primary" id="addShiftBtn">
-                    ⏰ Nouveau créneau
+                    <i class="fas fa-plus"></i>
+                    Créer créneau
+                </button>
+                <button class="btn btn-secondary" id="exportBtn">
+                    <i class="fas fa-download"></i>
+                    Exporter
                 </button>
             </div>
-        </header>
+        </div>
 
-        <!-- Contenu principal -->
-        <main class="main-content">
-            <!-- Section planning -->
-            <section class="planning-section">
-                <!-- Barre d'outils -->
-                <div class="planning-toolbar">
-                    <div class="toolbar-left">
-                        <div class="week-navigation">
-                            <button class="week-nav-btn" id="prevWeekBtn" title="Semaine précédente">
-                                ◀
-                            </button>
-                            <div class="current-week" id="currentWeekDisplay">
-                                Semaine du 23 au 29 juin 2025
-                            </div>
-                            <button class="week-nav-btn" id="nextWeekBtn" title="Semaine suivante">
-                                ▶
-                            </button>
-                        </div>
-                        
-                        <select class="form-control" id="granularitySelect">
-                            <option value="60">60 min</option>
-                            <option value="30">30 min</option>
-                            <option value="15">15 min</option>
-                        </select>
-                    </div>
-                    
-                    <div class="toolbar-right">
-                        <div class="stats-summary" id="weekStats">
-                            <span id="totalHours">0h</span> total • 
-                            <span id="totalEmployees">0</span> employés • 
-                            <span id="totalShifts">0</span> créneaux
-                        </div>
-                        
-                        <button class="btn btn-secondary" id="exportBtn">
-                            📊 Exporter
-                        </button>
-                    </div>
+        <!-- Statistiques rapides -->
+        <div class="quick-stats" id="weekStats">
+            <div class="stat-item">
+                <i class="fas fa-users"></i>
+                <span id="totalEmployees">0</span> employés
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span id="totalHours">0</span>h prévues
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-calendar-check"></i>
+                <span id="totalShifts">0</span> créneaux
+            </div>
+        </div>
+    </section>
+
+    <!-- Planning principal avec nouvelle structure -->
+    <section class="planning-main-section">
+        <div class="planning-wrapper">
+            <!-- En-tête avec jours et employés -->
+            <div class="week-header-container">
+                <!-- En-tête jours -->
+                <div class="week-days-header" id="weekDaysHeader">
+                    <div class="corner-header">Heures</div>
+                    <!-- Généré dynamiquement par JS -->
                 </div>
-
-                <!-- Container planning principal -->
-                <div class="planning-container">
-                    <!-- En-tête avec employés (généré dynamiquement) -->
-                    <div id="planningHeader" class="planning-header">
-                        <!-- Contenu généré par LayoutManager -->
-                    </div>
-
-                    <!-- Container grille avec scroll -->
-                    <div class="planning-grid-container">
-                        <div id="planningGrid" class="planning-grid">
-                            <!-- Contenu généré par LayoutManager -->
-                            <div class="empty-state">
-                                <h3>Chargement du planning...</h3>
-                                <p>Veuillez patienter pendant l'initialisation</p>
-                                <div class="loading-spinner"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Overlay de chargement -->
-                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-                    <div class="loading-spinner"></div>
-                </div>
-            </section>
-
-            <!-- Sidebar employés -->
-            <aside class="employees-sidebar">
-                <div class="sidebar-header">
-                    <h3 class="sidebar-title">Équipe</h3>
-                    <span id="employeeCount" class="badge">0</span>
-                </div>
-                <div class="sidebar-content" id="employeesLegend">
-                    <!-- Contenu généré par LegendManager -->
-                    <div class="empty-state">
-                        <p>Aucun employé</p>
-                    </div>
-                </div>
-            </aside>
-        </main>
-    </div>
-
-    <!-- Notifications container -->
-    <div id="notificationsContainer" style="
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        z-index: 9999;
-        max-width: 400px;
-    "></div>
-
-    <!-- Modals container -->
-    <div id="modalsContainer"></div>
-
-    <!-- Scripts d'initialisation -->
-    <script>
-        // Vérifier que tous les conteneurs existent au chargement
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🏗️ Vérification de la structure HTML...');
-            
-            const requiredElements = [
-                'planningHeader',
-                'planningGrid', 
-                'employeesLegend',
-                'notificationsContainer',
-                'modalsContainer',
-                'currentWeekDisplay',
-                'weekStats'
-            ];
-            
-            let missing = [];
-            
-            requiredElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (!element) {
-                    missing.push(id);
-                    console.error(`❌ Élément manquant: ${id}`);
-                } else {
-                    console.log(`✅ Élément trouvé: ${id}`);
-                }
-            });
-            
-            if (missing.length === 0) {
-                console.log('✅ Structure HTML complète et valide');
                 
-                // Déclencher l'initialisation de l'application
-                if (window.PlanningApp && window.PlanningApp.initialize) {
-                    window.PlanningApp.initialize();
-                }
-            } else {
-                console.error(`❌ ${missing.length} éléments manquants:`, missing);
-                
-                // Afficher une erreur à l'utilisateur
-                document.body.innerHTML = `
-                    <div style="
-                        position: fixed;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background: white;
-                        padding: 2rem;
-                        border-radius: 8px;
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                        text-align: center;
-                        max-width: 500px;
-                    ">
-                        <h2 style="color: #dc2626; margin-bottom: 1rem;">
-                            Structure HTML incomplète
-                        </h2>
-                        <p style="margin-bottom: 1rem;">
-                            Des éléments HTML requis sont manquants.
-                        </p>
-                        <details style="text-align: left; margin-bottom: 1rem;">
-                            <summary>Éléments manquants</summary>
-                            <ul>
-                                ${missing.map(id => `<li>${id}</li>`).join('')}
-                            </ul>
-                        </details>
-                        <button onclick="location.reload()" style="
-                            background: #3b82f6;
-                            color: white;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 4px;
-                            cursor: pointer;
-                        ">
-                            Recharger la page
-                        </button>
-                    </div>
-                `;
+                <!-- En-tête employés par jour -->
+                <div class="employees-header-container" id="employeesHeaderContainer">
+                    <div class="employees-header-spacer"></div>
+                    <!-- Généré dynamiquement par JS -->
+                </div>
+            </div>
+
+            <!-- Corps du planning -->
+            <div class="planning-body">
+                <div class="planning-grid" id="planningGrid">
+                    <!-- Généré dynamiquement par JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Conteneurs pour modals et notifications -->
+<div id="modalsContainer"></div>
+<div id="notificationsContainer"></div>
+
+<!-- Scripts d'initialisation de la vue semaine -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🏗️ Initialisation de la vue semaine...');
+    
+    // Vérifier que tous les conteneurs existent
+    const requiredElements = [
+        'weekDaysHeader',
+        'employeesHeaderContainer', 
+        'planningGrid',
+        'currentWeekDisplay',
+        'weekStats'
+    ];
+    
+    let missing = [];
+    requiredElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) {
+            missing.push(id);
+            console.error(`❌ Élément manquant: ${id}`);
+        }
+    });
+    
+    if (missing.length === 0) {
+        console.log('✅ Structure HTML complète - Initialisation de la vue semaine');
+        
+        // Initialiser la nouvelle vue semaine
+        if (window.WeekViewManager) {
+            window.WeekViewManager.initialize();
+        } else {
+            console.warn('⚠️ WeekViewManager non disponible, fallback vers PlanningManager');
+            
+            // Fallback vers l'ancienne méthode si disponible
+            if (window.PlanningApp && window.PlanningApp.initialize) {
+                window.PlanningApp.initialize();
+            }
+        }
+    } else {
+        console.error(`❌ ${missing.length} éléments manquants:`, missing);
+    }
+    
+    // Event listeners pour les boutons
+    const addEmployeeBtn = document.getElementById('addEmployeeBtn');
+    const addShiftBtn = document.getElementById('addShiftBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    if (addEmployeeBtn) {
+        addEmployeeBtn.addEventListener('click', function() {
+            if (window.ModalManager && window.ModalManager.showEmployeeModal) {
+                window.ModalManager.showEmployeeModal();
             }
         });
+    }
 
-        // Gestionnaires d'événements pour les boutons
-        document.addEventListener('DOMContentLoaded', function() {
-            // Navigation semaine
-            const prevWeekBtn = document.getElementById('prevWeekBtn');
-            const nextWeekBtn = document.getElementById('nextWeekBtn');
-            
-            if (prevWeekBtn) {
-                prevWeekBtn.addEventListener('click', function() {
-                    if (window.PlanningManager && window.PlanningManager.previousWeek) {
-                        window.PlanningManager.previousWeek();
-                    }
-                });
-            }
-            
-            if (nextWeekBtn) {
-                nextWeekBtn.addEventListener('click', function() {
-                    if (window.PlanningManager && window.PlanningManager.nextWeek) {
-                        window.PlanningManager.nextWeek();
-                    }
-                });
-            }
-
-            // Granularité
-            const granularitySelect = document.getElementById('granularitySelect');
-            if (granularitySelect) {
-                granularitySelect.addEventListener('change', function() {
-                    const granularity = parseInt(this.value);
-                    if (window.EventsManager) {
-                        window.EventsManager.emit('planning:granularity:changed', { granularity });
-                    }
-                });
-            }
-
-            // Boutons d'action
-            const addEmployeeBtn = document.getElementById('addEmployeeBtn');
-            const addShiftBtn = document.getElementById('addShiftBtn');
-            const exportBtn = document.getElementById('exportBtn');
-
-            if (addEmployeeBtn) {
-                addEmployeeBtn.addEventListener('click', function() {
-                    if (window.ModalManager && window.ModalManager.showEmployeeModal) {
-                        window.ModalManager.showEmployeeModal();
-                    }
-                });
-            }
-
-            if (addShiftBtn) {
-                addShiftBtn.addEventListener('click', function() {
-                    if (window.ModalManager && window.ModalManager.showShiftModal) {
-                        window.ModalManager.showShiftModal();
-                    }
-                });
-            }
-
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function() {
-                    if (window.PlanningManager && window.PlanningManager.exportWeek) {
-                        window.PlanningManager.exportWeek();
-                    }
-                });
+    if (addShiftBtn) {
+        addShiftBtn.addEventListener('click', function() {
+            if (window.ModalManager && window.ModalManager.showShiftModal) {
+                window.ModalManager.showShiftModal();
             }
         });
+    }
 
-        // Fonction d'aide pour le debug
-        window.debugStructure = function() {
-            console.log('🔍 Debug structure HTML:');
-            console.log('- Planning Header:', !!document.getElementById('planningHeader'));
-            console.log('- Planning Grid:', !!document.getElementById('planningGrid'));
-            console.log('- Employees Legend:', !!document.getElementById('employeesLegend'));
-            console.log('- Notifications:', !!document.getElementById('notificationsContainer'));
-            console.log('- Modals:', !!document.getElementById('modalsContainer'));
-            
-            const gridContainer = document.getElementById('planningGrid');
-            if (gridContainer) {
-                console.log('- Cellules grille:', gridContainer.querySelectorAll('.employee-cell').length);
-                console.log('- Créneaux visibles:', gridContainer.querySelectorAll('.shift-block').length);
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            if (window.PlanningManager && window.PlanningManager.exportWeek) {
+                window.PlanningManager.exportWeek();
             }
-        };
+        });
+    }
+});
 
-        console.log('🏗️ Structure HTML Planning Restaurant chargée');
-        console.log('🛠️ Debug: window.debugStructure()');
-    </script>
-</body>
-</html>
+// Fonctions globales pour la navigation
+function changeWeek(offset) {
+    if (window.WeekViewManager && window.WeekViewManager.changeWeek) {
+        window.WeekViewManager.changeWeek(offset);
+    } else if (window.PlanningManager && window.PlanningManager.changeWeek) {
+        window.PlanningManager.changeWeek(offset);
+    }
+}
+
+// Debug pour vérifier la structure
+window.debugWeekView = function() {
+    console.log('🔍 Debug Vue Semaine:');
+    console.log('- Week Days Header:', !!document.getElementById('weekDaysHeader'));
+    console.log('- Employees Header:', !!document.getElementById('employeesHeaderContainer'));
+    console.log('- Planning Grid:', !!document.getElementById('planningGrid'));
+    
+    const employeeCells = document.querySelectorAll('.employee-cell');
+    const shiftBlocks = document.querySelectorAll('.shift-block');
+    console.log(`- ${employeeCells.length} cellules employés`);
+    console.log(`- ${shiftBlocks.length} créneaux visibles`);
+};
+
+console.log('🏗️ Template Vue Semaine chargé');
+console.log('🛠️ Debug: window.debugWeekView()');
+</script>
+{% endblock %}
