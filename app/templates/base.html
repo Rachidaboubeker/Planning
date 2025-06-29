@@ -8,6 +8,9 @@
     <!-- ✅ CSS unifié refactorisé -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
+    <!-- ✅ NOUVEAU CSS Grid Layout -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-grid.css') }}">
+
     <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -59,23 +62,21 @@
         }
     </script>
 
-    <!-- ✅ Zone des modals (pour la nouvelle architecture) -->
-    <div id="modalContainer"></div>
-
-    <!-- ✅ Zone des notifications (pour la nouvelle architecture) -->
-    <div id="notificationContainer" class="notification-container"></div>
+    <!-- ✅ Conteneurs requis pour la nouvelle architecture -->
+    <div id="modalsContainer" class="modals-container"></div>
+    <div id="notificationsContainer" class="notifications-container"></div>
 
     <!-- ✅ JavaScript refactorisé - ORDRE CRITIQUE -->
     {% block javascript %}
     <!-- 1. Core (fondations) -->
     <script src="{{ url_for('static', filename='js/core/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/state.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/utils/layout-fix.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/events.js') }}"></script>
 
     <!-- 2. Utilitaires -->
     <script src="{{ url_for('static', filename='js/utils/time.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils/validation.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/layout-fix.js') }}"></script>
 
     <!-- 3. Managers -->
     <script src="{{ url_for('static', filename='js/managers/api.js') }}"></script>
@@ -88,77 +89,102 @@
     <script src="{{ url_for('static', filename='js/components/notification.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/legend.js') }}"></script>
 
-    <!-- 5. App principal -->
-    <!-- Dans la section scripts, avant app.js -->
-    <script src="{{ url_for('static', filename='js/utils/employee-shift-mapper.js') }}"></script>
+    <!-- 5. Application principale -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
-    <!-- 🐛 DEBUG - Uniquement en développement -->
-    {% if config.DEBUG %}
-    <script src="{{ url_for('static', filename='js/utils/auto-repair.js') }}"></script>
-    {% endif %}
-
+    <!-- ✅ NOUVEAUX CORRECTIFS - Chargés après l'application -->
+    <script src="{{ url_for('static', filename='js/utils/data-cleanup.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/managers/layout-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/orchestrator.js') }}"></script>
     {% endblock %}
-    {% block extra_js %}{% endblock %}
 
-    <!-- ✅ Styles de transition pour éviter le FOUC -->
-    <style>
-        /* Styles de base pour éviter le flash de contenu non stylé */
-        body.loading .main-content {
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        body.initialized .main-content {
-            opacity: 1;
-        }
-
-        /* Loader simple pendant l'initialisation */
-        .app-loader {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-            text-align: center;
-        }
-
-        .app-loader i {
-            font-size: 2rem;
-            color: #667eea;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        body.initialized .app-loader {
-            display: none;
-        }
-    </style>
-
-    <!-- ✅ Loader pendant l'initialisation -->
-    <div class="app-loader">
-        <i class="fas fa-spinner"></i>
-        <p>Chargement de Planning Restaurant...</p>
-    </div>
-
+    <!-- ✅ Script d'initialisation globale -->
     <script>
-        // ✅ Marquer comme en cours de chargement
-        document.body.classList.add('loading');
+        // Vérification de l'intégrité au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏗️ Vérification structure HTML...');
 
-        // ✅ Fonction globale pour les statistiques (compatibilité)
-        function showStats() {
-            if (window.UIManager && typeof window.UIManager.showStatsModal === 'function') {
-                window.UIManager.showStatsModal();
-            } else if (window.NotificationManager) {
-                window.NotificationManager.info('Statistiques', 'Fonctionnalité en développement');
+            // Conteneurs requis
+            const requiredContainers = [
+                'modalsContainer',
+                'notificationsContainer'
+            ];
+
+            // Conteneurs spécifiques au planning (optionnels selon la page)
+            const planningContainers = [
+                'planningHeader',
+                'planningGrid',
+                'employeesLegend'
+            ];
+
+            let missingRequired = [];
+            let missingPlanning = [];
+
+            requiredContainers.forEach(id => {
+                if (!document.getElementById(id)) {
+                    missingRequired.push(id);
+                }
+            });
+
+            planningContainers.forEach(id => {
+                if (!document.getElementById(id)) {
+                    missingPlanning.push(id);
+                }
+            });
+
+            if (missingRequired.length > 0) {
+                console.error('❌ Conteneurs requis manquants:', missingRequired);
             } else {
-                alert('Statistiques - Fonctionnalité en développement');
+                console.log('✅ Conteneurs requis présents');
+            }
+
+            if (missingPlanning.length > 0 && window.location.pathname === '/') {
+                console.warn('⚠️ Conteneurs planning manquants:', missingPlanning);
+            }
+
+            // Déclencher l'initialisation si tout est OK
+            if (missingRequired.length === 0) {
+                if (window.PlanningApp && typeof window.PlanningApp.initialize === 'function') {
+                    console.log('🚀 Initialisation PlanningApp...');
+                    window.PlanningApp.initialize();
+                }
+            }
+        });
+
+        // Fonctions utilitaires globales
+        function showStats() {
+            if (window.ModalManager && window.ModalManager.showStatsModal) {
+                window.ModalManager.showStatsModal();
+            } else {
+                alert('Statistiques en cours de développement');
             }
         }
+
+        // Debug global
+        window.debugApp = function() {
+            console.log('🔍 Debug Application:');
+            console.log('- StateManager:', !!window.StateManager);
+            console.log('- APIManager:', !!window.APIManager);
+            console.log('- PlanningManager:', !!window.PlanningManager);
+            console.log('- LayoutManager:', !!window.LayoutManager);
+            console.log('- MasterOrchestrator:', !!window.MasterOrchestrator);
+
+            if (window.StateManager && window.StateManager.getState) {
+                const state = window.StateManager.getState();
+                console.log('- Employés:', state.employees?.length || 0);
+                console.log('- Créneaux:', state.shifts?.length || 0);
+            }
+
+            console.log('- Conteneurs:');
+            ['modalsContainer', 'notificationsContainer', 'planningHeader', 'planningGrid', 'employeesLegend'].forEach(id => {
+                console.log(`  - ${id}:`, !!document.getElementById(id));
+            });
+        };
+
+        console.log('🏗️ Template base.html chargé avec succès');
+        console.log('🛠️ Debug: window.debugApp()');
     </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

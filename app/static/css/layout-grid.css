@@ -1,0 +1,535 @@
+/**
+ * LAYOUT GRID CSS - Planning Restaurant
+ * CSS spécialisé pour le système de grille CSS Grid moderne
+ * Compatible avec la nouvelle architecture modulaire
+ */
+
+/* ==================== VARIABLES CSS GRID ==================== */
+:root {
+  /* Dimensions grille */
+  --grid-cell-height: 60px;
+  --grid-employee-column-width: 120px;
+  --grid-hour-column-width: 60px;
+  --grid-gap: 1px;
+
+  /* Couleurs grille */
+  --grid-border-color: #dee2e6;
+  --grid-header-bg: #f8f9fa;
+  --grid-cell-bg: #ffffff;
+  --grid-cell-hover-bg: #f8f9fa;
+  --grid-time-cell-bg: #f8f9fa;
+
+  /* Couleurs créneaux par type */
+  --shift-manager: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+  --shift-cuisinier: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  --shift-serveur: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  --shift-barman: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+  --shift-aide: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+  --shift-commis: linear-gradient(135deg, #6c5ce7 0%, #5a4fcf 100%);
+
+  /* Drop zones */
+  --drop-zone-bg: #e3f2fd;
+  --drop-zone-border: #2196f3;
+  --conflict-zone-bg: #ffebee;
+  --conflict-zone-border: #f44336;
+}
+
+/* ==================== CONTENEUR PRINCIPAL ==================== */
+.planning-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== EN-TÊTE AVEC EMPLOYÉS ==================== */
+.planning-header {
+  display: grid;
+  background: var(--grid-header-bg);
+  border-bottom: 2px solid var(--grid-border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 80px;
+}
+
+.header-cell {
+  padding: 0.75rem 0.5rem;
+  border-right: var(--grid-gap) solid var(--grid-border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: white;
+  font-weight: 500;
+  min-height: 80px;
+}
+
+.header-cell.corner {
+  background: #e9ecef;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.employee-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.employee-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.employee-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.employee-header:hover::before {
+  left: 100%;
+}
+
+.employee-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.employee-role {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  padding: 0.125rem 0.5rem;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ==================== CORPS DE LA GRILLE ==================== */
+.planning-grid-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--grid-cell-bg);
+}
+
+.planning-grid {
+  display: grid;
+  background: white;
+  position: relative;
+  min-height: 100%;
+}
+
+/* ==================== CELLULES DE TEMPS ==================== */
+.time-cell {
+  padding: 0.5rem;
+  border-right: var(--grid-gap) solid var(--grid-border-color);
+  border-bottom: var(--grid-gap) solid #e9ecef;
+  background: var(--grid-time-cell-bg);
+  font-weight: 500;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--grid-cell-height);
+  font-size: 0.875rem;
+  color: #495057;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+}
+
+/* ==================== CELLULES EMPLOYÉS ==================== */
+.employee-cell {
+  border-right: var(--grid-gap) solid var(--grid-border-color);
+  border-bottom: var(--grid-gap) solid #e9ecef;
+  height: var(--grid-cell-height);
+  position: relative;
+  background: var(--grid-cell-bg);
+  transition: background-color 0.2s ease;
+}
+
+.employee-cell:hover {
+  background-color: var(--grid-cell-hover-bg);
+}
+
+/* États spéciaux des cellules */
+.employee-cell[data-drop-zone="true"] {
+  background-color: var(--drop-zone-bg);
+  border: 2px dashed var(--drop-zone-border);
+}
+
+.employee-cell[data-conflict="true"] {
+  background-color: var(--conflict-zone-bg);
+  border: 2px solid var(--conflict-zone-border);
+}
+
+.employee-cell.highlight {
+  background-color: #fff3cd;
+  border-color: #ffc107;
+}
+
+/* ==================== BLOCS DE CRÉNEAUX ==================== */
+.shift-block {
+  position: absolute;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  z-index: 5;
+  left: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+  top: 2px;
+}
+
+.shift-block:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  z-index: 6;
+}
+
+.shift-block:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+.shift-block.dragging {
+  opacity: 0.8;
+  transform: rotate(3deg) scale(1.05);
+  z-index: 20;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.shift-block.selected {
+  border: 2px solid #ffc107;
+  z-index: 7;
+}
+
+.shift-time {
+  font-weight: 600;
+  margin-bottom: 1px;
+  font-size: 0.75rem;
+}
+
+.shift-duration {
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+/* ==================== COULEURS PAR TYPE D'EMPLOYÉ ==================== */
+.employee-cell[data-employee-type="manager"] .shift-block {
+  background: var(--shift-manager);
+}
+
+.employee-cell[data-employee-type="cuisinier"] .shift-block {
+  background: var(--shift-cuisinier);
+}
+
+.employee-cell[data-employee-type="serveur"] .shift-block {
+  background: var(--shift-serveur);
+}
+
+.employee-cell[data-employee-type="barman"] .shift-block {
+  background: var(--shift-barman);
+}
+
+.employee-cell[data-employee-type="aide"] .shift-block {
+  background: var(--shift-aide);
+}
+
+.employee-cell[data-employee-type="commis"] .shift-block {
+  background: var(--shift-commis);
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shift-block {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.shift-block.new {
+  animation: pulse 0.6s ease-in-out;
+}
+
+/* ==================== ÉTAT VIDE ==================== */
+.no-employees {
+  grid-column: 1 / -1;
+  padding: 2rem;
+  text-align: center;
+  color: #6c757d;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  margin: 1rem;
+  border-radius: 8px;
+}
+
+.no-employees h3 {
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.no-employees p {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1200px) {
+  :root {
+    --grid-employee-column-width: 100px;
+    --grid-hour-column-width: 50px;
+  }
+
+  .employee-name {
+    font-size: 0.8rem;
+  }
+
+  .employee-role {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --grid-employee-column-width: 90px;
+    --grid-hour-column-width: 45px;
+    --grid-cell-height: 50px;
+  }
+
+  .header-cell {
+    min-height: 60px;
+    padding: 0.5rem 0.25rem;
+  }
+
+  .employee-name {
+    font-size: 0.75rem;
+  }
+
+  .employee-role {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  .shift-block {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.25rem;
+    min-height: 25px;
+  }
+
+  .shift-time {
+    font-size: 0.7rem;
+  }
+
+  .shift-duration {
+    font-size: 0.65rem;
+  }
+
+  .time-cell {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --grid-employee-column-width: 80px;
+    --grid-hour-column-width: 40px;
+  }
+
+  .planning-header {
+    min-height: 50px;
+  }
+
+  .header-cell {
+    min-height: 50px;
+    padding: 0.25rem;
+  }
+
+  .employee-name {
+    font-size: 0.7rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .employee-role {
+    font-size: 0.6rem;
+  }
+}
+
+/* ==================== UTILITAIRES DRAG & DROP ==================== */
+.dragging-over {
+  background-color: var(--drop-zone-bg) !important;
+  border: 2px dashed var(--drop-zone-border) !important;
+}
+
+.drop-valid {
+  background-color: #d4edda !important;
+  border-color: #28a745 !important;
+}
+
+.drop-invalid {
+  background-color: #f8d7da !important;
+  border-color: #dc3545 !important;
+}
+
+/* ==================== INDICATEURS VISUELS ==================== */
+.conflict-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: #dc3545;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.overtime-indicator {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  background: #ffc107;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+/* ==================== MODES SPÉCIAUX ==================== */
+.planning-grid.compact-mode {
+  --grid-cell-height: 40px;
+}
+
+.planning-grid.compact-mode .shift-block {
+  min-height: 20px;
+  font-size: 0.65rem;
+  padding: 0.125rem 0.25rem;
+}
+
+.planning-grid.readonly {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.planning-grid.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(248, 249, 250, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+  .planning-container {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .employee-header {
+    background: #f0f0f0 !important;
+    color: #000 !important;
+  }
+
+  .shift-block {
+    background: #e0e0e0 !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .planning-grid-container {
+    overflow: visible !important;
+  }
+}
+
+/* ==================== ACCESSIBILITÉ ==================== */
+.shift-block:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.employee-cell:focus-within {
+  box-shadow: inset 0 0 0 2px #0066cc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shift-block,
+  .employee-header,
+  .employee-cell {
+    transition: none;
+  }
+
+  .shift-block {
+    animation: none;
+  }
+}
+
+/* ==================== HIGH CONTRAST MODE ==================== */
+@media (prefers-contrast: high) {
+  :root {
+    --grid-border-color: #000000;
+    --grid-cell-bg: #ffffff;
+    --grid-header-bg: #f0f0f0;
+  }
+
+  .shift-block {
+    border: 2px solid #000000;
+    background: #0066cc !important;
+    color: #ffffff;
+  }
+}
