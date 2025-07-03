@@ -1,7 +1,6 @@
 /**
  * PLANNING MANAGER UNIFIÉ - Planning Restaurant
- * Remplace PlanningRenderer, PlanningCore, et tous les gestionnaires de planning dispersés
- * Logique métier centralisée pour l'affichage et la manipulation du planning
+ * Version complète avec vue semaine intégrée
  */
 
 class PlanningManager {
@@ -109,155 +108,444 @@ class PlanningManager {
         }
     }
 
-    // ==================== GÉNÉRATION DE LA GRILLE ====================
+    // ==================== GÉNÉRATION GRILLE VUE SEMAINE ====================
 
     /**
-     * Génère la grille de planning selon la configuration actuelle
+     * Génère la grille de planning - Vue semaine avec colonnes employés
      */
     generateGrid() {
-        console.log('🏗️ Génération de la grille de planning...');
+        console.log('🏗️ Génération grille vue semaine...');
 
         const headerContainer = document.getElementById('planningHeader');
         const gridContainer = document.getElementById('planningGrid');
 
         if (!headerContainer || !gridContainer) {
-            console.error('❌ Conteneurs de grille non trouvés');
+            console.error('❌ Conteneurs planningHeader ou planningGrid manquants');
             return;
         }
 
-        // Nettoyer les conteneurs
-        headerContainer.innerHTML = '';
-        gridContainer.innerHTML = '';
+        // Récupérer données depuis StateManager
+        const employees = this.getActiveEmployeesFromState();
+        const shifts = this.getShiftsFromState();
 
-        // Générer les en-têtes
-        this.generateHeaders(headerContainer);
+        // Calculer répartition employés par jour
+        const employeesByDay = this.calculateEmployeesByDay(employees, shifts);
 
-        // Générer les cellules de temps et de planning
-        this.generateCells(gridContainer);
+        console.log(`📊 ${employees.length} employés répartis sur la semaine:`, employeesByDay);
 
-        // Appliquer les styles de granularité
-        this.applyGranularityStyles(gridContainer);
+        // Générer HTML
+        this.generateWeekHeader(headerContainer, employeesByDay);
+        this.generateWeekGrid(gridContainer, employeesByDay);
 
-        console.log('✅ Grille de planning générée');
+        console.log('✅ Grille vue semaine générée');
     }
 
     /**
-     * Génère les en-têtes de la grille
+     * Récupère employés actifs depuis StateManager
      */
-    generateHeaders(container) {
-        const days = window.Config?.DAYS_OF_WEEK || ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    getActiveEmployeesFromState() {
+        if (!window.StateManager?.getState) {
+            console.warn('⚠️ StateManager non disponible');
+            return [];
+        }
 
-        // Cellule vide pour l'angle
-        const cornerCell = document.createElement('div');
-        cornerCell.className = 'time-cell corner-cell';
-        cornerCell.innerHTML = '<i class="fas fa-calendar-week"></i>';
-        container.appendChild(cornerCell);
-
-        // En-têtes des jours
-        days.forEach(day => {
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'day-header';
-            dayHeader.textContent = day;
-            dayHeader.dataset.day = day;
-            container.appendChild(dayHeader);
-        });
+        const state = window.StateManager.getState();
+        return (state.employees || [])
+            .filter(emp => emp && emp.actif !== false && emp.nom !== 'Supprimé')
+            .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));
     }
 
     /**
-     * Génère les cellules de la grille
+     * Récupère créneaux depuis StateManager
      */
-    generateCells(container) {
-        const days = window.Config?.DAYS_OF_WEEK || [];
-        const timeSlots = window.Config?.generateTimeSlots() || [];
-        const granularity = window.State?.getState('temp.granularity') || 60;
+    getShiftsFromState() {
+        if (!window.StateManager?.getState) return [];
 
-        console.log(`📏 Génération avec granularité ${granularity}min - ${timeSlots.length} créneaux`);
-
-        timeSlots.forEach((timeSlot, rowIndex) => {
-            // Cellule de temps
-            const timeCell = document.createElement('div');
-            timeCell.className = `time-cell ${timeSlot.isMainHour ? 'main-hour' : 'sub-hour'}`;
-            timeCell.textContent = timeSlot.display;
-            timeCell.dataset.hour = timeSlot.hour;
-            timeCell.dataset.minutes = timeSlot.minutes;
-            timeCell.style.gridColumn = '1';
-            timeCell.style.gridRow = `${rowIndex + 1}`;
-            container.appendChild(timeCell);
-
-            // Cellules de planning pour chaque jour
-            days.forEach((day, dayIndex) => {
-                const scheduleCell = document.createElement('div');
-                scheduleCell.className = 'schedule-cell';
-                scheduleCell.dataset.day = day;
-                scheduleCell.dataset.hour = timeSlot.hour;
-                scheduleCell.dataset.minutes = timeSlot.minutes;
-                scheduleCell.dataset.key = timeSlot.key;
-                scheduleCell.style.gridColumn = `${dayIndex + 2}`;
-                scheduleCell.style.gridRow = `${rowIndex + 1}`;
-
-                // Configurer les événements de cellule
-                this.setupCellEvents(scheduleCell, day, timeSlot);
-
-                container.appendChild(scheduleCell);
-            });
-        });
-
-        // Mettre à jour les styles de grille
-        container.style.gridTemplateColumns = `100px repeat(${days.length}, 1fr)`;
-        container.style.gridTemplateRows = `repeat(${timeSlots.length}, ${window.Config?.getCellHeight()}px)`;
+        const state = window.StateManager.getState();
+        return state.shifts || [];
     }
 
     /**
-     * Configure les événements d'une cellule
+     * Calcule quels employés travaillent quels jours
      */
-    setupCellEvents(cell, day, timeSlot) {
-        // Double-clic pour créer un créneau
-        cell.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            this.handleCellDoubleClick(day, timeSlot.hour, timeSlot.minutes);
-        });
+    calculateEmployeesByDay(employees, shifts) {
+        const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+        const employeesByDay = {};
 
-        // Survol
-        cell.addEventListener('mouseenter', () => {
-            if (!cell.classList.contains('drag-over')) {
-                cell.classList.add('cell-hover');
+        // Initialiser chaque jour
+        days.forEach(day => { employeesByDay[day] = []; });
+
+        // Analyser créneaux existants
+        shifts.forEach(shift => {
+            if (shift.day && shift.employee_id) {
+                const employee = employees.find(emp => emp.id === shift.employee_id);
+                if (employee && !employeesByDay[shift.day].find(emp => emp.id === employee.id)) {
+                    employeesByDay[shift.day].push(employee);
+                }
             }
         });
 
-        cell.addEventListener('mouseleave', () => {
-            cell.classList.remove('cell-hover');
+        // Si aucun créneau, répartir employés pour démonstration
+        const hasAssignments = Object.values(employeesByDay).some(dayEmps => dayEmps.length > 0);
+        if (!hasAssignments && employees.length > 0) {
+            employees.forEach((emp, index) => {
+                const dayIndex = index % days.length;
+                employeesByDay[days[dayIndex]].push(emp);
+            });
+        }
+
+        return employeesByDay;
+    }
+
+    /**
+     * Génère l'en-tête avec jours et employés
+     */
+    generateWeekHeader(container, employeesByDay) {
+        const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+        // Calculer dates de la semaine courante
+        const weekDates = this.getCurrentWeekDates();
+
+        let html = `
+            <div class="week-header">
+                <!-- En-tête jours -->
+                <div class="days-header">
+                    <div class="corner-cell">Heures</div>
+        `;
+
+        days.forEach((day, index) => {
+            const date = weekDates[index];
+            const dateStr = date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+
+            html += `
+                <div class="day-cell">
+                    <div class="day-name">${day}</div>
+                    <div class="day-date">${dateStr}</div>
+                </div>
+            `;
         });
 
-        // Support du drag & drop (configuré par DragDropManager)
-        cell.classList.add('drop-zone');
+        html += '</div>'; // fin days-header
+
+        // Sous-en-tête employés
+        html += '<div class="employees-header"><div class="spacer-cell"></div>';
+
+        days.forEach(day => {
+            const dayEmployees = employeesByDay[day] || [];
+
+            html += '<div class="day-employees">';
+
+            if (dayEmployees.length === 0) {
+                html += `
+                    <div class="employee-cell">
+                        <div class="employee-avatar" style="background: #e9ecef; color: #6c757d;">--</div>
+                        <div class="employee-name">Libre</div>
+                    </div>
+                `;
+            } else {
+                dayEmployees.forEach(employee => {
+                    const color = this.getEmployeeColor(employee.poste);
+                    const initials = this.getEmployeeInitials(employee);
+
+                    html += `
+                        <div class="employee-cell" data-employee-id="${employee.id}">
+                            <div class="employee-avatar" style="background: ${color};">${initials}</div>
+                            <div class="employee-name">${employee.prenom} ${employee.nom}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>'; // fin day-employees
+        });
+
+        html += '</div>'; // fin employees-header
+        html += '</div>'; // fin week-header
+
+        container.innerHTML = html;
     }
 
     /**
-     * Gère le double-clic sur une cellule
+     * Génère la grille corps avec heures
      */
-    handleCellDoubleClick(day, hour, minutes) {
-        console.log(`🖱️ Double-clic sur ${day} ${hour}:${minutes}`);
+    generateWeekGrid(container, employeesByDay) {
+        const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+        const hours = this.getHoursRange();
 
-        if (window.UIManager && window.UIManager.showAddShiftModal) {
-            window.UIManager.showAddShiftModal(day, hour, minutes);
-        } else {
-            console.warn('UIManager.showAddShiftModal non disponible');
+        let html = '<div class="week-grid">';
+
+        hours.forEach(hour => {
+            // Cellule heure
+            const hourStr = typeof hour === 'number' ?
+                (hour === 0 ? '00:00' : `${hour.toString().padStart(2, '0')}:00`) :
+                hour;
+
+            html += `<div class="hour-cell">${hourStr}</div>`;
+
+            // Cellules employés pour ce créneau
+            days.forEach(day => {
+                const dayEmployees = employeesByDay[day] || [];
+
+                html += '<div class="time-row">';
+
+                if (dayEmployees.length === 0) {
+                    html += `
+                        <div class="schedule-cell"
+                             data-day="${day}"
+                             data-hour="${hour}"
+                             data-employee-id="none">
+                        </div>
+                    `;
+                } else {
+                    dayEmployees.forEach(employee => {
+                        html += `
+                            <div class="schedule-cell"
+                                 data-day="${day}"
+                                 data-hour="${hour}"
+                                 data-employee-id="${employee.id}">
+                            </div>
+                        `;
+                    });
+                }
+
+                html += '</div>'; // fin time-row
+            });
+        });
+
+        html += '</div>'; // fin week-grid
+        container.innerHTML = html;
+
+        // Appliquer styles CSS dynamiques
+        this.applyWeekGridStyles(employeesByDay);
+    }
+
+    /**
+     * Applique les styles CSS Grid dynamiques
+     */
+    applyWeekGridStyles(employeesByDay) {
+        // Supprimer anciens styles
+        document.querySelectorAll('#week-grid-styles').forEach(s => s.remove());
+
+        const style = document.createElement('style');
+        style.id = 'week-grid-styles';
+
+        const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+        // Calculer colonnes CSS Grid
+        let gridColumns = '80px'; // Colonne heures
+        days.forEach(day => {
+            const empCount = employeesByDay[day]?.length || 1;
+            gridColumns += ` repeat(${empCount}, 1fr)`;
+        });
+
+        style.textContent = `
+            .week-header {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                background: white;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            .days-header {
+                display: grid;
+                grid-template-columns: ${gridColumns};
+                background: #f8f9fa;
+            }
+
+            .employees-header {
+                display: grid;
+                grid-template-columns: ${gridColumns};
+                background: #f1f3f4;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .week-grid {
+                display: grid;
+                grid-template-columns: ${gridColumns};
+            }
+
+            .corner-cell, .spacer-cell {
+                background: #e9ecef;
+                padding: 1rem;
+                text-align: center;
+                font-weight: 600;
+                color: #495057;
+                border-right: 1px solid #dee2e6;
+            }
+
+            .day-cell {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1rem;
+                text-align: center;
+                border-right: 1px solid #dee2e6;
+            }
+
+            .day-name {
+                font-weight: 600;
+                margin-bottom: 0.25rem;
+            }
+
+            .day-date {
+                font-size: 0.875rem;
+                opacity: 0.9;
+            }
+
+            .day-employees {
+                display: flex;
+                border-right: 1px solid #dee2e6;
+                min-height: 60px;
+                background: #f8f9fa;
+            }
+
+            .employee-cell {
+                flex: 1;
+                background: white;
+                border-right: 1px solid #e9ecef;
+                padding: 0.5rem;
+                text-align: center;
+                font-size: 0.75rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-width: 100px;
+            }
+
+            .employee-cell:last-child {
+                border-right: none;
+            }
+
+            .employee-avatar {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                color: white;
+                font-weight: 600;
+                font-size: 0.7rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 0.25rem;
+            }
+
+            .employee-name {
+                font-weight: 500;
+                color: #495057;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+            }
+
+            .hour-cell {
+                background: #f8f9fa;
+                padding: 0.75rem;
+                text-align: center;
+                font-weight: 500;
+                color: #6c757d;
+                border-right: 1px solid #dee2e6;
+                border-bottom: 1px solid #e9ecef;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 60px;
+                position: sticky;
+                left: 0;
+                z-index: 10;
+            }
+
+            .time-row {
+                display: flex;
+                border-right: 1px solid #dee2e6;
+                min-height: 60px;
+            }
+
+            .schedule-cell {
+                flex: 1;
+                background: white;
+                border-right: 1px solid #e9ecef;
+                border-bottom: 1px solid #e9ecef;
+                position: relative;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+                min-width: 100px;
+            }
+
+            .schedule-cell:last-child {
+                border-right: none;
+            }
+
+            .schedule-cell:hover {
+                background-color: rgba(102, 126, 234, 0.05);
+            }
+
+            /* Responsive */
+            @media (max-width: 768px) {
+                .employee-name { display: none; }
+                .employee-avatar { width: 24px; height: 24px; font-size: 0.65rem; }
+                .employee-cell { min-width: 60px; }
+            }
+        `;
+
+        document.head.appendChild(style);
+        console.log('✅ Styles CSS Grid appliqués dynamiquement');
+    }
+
+    // ==================== MÉTHODES UTILITAIRES ====================
+
+    /**
+     * Calcule les dates de la semaine courante
+     */
+    getCurrentWeekDates() {
+        const today = new Date();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - today.getDay() + 1);
+
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            dates.push(date);
         }
+        return dates;
     }
 
     /**
-     * Applique les styles selon la granularité
+     * Obtient la couleur d'un type de poste
      */
-    applyGranularityStyles(container) {
-        const granularity = window.State?.getState('temp.granularity') || 60;
+    getEmployeeColor(poste) {
+        const colors = {
+            'cuisinier': '#74b9ff',
+            'serveur': '#00b894',
+            'barman': '#fdcb6e',
+            'manager': '#a29bfe',
+            'aide': '#fd79a8',
+            'commis': '#e17055'
+        };
+        return colors[poste] || '#6c5ce7';
+    }
 
-        // Supprimer les anciennes classes
-        container.classList.remove('granularity-15', 'granularity-30', 'granularity-60');
+    /**
+     * Génère les initiales d'un employé
+     */
+    getEmployeeInitials(employee) {
+        if (!employee) return 'XX';
+        const firstName = employee.prenom || '';
+        const lastName = employee.nom || '';
+        return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+    }
 
-        // Ajouter la nouvelle classe
-        container.classList.add(`granularity-${granularity}`);
-
-        console.log(`🎨 Styles de granularité ${granularity}min appliqués`);
+    /**
+     * Obtient la plage d'heures
+     */
+    getHoursRange() {
+        // Utiliser configuration existante ou fallback
+        if (window.Config?.HOURS_RANGE) {
+            return window.Config.HOURS_RANGE;
+        }
+        return [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
     }
 
     // ==================== RENDU DES CRÉNEAUX ====================
@@ -271,8 +559,10 @@ class PlanningManager {
         // Supprimer les anciens créneaux
         document.querySelectorAll('.shift-block').forEach(block => block.remove());
 
-        const shifts = window.State?.state.shifts;
-        if (!shifts || shifts.size === 0) {
+        const shifts = this.getShiftsFromState();
+        const employees = this.getActiveEmployeesFromState();
+
+        if (!shifts || shifts.length === 0) {
             console.log('Aucun créneau à rendre');
             return;
         }
@@ -280,7 +570,7 @@ class PlanningManager {
         let renderedCount = 0;
 
         shifts.forEach(shift => {
-            const employee = window.State?.state.employees.get(shift.employee_id);
+            const employee = employees.find(emp => emp.id === shift.employee_id);
             if (employee) {
                 this.renderShift(shift, employee);
                 renderedCount++;
@@ -296,11 +586,13 @@ class PlanningManager {
      * Rend un créneau individuel
      */
     renderShift(shift, employee) {
-        const cellSelector = this.buildCellSelector(shift.day, shift.start_hour, shift.start_minutes || 0);
-        const startCell = document.querySelector(cellSelector);
+        // Trouver la cellule cible
+        const targetCell = document.querySelector(
+            `[data-day="${shift.day}"][data-hour="${shift.start_hour}"][data-employee-id="${shift.employee_id}"]`
+        );
 
-        if (!startCell) {
-            console.warn(`Cellule non trouvée pour le créneau:`, cellSelector);
+        if (!targetCell) {
+            console.warn(`Cellule non trouvée pour le créneau:`, shift);
             return;
         }
 
@@ -308,131 +600,123 @@ class PlanningManager {
         const shiftBlock = this.createShiftBlock(shift, employee);
 
         // Calculer la position et la taille
-        this.positionShiftBlock(shiftBlock, shift, startCell);
+        this.positionShiftBlock(shiftBlock, shift, targetCell);
 
         // Configurer les événements
         this.setupShiftEvents(shiftBlock, shift, employee);
 
-        // Ajouter à la cellule
-        startCell.appendChild(shiftBlock);
-    }
-
-    /**
-     * Construit le sélecteur CSS pour une cellule
-     */
-    buildCellSelector(day, hour, minutes) {
-        return `[data-day="${day}"][data-hour="${hour}"][data-minutes="${minutes}"]`;
+        targetCell.appendChild(shiftBlock);
     }
 
     /**
      * Crée un bloc de créneau
      */
     createShiftBlock(shift, employee) {
-        const block = document.createElement('div');
-        block.className = `shift-block ${employee.poste}`;
-        block.dataset.shiftId = shift.id;
-        block.dataset.employeeId = shift.employee_id;
-        block.draggable = true;
+        const shiftBlock = document.createElement('div');
+        shiftBlock.className = 'shift-block';
+        shiftBlock.dataset.shiftId = shift.id;
+        shiftBlock.dataset.employeeId = employee.id;
 
-        // Contenu du créneau
-        const employeeType = window.Config?.getEmployeeTypeConfig(employee.poste);
+        const duration = shift.duration || 1;
+        const endHour = (shift.start_hour + duration) % 24;
+        const startTime = `${shift.start_hour.toString().padStart(2, '0')}:00`;
+        const endTime = `${endHour.toString().padStart(2, '0')}:00`;
 
-        block.innerHTML = `
-            <div class="shift-content">
-                <div class="shift-employee-name">${this.sanitize(employee.prenom)} ${this.sanitize(employee.nom)}</div>
-                <div class="shift-time">${shift.start_hour}:${(shift.start_minutes || 0).toString().padStart(2, '0')} - ${this.calculateEndTime(shift)}</div>
-                <div class="shift-employee-type">${employeeType.name}</div>
-            </div>
+        shiftBlock.innerHTML = `
+            <div class="shift-time">${startTime}-${endTime}</div>
+            <div class="shift-employee">${employee.prenom}</div>
+            <div class="shift-duration">${duration}h</div>
         `;
 
-        return block;
+        // Style de base
+        const color = this.getEmployeeColor(employee.poste);
+        shiftBlock.style.cssText = `
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            background: ${color};
+            color: white;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            text-align: center;
+            z-index: 20;
+            cursor: move;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.2s ease;
+        `;
+
+        return shiftBlock;
     }
 
     /**
      * Positionne un bloc de créneau
      */
-    positionShiftBlock(block, shift, startCell) {
-        const granularity = window.State?.getState('temp.granularity') || 60;
-        const cellHeight = window.Config?.getCellHeight() || 60;
+    positionShiftBlock(shiftBlock, shift, targetCell) {
+        const duration = shift.duration || 1;
+        const height = duration * 60; // 60px par heure
 
-        // Calculer la hauteur selon la durée
-        const durationInSlots = granularity === 60 ?
-            Math.ceil(shift.duration || 1) :
-            Math.ceil((shift.duration || 1) * 60 / granularity);
-
-        const totalHeight = (durationInSlots * cellHeight) - 4; // -4px pour les marges
-
-        block.style.cssText = `
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            height: ${totalHeight}px;
-            z-index: 10;
-        `;
+        shiftBlock.style.height = `${Math.max(height, 56)}px`;
     }
 
     /**
      * Configure les événements d'un créneau
      */
-    setupShiftEvents(block, shift, employee) {
-        // Double-clic pour modifier
-        block.addEventListener('dblclick', (e) => {
+    setupShiftEvents(shiftBlock, shift, employee) {
+        // Drag & drop
+        shiftBlock.draggable = true;
+
+        shiftBlock.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('application/json', JSON.stringify(shift));
+            shiftBlock.classList.add('dragging');
+        });
+
+        shiftBlock.addEventListener('dragend', () => {
+            shiftBlock.classList.remove('dragging');
+        });
+
+        // Clic pour modification
+        shiftBlock.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.handleShiftDoubleClick(shift);
-        });
-
-        // Hover
-        block.addEventListener('mouseenter', () => {
-            if (!block.classList.contains('dragging')) {
-                block.style.transform = 'scale(1.02)';
-                block.style.zIndex = '20';
+            if (window.ModalManager?.showShiftModal) {
+                window.ModalManager.showShiftModal(shift);
             }
         });
 
-        block.addEventListener('mouseleave', () => {
-            if (!block.classList.contains('dragging')) {
-                block.style.transform = 'scale(1)';
-                block.style.zIndex = '10';
-            }
+        // Hover effects
+        shiftBlock.addEventListener('mouseenter', () => {
+            shiftBlock.style.transform = 'scale(1.02)';
+            shiftBlock.style.zIndex = '30';
         });
 
-        // Les événements de drag seront gérés par DragDropManager
+        shiftBlock.addEventListener('mouseleave', () => {
+            shiftBlock.style.transform = 'scale(1)';
+            shiftBlock.style.zIndex = '20';
+        });
     }
 
-    /**
-     * Gère le double-clic sur un créneau
-     */
-    handleShiftDoubleClick(shift) {
-        console.log(`🖱️ Double-clic sur créneau:`, shift.id);
-
-        if (window.UIManager && window.UIManager.showEditShiftModal) {
-            window.UIManager.showEditShiftModal(shift.id);
-        } else {
-            console.warn('UIManager.showEditShiftModal non disponible');
-        }
-    }
-
-    // ==================== GESTION DES CHANGEMENTS ====================
+    // ==================== GESTION DES ÉVÉNEMENTS ====================
 
     /**
      * Gère les changements de données
      */
     onDataChanged() {
         if (this.isInitialized) {
-            this.renderShifts();
-            this.updateStatistics();
+            this.refreshDisplay();
         }
     }
 
     /**
-     * Gère le changement de semaine
+     * Gère les changements de semaine
      */
     onWeekChanged() {
         if (this.isInitialized) {
-            // Pas besoin de regénérer la grille, juste mettre à jour l'affichage
+            this.generateGrid();
             this.renderShifts();
-            this.updateStatistics();
         }
     }
 
@@ -522,83 +806,116 @@ class PlanningManager {
      * Affiche la vue par employé
      */
     showEmployeeView() {
-        // TODO: Implémenter la vue par employé
+        // TODO: Implémenter la vue employé
         console.log('👤 Vue employé - À implémenter');
     }
 
     // ==================== STATISTIQUES ====================
 
     /**
-     * Met à jour les statistiques affichées
+     * Met à jour les statistiques
      */
     updateStatistics() {
-        const stats = window.State?.calculateStatistics();
+        const employees = this.getActiveEmployeesFromState();
+        const shifts = this.getShiftsFromState();
 
-        if (stats) {
-            // Mettre à jour les compteurs dans l'interface
-            this.updateStatElement('employeeCount', stats.activeEmployees);
-            this.updateStatElement('totalHours', Math.round(stats.totalHours * 10) / 10);
+        // Calculer statistiques
+        const stats = this.calculateStats(employees, shifts);
 
-            console.log(`📊 Statistiques: ${stats.activeEmployees} employés, ${stats.totalHours}h`);
-        }
+        // Mettre à jour l'affichage
+        this.displayStats(stats);
     }
 
     /**
-     * Met à jour un élément de statistique
+     * Calcule les statistiques
      */
-    updateStatElement(elementId, value) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = value;
+    calculateStats(employees, shifts) {
+        let totalHours = 0;
+        const employeeHours = {};
+
+        shifts.forEach(shift => {
+            const duration = shift.duration || 1;
+            totalHours += duration;
+
+            if (!employeeHours[shift.employee_id]) {
+                employeeHours[shift.employee_id] = 0;
+            }
+            employeeHours[shift.employee_id] += duration;
+        });
+
+        return {
+            totalEmployees: employees.length,
+            activeEmployees: employees.filter(emp => emp.actif !== false).length,
+            totalShifts: shifts.length,
+            totalHours: totalHours,
+            averageHours: employees.length > 0 ? totalHours / employees.length : 0,
+            employeeHours
+        };
+    }
+
+    /**
+     * Affiche les statistiques
+     */
+    displayStats(stats) {
+        // Mettre à jour les éléments d'affichage
+        const elements = {
+            totalEmployees: document.getElementById('totalEmployees'),
+            totalHours: document.getElementById('totalHours'),
+            totalShifts: document.getElementById('totalShifts')
+        };
+
+        if (elements.totalEmployees) {
+            elements.totalEmployees.textContent = stats.activeEmployees;
+        }
+
+        if (elements.totalHours) {
+            elements.totalHours.textContent = stats.totalHours.toFixed(1);
+        }
+
+        if (elements.totalShifts) {
+            elements.totalShifts.textContent = stats.totalShifts;
         }
     }
 
-    // ==================== RESPONSIVE ====================
+    // ==================== OBSERVATEURS ET RESPONSIVE ====================
 
     /**
-     * Configure le comportement responsive
+     * Configure les observateurs
+     */
+    setupObservers() {
+        // Observer l'état de chargement si disponible
+        window.State?.observe('ui.isLoading', (isLoading) => {
+            this.toggleLoadingState(isLoading);
+        });
+    }
+
+    /**
+     * Configure le responsive
      */
     setupResponsive() {
-        if ('ResizeObserver' in window) {
-            this.resizeObserver = new ResizeObserver(entries => {
+        if (window.ResizeObserver) {
+            this.resizeObserver = new ResizeObserver(() => {
                 this.handleResize();
             });
 
-            const container = document.getElementById('planningGrid');
-            if (container) {
-                this.resizeObserver.observe(container);
+            const gridContainer = document.getElementById('planningGrid');
+            if (gridContainer) {
+                this.resizeObserver.observe(gridContainer);
             }
         }
-
-        // Fallback pour les navigateurs plus anciens
-        window.addEventListener('resize', () => {
-            clearTimeout(this.resizeTimeout);
-            this.resizeTimeout = setTimeout(() => this.handleResize(), 300);
-        });
     }
 
     /**
      * Gère le redimensionnement
      */
     handleResize() {
-        // Réajuster si nécessaire
-        const container = document.getElementById('planningGrid');
-        if (container) {
-            // Recalculer les positions si la largeur a changé significativement
-            this.renderShifts();
-        }
-    }
-
-    // ==================== OBSERVATEURS ====================
-
-    /**
-     * Configure les observateurs d'état
-     */
-    setupObservers() {
-        // Observer les changements de loading
-        window.State?.observe('ui.isLoading', (isLoading) => {
-            this.toggleLoadingState(isLoading);
-        });
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            if (this.isInitialized) {
+                this.generateGrid();
+                this.renderShifts();
+            }
+        }, 250);
     }
 
     /**
@@ -682,523 +999,3 @@ if (!window.PlanningManager) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PlanningManager;
 }
-
-/**
- * PATCH POUR PLANNING.JS EXISTANT
- * Ajouter ces méthodes à votre PlanningManager existant
- * pour implémenter la vue semaine avec colonnes employés
- */
-
-// ==================== MÉTHODES À AJOUTER DANS PLANNING.JS ====================
-
-/**
- * Génère la grille avec vue semaine (colonnes par jour + sous-colonnes employés)
- * Remplace ou modifie la méthode generateGrid() existante
- */
-generateWeekViewGrid() {
-    console.log('🏗️ Génération grille vue semaine avec colonnes employés...');
-
-    const headerContainer = document.getElementById('planningHeader');
-    const gridContainer = document.getElementById('planningGrid');
-
-    if (!headerContainer || !gridContainer) {
-        console.error('❌ Conteneurs manquants pour la vue semaine');
-        return;
-    }
-
-    // Récupérer les données
-    const employees = this.getActiveEmployees();
-    const shifts = window.State?.state.shifts || new Map();
-    const employeesByDay = this.calculateEmployeesByDay(employees, shifts);
-
-    console.log(`📊 Vue semaine: ${employees.length} employés total`);
-    console.log('📊 Répartition par jour:', employeesByDay);
-
-    // Générer l'en-tête semaine
-    this.generateWeekHeader(headerContainer, employeesByDay);
-
-    // Générer la grille corps
-    this.generateWeekBody(gridContainer, employeesByDay);
-
-    console.log('✅ Grille vue semaine générée');
-}
-
-/**
- * Calcule quels employés travaillent quels jours
- */
-calculateEmployeesByDay(employees, shifts) {
-    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-    const employeesByDay = {};
-
-    // Initialiser chaque jour
-    days.forEach(day => {
-        employeesByDay[day] = [];
-    });
-
-    // Analyser les créneaux pour déterminer les assignations
-    if (shifts && shifts.size > 0) {
-        shifts.forEach(shift => {
-            if (shift.day && shift.employee_id) {
-                const employee = employees.find(emp => emp.id === shift.employee_id);
-                if (employee && !employeesByDay[shift.day].find(emp => emp.id === employee.id)) {
-                    employeesByDay[shift.day].push(employee);
-                }
-            }
-        });
-    }
-
-    // Si aucun créneau, mettre au moins un employé par jour pour la démo
-    const hasAnyAssignment = Object.values(employeesByDay).some(dayEmps => dayEmps.length > 0);
-    if (!hasAnyAssignment && employees.length > 0) {
-        // Répartir les employés sur la semaine pour la démo
-        employees.forEach((emp, index) => {
-            const dayIndex = index % days.length;
-            employeesByDay[days[dayIndex]].push(emp);
-        });
-    }
-
-    // Trier les employés dans chaque jour
-    Object.keys(employeesByDay).forEach(day => {
-        employeesByDay[day].sort((a, b) => {
-            const posteOrder = { 'manager': 0, 'cuisinier': 1, 'serveur': 2, 'barman': 3, 'aide': 4, 'commis': 5 };
-            const aOrder = posteOrder[a.poste] ?? 99;
-            const bOrder = posteOrder[b.poste] ?? 99;
-            if (aOrder !== bOrder) return aOrder - bOrder;
-            return `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`);
-        });
-    });
-
-    return employeesByDay;
-}
-
-/**
- * Génère l'en-tête semaine avec jours et employés
- */
-generateWeekHeader(container, employeesByDay) {
-    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-    let html = '<div class="week-header-container">';
-
-    // En-tête des jours
-    html += '<div class="week-days-header">';
-    html += '<div class="corner-header">Heures</div>';
-
-    days.forEach((day, index) => {
-        const date = this.getCurrentWeekDates()[index];
-        const dateStr = date ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
-
-        html += `
-            <div class="day-header">
-                <div class="day-name">${day}</div>
-                <div class="day-date">${dateStr}</div>
-            </div>
-        `;
-    });
-    html += '</div>';
-
-    // En-tête des employés par jour
-    html += '<div class="employees-header-container">';
-    html += '<div class="employees-header-spacer"></div>';
-
-    days.forEach(day => {
-        const dayEmployees = employeesByDay[day] || [];
-
-        html += '<div class="day-employees-header">';
-
-        if (dayEmployees.length === 0) {
-            html += `
-                <div class="employee-column-header">
-                    <div class="employee-avatar" style="background: #e9ecef; color: #6c757d;">--</div>
-                    <div class="employee-name">Libre</div>
-                </div>
-            `;
-        } else {
-            dayEmployees.forEach(employee => {
-                const color = this.getEmployeeColor(employee.poste);
-                const initials = this.getEmployeeInitials(employee);
-
-                html += `
-                    <div class="employee-column-header" data-employee-id="${employee.id}">
-                        <div class="employee-avatar" style="background: ${color};">${initials}</div>
-                        <div class="employee-name">${employee.prenom} ${employee.nom}</div>
-                    </div>
-                `;
-            });
-        }
-
-        html += '</div>';
-    });
-    html += '</div>';
-
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-/**
- * Génère le corps de la grille avec les créneaux horaires
- */
-generateWeekBody(container, employeesByDay) {
-    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-    const hours = this.getHoursRange();
-
-    let html = '<div class="week-planning-grid">';
-
-    hours.forEach(hour => {
-        // Cellule heure
-        const hourDisplay = typeof hour === 'number' ?
-            (hour === 0 ? '00:00' : `${hour.toString().padStart(2, '0')}:00`) :
-            hour;
-
-        html += `<div class="time-cell">${hourDisplay}</div>`;
-
-        // Colonnes jours
-        days.forEach(day => {
-            const dayEmployees = employeesByDay[day] || [];
-
-            html += '<div class="day-column">';
-
-            if (dayEmployees.length === 0) {
-                html += `
-                    <div class="employee-cell"
-                         data-day="${day}"
-                         data-hour="${hour}"
-                         data-employee-id="none">
-                    </div>
-                `;
-            } else {
-                dayEmployees.forEach(employee => {
-                    html += `
-                        <div class="employee-cell"
-                             data-day="${day}"
-                             data-hour="${hour}"
-                             data-employee-id="${employee.id}">
-                        </div>
-                    `;
-                });
-            }
-
-            html += '</div>';
-        });
-    });
-
-    html += '</div>';
-    container.innerHTML = html;
-
-    // Appliquer les styles CSS Grid dynamiques
-    this.applyWeekViewStyles(employeesByDay);
-}
-
-/**
- * Applique les styles CSS Grid pour la vue semaine
- */
-applyWeekViewStyles(employeesByDay) {
-    // Supprimer anciens styles
-    document.querySelectorAll('#week-view-styles').forEach(s => s.remove());
-
-    const style = document.createElement('style');
-    style.id = 'week-view-styles';
-
-    // Calculer le nombre total de colonnes
-    const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-    let totalColumns = 1; // Colonne heures
-
-    days.forEach(day => {
-        const empCount = employeesByDay[day]?.length || 1;
-        totalColumns += empCount;
-    });
-
-    // Construire la définition des colonnes
-    let gridColumns = '80px'; // Colonne heures
-    days.forEach(day => {
-        const empCount = employeesByDay[day]?.length || 1;
-        gridColumns += ` repeat(${empCount}, 1fr)`;
-    });
-
-    style.textContent = `
-        /* Styles pour la vue semaine */
-        .week-header-container {
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .week-days-header {
-            display: grid;
-            grid-template-columns: ${gridColumns};
-            background: #f8f9fa;
-        }
-
-        .employees-header-container {
-            display: grid;
-            grid-template-columns: ${gridColumns};
-            background: #f1f3f4;
-        }
-
-        .week-planning-grid {
-            display: grid;
-            grid-template-columns: ${gridColumns};
-            min-height: 100%;
-        }
-
-        .corner-header {
-            background: #e9ecef;
-            padding: 1rem;
-            font-weight: 600;
-            color: #495057;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-right: 1px solid #dee2e6;
-        }
-
-        .day-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            font-weight: 600;
-            border-right: 1px solid #dee2e6;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .day-name {
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .day-date {
-            font-size: 0.8rem;
-            opacity: 0.9;
-        }
-
-        .employees-header-spacer {
-            background: #e9ecef;
-            border-right: 1px solid #dee2e6;
-        }
-
-        .day-employees-header {
-            display: flex;
-            border-right: 1px solid #dee2e6;
-            min-height: 60px;
-            background: #f8f9fa;
-        }
-
-        .employee-column-header {
-            flex: 1;
-            background: white;
-            border-right: 1px solid #e9ecef;
-            padding: 0.5rem 0.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 0.75rem;
-            min-width: 100px;
-        }
-
-        .employee-column-header:last-child {
-            border-right: none;
-        }
-
-        .employee-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 0.7rem;
-        }
-
-        .employee-name {
-            font-weight: 500;
-            color: #495057;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-        }
-
-        .time-cell {
-            background: #f8f9fa;
-            padding: 0.75rem 0.5rem;
-            text-align: center;
-            font-weight: 500;
-            color: #6c757d;
-            border-right: 1px solid #dee2e6;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 60px;
-            position: sticky;
-            left: 0;
-            z-index: 10;
-        }
-
-        .day-column {
-            border-right: 1px solid #dee2e6;
-            display: flex;
-            min-height: 60px;
-        }
-
-        .employee-cell {
-            flex: 1;
-            background: white;
-            border-right: 1px solid #e9ecef;
-            border-bottom: 1px solid #e9ecef;
-            position: relative;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            min-width: 100px;
-        }
-
-        .employee-cell:last-child {
-            border-right: none;
-        }
-
-        .employee-cell:hover {
-            background-color: rgba(102, 126, 234, 0.05);
-        }
-
-        .employee-cell[data-drop-zone="true"] {
-            background-color: #e3f2fd;
-            border: 2px dashed #2196f3;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .employee-name {
-                display: none;
-            }
-
-            .employee-avatar {
-                width: 24px;
-                height: 24px;
-                font-size: 0.65rem;
-            }
-
-            .employee-column-header {
-                min-width: 60px;
-            }
-        }
-    `;
-
-    document.head.appendChild(style);
-    console.log('✅ Styles vue semaine appliqués');
-}
-
-/**
- * Méthodes utilitaires pour la vue semaine
- */
-getCurrentWeekDates() {
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
-
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
-        dates.push(date);
-    }
-    return dates;
-}
-
-getEmployeeColor(poste) {
-    const colors = {
-        'cuisinier': '#74b9ff',
-        'serveur': '#00b894',
-        'barman': '#fdcb6e',
-        'manager': '#a29bfe',
-        'aide': '#fd79a8',
-        'commis': '#e17055'
-    };
-    return colors[poste] || '#6c5ce7';
-}
-
-getEmployeeInitials(employee) {
-    if (!employee) return 'XX';
-    const firstName = employee.prenom || '';
-    const lastName = employee.nom || '';
-    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-}
-
-getHoursRange() {
-    // Utiliser la plage d'heures de votre configuration existante
-    if (window.Config && window.Config.get_hours_range) {
-        return window.Config.get_hours_range();
-    }
-    // Fallback
-    return [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
-}
-
-/**
- * Active la vue semaine
- * Ajouter cette méthode et l'appeler pour activer la nouvelle vue
- */
-enableWeekView() {
-    console.log('🔄 Activation de la vue semaine...');
-
-    // Sauvegarder l'ancienne méthode generateGrid
-    if (!this.originalGenerateGrid) {
-        this.originalGenerateGrid = this.generateGrid;
-    }
-
-    // Remplacer par la nouvelle méthode
-    this.generateGrid = this.generateWeekViewGrid;
-
-    // Régénérer immédiatement
-    this.generateGrid();
-    this.renderShifts();
-
-    console.log('✅ Vue semaine activée');
-}
-
-/**
- * Désactive la vue semaine (retour à la vue normale)
- */
-disableWeekView() {
-    console.log('🔄 Retour à la vue normale...');
-
-    if (this.originalGenerateGrid) {
-        this.generateGrid = this.originalGenerateGrid;
-    }
-
-    // Supprimer les styles spécifiques
-    document.querySelectorAll('#week-view-styles').forEach(s => s.remove());
-
-    // Régénérer
-    this.generateGrid();
-    this.renderShifts();
-
-    console.log('✅ Vue normale restaurée');
-}
-
-// ==================== INSTRUCTIONS D'INTÉGRATION ====================
-
-/*
-POUR ACTIVER LA VUE SEMAINE DANS VOTRE APPLICATION :
-
-1. Ajoutez ces méthodes à votre classe PlanningManager existante dans planning.js
-
-2. Pour activer la vue semaine, dans la console ou votre code :
-   window.PlanningManager.enableWeekView();
-
-3. Pour revenir à la vue normale :
-   window.PlanningManager.disableWeekView();
-
-4. Pour tester immédiatement dans la console :
-   window.PlanningManager.enableWeekView();
-
-Le système détectera automatiquement quels employés travaillent quels jours
-et créera les colonnes appropriées.
-*/

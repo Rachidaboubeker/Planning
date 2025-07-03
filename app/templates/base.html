@@ -5,19 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Planning Restaurant{% endblock %}</title>
 
-    <!-- ✅ CSS unifié refactorisé -->
+    <!-- CSS Principal -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-
-    <!-- ✅ NOUVEAU CSS Grid Layout -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-grid.css') }}">
-
-    <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/week-layout.css') }}">
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation modernisée -->
+    <!-- Navigation -->
     <nav class="app-header">
         <div class="header-content">
             <div class="header-brand">
@@ -44,12 +39,12 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- ✅ Configuration Flask pour la nouvelle architecture -->
+    <!-- Configuration Flask -->
     <script id="flask-config" type="application/json">
         {
             "API_BASE": "/api",
             "TIME_SLOT_GRANULARITY": {{ config.get('TIME_SLOT_GRANULARITY', 60) }},
-            "HOURS_RANGE": {{ config.get('HOURS_RANGE', [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2]) | tojson }},
+            "HOURS_RANGE": {{ config.get('HOURS_RANGE', [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22]) | tojson }},
             "DAYS_OF_WEEK": {{ config.get('DAYS_OF_WEEK', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']) | tojson }},
             "EMPLOYEE_TYPES": {{ config.get('EMPLOYEE_TYPES', {
                 'cuisinier': {'color': '#74b9ff', 'name': 'Cuisinier'},
@@ -62,13 +57,12 @@
         }
     </script>
 
-    <!-- ✅ Conteneurs requis pour la nouvelle architecture -->
+    <!-- Conteneurs requis -->
     <div id="modalsContainer" class="modals-container"></div>
     <div id="notificationsContainer" class="notifications-container"></div>
 
-    <!-- ✅ JavaScript refactorisé - ORDRE CRITIQUE -->
-    {% block javascript %}
-    <!-- 1. Core (fondations) -->
+    <!-- JavaScript - ORDRE OPTIMISÉ -->
+    <!-- 1. Core -->
     <script src="{{ url_for('static', filename='js/core/config.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/state.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/events.js') }}"></script>
@@ -76,10 +70,6 @@
     <!-- 2. Utilitaires -->
     <script src="{{ url_for('static', filename='js/utils/time.js') }}"></script>
     <script src="{{ url_for('static', filename='js/utils/validation.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/utils/layout-fix.js') }}"></script>
-    <!-- Dans app/templates/base.html, ajouter après layout-fix.js -->
-    <script src="{{ url_for('static', filename='js/managers/week-view-manager.js') }}"></script>
-
 
     <!-- 3. Managers -->
     <script src="{{ url_for('static', filename='js/managers/api.js') }}"></script>
@@ -92,100 +82,36 @@
     <script src="{{ url_for('static', filename='js/components/notification.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/legend.js') }}"></script>
 
-    <!-- 5. Application principale -->
+    <!-- 5. Application -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
-    <!-- ✅ NOUVEAUX CORRECTIFS - Chargés après l'application -->
-    <script src="{{ url_for('static', filename='js/utils/data-cleanup.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/managers/layout-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/core/orchestrator.js') }}"></script>
-    {% endblock %}
-
-    <!-- ✅ Script d'initialisation globale -->
+    <!-- Initialisation -->
     <script>
-        // Vérification de l'intégrité au chargement
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🏗️ Vérification structure HTML...');
+            console.log('🏗️ Initialisation Planning Restaurant...');
 
-            // Conteneurs requis
-            const requiredContainers = [
-                'modalsContainer',
-                'notificationsContainer'
-            ];
+            // Vérifier conteneurs requis
+            const required = ['modalsContainer', 'notificationsContainer'];
+            const missing = required.filter(id => !document.getElementById(id));
 
-            // Conteneurs spécifiques au planning (optionnels selon la page)
-            const planningContainers = [
-                'planningHeader',
-                'planningGrid',
-                'employeesLegend'
-            ];
-
-            let missingRequired = [];
-            let missingPlanning = [];
-
-            requiredContainers.forEach(id => {
-                if (!document.getElementById(id)) {
-                    missingRequired.push(id);
-                }
-            });
-
-            planningContainers.forEach(id => {
-                if (!document.getElementById(id)) {
-                    missingPlanning.push(id);
-                }
-            });
-
-            if (missingRequired.length > 0) {
-                console.error('❌ Conteneurs requis manquants:', missingRequired);
-            } else {
-                console.log('✅ Conteneurs requis présents');
+            if (missing.length > 0) {
+                console.error('❌ Conteneurs manquants:', missing);
+                return;
             }
 
-            if (missingPlanning.length > 0 && window.location.pathname === '/') {
-                console.warn('⚠️ Conteneurs planning manquants:', missingPlanning);
-            }
-
-            // Déclencher l'initialisation si tout est OK
-            if (missingRequired.length === 0) {
-                if (window.PlanningApp && typeof window.PlanningApp.initialize === 'function') {
-                    console.log('🚀 Initialisation PlanningApp...');
-                    window.PlanningApp.initialize();
-                }
+            // Initialiser application
+            if (window.PlanningApp?.initialize) {
+                window.PlanningApp.initialize();
             }
         });
 
-        // Fonctions utilitaires globales
         function showStats() {
-            if (window.ModalManager && window.ModalManager.showStatsModal) {
+            if (window.ModalManager?.showStatsModal) {
                 window.ModalManager.showStatsModal();
             } else {
                 alert('Statistiques en cours de développement');
             }
         }
-
-        // Debug global
-        window.debugApp = function() {
-            console.log('🔍 Debug Application:');
-            console.log('- StateManager:', !!window.StateManager);
-            console.log('- APIManager:', !!window.APIManager);
-            console.log('- PlanningManager:', !!window.PlanningManager);
-            console.log('- LayoutManager:', !!window.LayoutManager);
-            console.log('- MasterOrchestrator:', !!window.MasterOrchestrator);
-
-            if (window.StateManager && window.StateManager.getState) {
-                const state = window.StateManager.getState();
-                console.log('- Employés:', state.employees?.length || 0);
-                console.log('- Créneaux:', state.shifts?.length || 0);
-            }
-
-            console.log('- Conteneurs:');
-            ['modalsContainer', 'notificationsContainer', 'planningHeader', 'planningGrid', 'employeesLegend'].forEach(id => {
-                console.log(`  - ${id}:`, !!document.getElementById(id));
-            });
-        };
-
-        console.log('🏗️ Template base.html chargé avec succès');
-        console.log('🛠️ Debug: window.debugApp()');
     </script>
 
     {% block extra_js %}{% endblock %}
